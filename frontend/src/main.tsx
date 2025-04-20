@@ -12,7 +12,7 @@ import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <MantineProvider theme={theme}>
+    <MantineProvider theme={theme} defaultColorScheme='auto'>
       <ModalsProvider>
         <App />
       </ModalsProvider>

@@ -357,5 +357,12 @@ const darkColorByHue = {
   330: 'hsl(330, 100%, 31%)',
 } as const
 
+export const lightColorsGradient = `linear-gradient(90deg,${Object.values(lightColorByHue).join(
+  ','
+)})`
+export const darkColorsGradient = `linear-gradient(90deg,${Object.values(darkColorByHue).join(
+  ','
+)})`
+
 export const labelColor = (hue: Hue, darkMode: boolean): string =>
   hue === null ? `var(--mantine-color-body)` : darkMode ? darkColorByHue[hue] : lightColorByHue[hue]
