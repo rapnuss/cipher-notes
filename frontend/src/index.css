@@ -11,7 +11,8 @@ body,
   background-color: var(--mantine-color-gray-0);
 }
 html[data-mantine-color-scheme='dark'] body,
-html[data-mantine-color-scheme='dark'] .mantine-Drawer-content {
+html[data-mantine-color-scheme='dark'] .mantine-Drawer-content,
+html[data-mantine-color-scheme='dark'] .mantine-Popover-dropdown {
   background-color: var(--mantine-color-dark-8);
 }
 .x-textarea textarea:focus {

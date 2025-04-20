@@ -113,6 +113,11 @@ export const createLabel = async (name: string, hue: Hue = null): Promise<Label>
   return label
 }
 
+export const applyNewLabel = async (noteId: string, labelName: string) => {
+  const label = await createLabel(labelName)
+  toggleNoteLabel(noteId, label.id)
+}
+
 export const updateLabel = (id: string, props: {name?: string; hue?: Hue}) => {
   db.labels
     .where('id')
@@ -176,7 +181,20 @@ export const toggleNoteLabel = (noteId: string, labelId: string) =>
       note.updated_at = Date.now()
     })
 
+export const setNoteMainLabel = (noteId: string, labelId: string) =>
+  db.notes
+    .where('id')
+    .equals(noteId)
+    .modify((note) => {
+      note.labels = [labelId, ...(note.labels ?? []).filter((l) => l !== labelId)]
+      if (note.state === 'synced') {
+        note.state = 'dirty'
+        note.version = note.version + 1
+      }
+      note.updated_at = Date.now()
+    })
+
 export const selectCachedLabels = createSelector(
   (state: RootState) => state.labels.labelsCache,
-  (labelsCache) => Object.values(labelsCache).sort(byProp('created_at'))
+  (labelsCache) => Object.values(labelsCache).sort(byProp('name'))
 )
