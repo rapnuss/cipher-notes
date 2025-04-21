@@ -44,9 +44,6 @@ type Props = HTMLAttributes<HTMLDivElement> & {
   required?: boolean
   textareaClassName?: string
   textareaId?: string
-
-  // Props for the highlighted code’s pre element
-  preClassName?: string
 }
 
 type Record = {
@@ -548,6 +545,7 @@ const styles = {
     whiteSpace: 'pre-wrap',
     wordBreak: 'keep-all',
     overflowWrap: 'break-word',
+    userSelect: 'text',
   },
 } as const
 
