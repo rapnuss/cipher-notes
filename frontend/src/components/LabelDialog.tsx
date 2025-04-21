@@ -14,12 +14,7 @@ export const LabelDialog = () => {
   const {hue, name, open, id} = useSelector((state) => state.labels.dialog)
   const colorScheme = useComputedColorScheme()
   return (
-    <Modal
-      opened={open}
-      onClose={closeLabelDialog}
-      title={id ? 'Edit Label' : 'Create Label'}
-      closeButtonProps={{title: 'Close dialog'}}
-    >
+    <Modal opened={open} onClose={closeLabelDialog} title={id ? 'Edit Label' : 'Create Label'}>
       <TextInput
         label='Name'
         value={name}

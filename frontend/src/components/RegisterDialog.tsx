@@ -21,7 +21,6 @@ export const RegisterDialog = () => {
         }
       }}
       title='Register Email'
-      closeButtonProps={{title: 'Close dialog'}}
     >
       <Stack gap='md'>
         <TextInput

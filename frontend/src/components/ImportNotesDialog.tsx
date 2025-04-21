@@ -5,12 +5,7 @@ import {closeImportDialog, importFileChanged, importNotes} from '../state/import
 export const ImportNotesDialog = () => {
   const {open, file, error} = useSelector((state) => state.import.importDialog)
   return (
-    <Modal
-      opened={open}
-      onClose={closeImportDialog}
-      title='Import notes'
-      closeButtonProps={{title: 'Close dialog'}}
-    >
+    <Modal opened={open} onClose={closeImportDialog} title='Import notes'>
       <FileInput
         value={file}
         onChange={importFileChanged}

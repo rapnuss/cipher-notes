@@ -12,12 +12,7 @@ export const DeleteServerNotesDialog = () => {
     (state) => state.user.deleteServerNotesDialog
   )
   return (
-    <Modal
-      opened={open}
-      onClose={closeDeleteServerNotesDialog}
-      title='Delete Server Notes'
-      closeButtonProps={{title: 'Close dialog'}}
-    >
+    <Modal opened={open} onClose={closeDeleteServerNotesDialog} title='Delete Server Notes'>
       <Stack>
         <TextInput
           label='Confirmation Code'
