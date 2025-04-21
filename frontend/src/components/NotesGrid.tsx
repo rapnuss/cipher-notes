@@ -61,6 +61,7 @@ const NotePreview = ({note}: {note: Note}) => {
   return (
     <Paper
       component='button'
+      title={`Open note ${note.title}`}
       style={{
         padding: '1rem',
         whiteSpace: 'pre-wrap',

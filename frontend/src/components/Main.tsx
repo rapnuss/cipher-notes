@@ -16,7 +16,7 @@ export const Main = () => (
       <SearchInput />
       <Flex gap='xs' flex='0 1 auto'>
         <NotesSortSelect />
-        <ActionIcon size='lg' onClick={spotlight.open}>
+        <ActionIcon title='Open Command Center' size='lg' onClick={spotlight.open}>
           <IconCommand />
         </ActionIcon>
       </Flex>
@@ -31,6 +31,7 @@ export const Main = () => (
         pos='absolute'
         bottom='1.25rem'
         left='1.25rem'
+        title='Open Label Selector'
       >
         <IconLabel />
       </ActionIcon>
@@ -42,6 +43,7 @@ export const Main = () => (
         pos='absolute'
         bottom='1.25rem'
         right='1.25rem'
+        title='Create new note'
       >
         <IconPlus />
       </ActionIcon>

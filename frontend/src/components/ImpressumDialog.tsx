@@ -5,7 +5,12 @@ import {toggleImpressum} from '../state/user'
 export const ImpressumDialog = () => {
   const open = useSelector((state) => state.user.impressumOpen)
   return (
-    <Modal opened={open} onClose={toggleImpressum} title='Impressum'>
+    <Modal
+      opened={open}
+      onClose={toggleImpressum}
+      title='Impressum'
+      closeButtonProps={{title: 'Close dialog'}}
+    >
       <Text>
         Owner of this Web-App:
         <br />

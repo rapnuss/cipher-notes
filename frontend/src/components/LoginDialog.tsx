@@ -12,7 +12,12 @@ import {
 export const LoginDialog = () => {
   const {open, email, code, loading, status} = useSelector((state) => state.user.loginDialog)
   return (
-    <Modal opened={open} onClose={closeLoginDialog} title='Login'>
+    <Modal
+      opened={open}
+      onClose={closeLoginDialog}
+      title='Login'
+      closeButtonProps={{title: 'Close dialog'}}
+    >
       {status === 'email' && (
         <Stack gap='md'>
           <TextInput

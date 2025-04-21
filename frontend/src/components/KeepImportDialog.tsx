@@ -10,7 +10,12 @@ import {
 export const KeepImportDialog = () => {
   const {open, file, error, importArchived} = useSelector((state) => state.import.keepImportDialog)
   return (
-    <Modal opened={open} onClose={closeKeepImportDialog} title='Import notes from Keep'>
+    <Modal
+      opened={open}
+      onClose={closeKeepImportDialog}
+      title='Import notes from Keep'
+      closeButtonProps={{title: 'Close dialog'}}
+    >
       <Text mb='sm'>
         Go to{' '}
         <a href='https://takeout.google.com' target='_blank' rel='noopener noreferrer'>

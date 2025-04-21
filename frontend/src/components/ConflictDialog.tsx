@@ -12,7 +12,13 @@ export const ConflictDialog = () => {
   const localNote = useLiveQuery(() => db.notes.get(serverNote?.id ?? ''), [serverNote?.id])
   if (!serverNote || !localNote) return null
   return (
-    <Modal size='100%' opened={conflicts.length > 0} onClose={() => {}} title='Conflict Resolution'>
+    <Modal
+      withCloseButton={false}
+      size='100%'
+      opened={conflicts.length > 0}
+      onClose={() => {}}
+      title='Conflict Resolution'
+    >
       <Flex gap='xs'>
         <Stack flex='1 1 0' gap='xs'>
           <Text size='xl'>Local Note</Text>

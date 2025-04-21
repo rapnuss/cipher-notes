@@ -27,6 +27,8 @@ export const LabelDropdownContent = ({noteId}: LabelDropdownContentProps) => {
           rightSection={
             <UnstyledButton
               style={{display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+              disabled={search.length === 0}
+              title='Clear search'
               onClick={() => setSearch('')}
             >
               {search.length === 0 ? <IconSearch /> : <IconX />}
@@ -40,6 +42,7 @@ export const LabelDropdownContent = ({noteId}: LabelDropdownContentProps) => {
           disabled={search.length === 0}
           onClick={() => applyNewLabel(noteId, search)}
           mb='1px'
+          title='Apply new label'
         >
           <IconPlus />
         </ActionIcon>
@@ -87,6 +90,7 @@ export const LabelDropdownContent = ({noteId}: LabelDropdownContentProps) => {
                       variant='outline'
                       color='gray'
                       onClick={() => setNoteMainLabel(noteId, label.id)}
+                      title='Set as main label (effects color)'
                     >
                       <IconCrown />
                     </ActionIcon>

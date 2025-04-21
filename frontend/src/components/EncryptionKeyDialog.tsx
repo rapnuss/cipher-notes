@@ -17,7 +17,12 @@ export const EncryptionKeyDialog = () => {
   )
   const valid = isValidKeyTokenPair(keyTokenPair)
   return (
-    <Modal title='Encryption key' opened={open} onClose={closeEncryptionKeyDialog}>
+    <Modal
+      title='Encryption key'
+      opened={open}
+      onClose={closeEncryptionKeyDialog}
+      closeButtonProps={{title: 'Close dialog'}}
+    >
       <Flex gap='xs' align='end'>
         <TextInput
           flex={1}

@@ -14,7 +14,12 @@ export const LabelDialog = () => {
   const {hue, name, open, id} = useSelector((state) => state.labels.dialog)
   const colorScheme = useComputedColorScheme()
   return (
-    <Modal opened={open} onClose={closeLabelDialog} title={id ? 'Edit Label' : 'Create Label'}>
+    <Modal
+      opened={open}
+      onClose={closeLabelDialog}
+      title={id ? 'Edit Label' : 'Create Label'}
+      closeButtonProps={{title: 'Close dialog'}}
+    >
       <TextInput
         label='Name'
         value={name}
@@ -34,6 +39,7 @@ export const LabelDialog = () => {
             onClick={() => labelDialogHueChanged(h)}
             c='var(--mantine-color-text)'
             bg={labelColor(h, colorScheme === 'dark')}
+            aria-label={`Select hue ${h ?? 'none'}`}
           >
             {h === null ? '-' : h}
           </ActionIcon>

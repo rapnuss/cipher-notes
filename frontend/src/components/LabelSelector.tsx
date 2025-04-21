@@ -43,6 +43,7 @@ export const LabelSelector = () => {
         content: {position: 'relative', overflowY: 'hidden'},
         body: {height: '100%', display: 'flex', flexDirection: 'column'},
       }}
+      aria-labelledby='label-selector-title'
     >
       <Stack gap='xs' style={{overflowY: 'auto'}} flex={1}>
         {labels.map((label) => (
@@ -64,6 +65,7 @@ export const LabelSelector = () => {
           variant='default'
           radius='xl'
           onClick={openCreateLabelDialog}
+          title='Create new label'
         >
           <IconPlus />
         </ActionIcon>
@@ -81,6 +83,7 @@ export const LabelSelector = () => {
             toggleLabelSelector()
           }}
           component='button'
+          title='Show all notes'
         >
           All notes
         </Box>
@@ -96,13 +99,14 @@ export const LabelSelector = () => {
           }}
           bg='var(--mantine-color-body)'
           component='button'
+          title='Show unlabeled notes'
         >
           Unlabeled
         </Paper>
       </Stack>
-      <Flex justify='space-between' pt='md'>
+      <Flex justify='space-between' pt='md' id='label-selector-title'>
         Labels
-        <UnstyledButton onClick={toggleLabelSelector}>
+        <UnstyledButton title='Close label selector' onClick={toggleLabelSelector}>
           <IconX />
         </UnstyledButton>
       </Flex>
@@ -130,6 +134,7 @@ const LabelSelectorItem = ({active, darkMode, ...label}: LabelSelectorItemProps)
         labelSelected(label.id)
         toggleLabelSelector()
       }}
+      title={`Select label ${label.name}`}
     >
       {label.name}
     </UnstyledButton>
@@ -139,6 +144,7 @@ const LabelSelectorItem = ({active, darkMode, ...label}: LabelSelectorItemProps)
           e.stopPropagation()
           openEditLabelDialog(label.id)
         }}
+        title={`Edit label ${label.name}`}
       >
         <IconPencil />
       </UnstyledButton>
@@ -152,6 +158,7 @@ const LabelSelectorItem = ({active, darkMode, ...label}: LabelSelectorItemProps)
             onConfirm: () => deleteLabel(label.id),
           })
         }}
+        title={`Delete label ${label.name}`}
       >
         <IconTrash />
       </UnstyledButton>

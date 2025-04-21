@@ -85,6 +85,7 @@ export const OpenNoteDialog = () => {
           gap: '1rem',
         },
       }}
+      aria-label='Open note'
     >
       <input
         id='open-note-title'
@@ -140,6 +141,7 @@ export const OpenNoteDialog = () => {
         <ActionIcon
           variant='default'
           size='xl'
+          title='Delete note'
           onClick={() =>
             modals.openConfirmModal({
               title: 'Delete note?',
@@ -155,7 +157,7 @@ export const OpenNoteDialog = () => {
         <div style={{flex: '1 1 0'}} />
         <Popover width='300px' position='top' withArrow shadow='md'>
           <Popover.Target>
-            <ActionIcon size='xl' variant='default'>
+            <ActionIcon title='Add label' size='xl' variant='default'>
               <IconLabel />
             </ActionIcon>
           </Popover.Target>
@@ -163,16 +165,26 @@ export const OpenNoteDialog = () => {
             {openNote && <LabelDropdownContent noteId={openNote.id} />}
           </Popover.Dropdown>
         </Popover>
-        <ActionIcon size='xl' onClick={openNoteTypeToggled} variant='default'>
+        <ActionIcon
+          size='xl'
+          title={openNote?.type === 'todo' ? 'Turn into text note' : 'Turn into todo list'}
+          onClick={openNoteTypeToggled}
+          variant='default'
+        >
           <IconCheckbox />
         </ActionIcon>
-        <ActionIcon size='xl' onClick={undo} disabled={!canUndo} variant='default'>
+        <ActionIcon size='xl' title='Undo' onClick={undo} disabled={!canUndo} variant='default'>
           <IconArrowBackUp />
         </ActionIcon>
-        <ActionIcon size='xl' onClick={redo} disabled={!canRedo} variant='default'>
+        <ActionIcon size='xl' title='Redo' onClick={redo} disabled={!canRedo} variant='default'>
           <IconArrowForwardUp />
         </ActionIcon>
-        <ActionIcon size='xl' onClick={() => window.history.back()} variant='default'>
+        <ActionIcon
+          size='xl'
+          title='Close note'
+          onClick={() => window.history.back()}
+          variant='default'
+        >
           <IconX />
         </ActionIcon>
       </Flex>

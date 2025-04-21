@@ -6,7 +6,12 @@ export const SyncDialog = () => {
   const {syncing, dialogOpen} = useSelector((state) => state.notes.sync)
   const noKey = useSelector((state) => state.user.user.keyTokenPair === null)
   return (
-    <Modal title='Synchronize notes with the server' opened={dialogOpen} onClose={closeSyncDialog}>
+    <Modal
+      title='Synchronize notes with the server'
+      opened={dialogOpen}
+      onClose={closeSyncDialog}
+      closeButtonProps={{title: 'Close dialog'}}
+    >
       <Text c='dimmed' pb='md'>
         {noKey
           ? 'You need to generate or import an Encryption-Key first!'

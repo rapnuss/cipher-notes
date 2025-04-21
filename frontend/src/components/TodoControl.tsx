@@ -54,7 +54,7 @@ export const TodoControl = ({
     )}
     {!!onInsertTodo && (
       <Flex justify='end'>
-        <UnstyledButton onClick={() => onInsertTodo(todos.length - 1)}>
+        <UnstyledButton title='Add todo' onClick={() => onInsertTodo(todos.length - 1)}>
           <IconPlus />
         </UnstyledButton>
       </Flex>
@@ -246,7 +246,7 @@ const TodoItem = ({
         }}
       />
       {!!onTodoDeleted && (
-        <UnstyledButton onClick={() => onTodoDeleted(i)}>
+        <UnstyledButton title='Delete todo' onClick={() => onTodoDeleted(i)}>
           <IconTrash />
         </UnstyledButton>
       )}

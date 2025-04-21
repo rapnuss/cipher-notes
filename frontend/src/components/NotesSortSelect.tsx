@@ -14,10 +14,15 @@ export const NotesSortSelect = () => {
         w='7rem'
         data={noteSortOptions}
         value={prop}
+        title='Sort notes by'
         onChange={(value) => value && sortChanged(value as NoteSortProp)}
       />
-      <ActionIcon size='lg' onClick={sortDirectionChanged}>
-        {!desc ? <IconSortDescending /> : <IconSortAscending />}
+      <ActionIcon
+        size='lg'
+        title={desc ? 'Sort ascending' : 'Sort descending'}
+        onClick={sortDirectionChanged}
+      >
+        {desc ? <IconSortAscending /> : <IconSortDescending />}
       </ActionIcon>
     </>
   )

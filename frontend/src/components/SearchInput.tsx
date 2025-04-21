@@ -11,6 +11,7 @@ export const SearchInput = () => {
       value={query}
       onChange={(e) => noteQueryChanged(e.target.value)}
       rightSection={<IconSearch />}
+      title='Search notes'
     />
   )
 }
