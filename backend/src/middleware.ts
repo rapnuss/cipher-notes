@@ -1,4 +1,4 @@
-import {Method, Middleware} from 'express-zod-api'
+import {Middleware} from 'express-zod-api'
 import {env} from './env'
 import {sessionsTbl, usersTbl} from './db/schema'
 import {db} from './db'
@@ -6,12 +6,6 @@ import {eq} from 'drizzle-orm'
 import createHttpError from 'http-errors'
 import {verifyToken} from './util/hash'
 import {sessionSchema} from './business/sessionSchema'
-
-export const methodProviderMiddleware = new Middleware({
-  handler: async ({request}) => ({
-    method: request.method.toLowerCase() as Method,
-  }),
-})
 
 export const authMiddleware = new Middleware({
   handler: async ({request}) => {
