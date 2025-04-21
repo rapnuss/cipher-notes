@@ -29,9 +29,6 @@ export const byProp =
   (a: Item, b: Item) =>
     desc ? compare(b[key], a[key]) : compare(a[key], b[key])
 
-const wordSplitter = /[\t\n ]+/g
-export const splitWords = (text: string): string[] => text.split(wordSplitter)
-
 export const last = <T>(array: T[]): T | undefined => array[array.length - 1]
 
 export const debounce = <Args extends unknown[]>(fn: (...args: Args) => unknown, delay: number) => {
@@ -136,21 +133,6 @@ export const throttle = <Args extends any[]>(fn: (...args: Args) => unknown, tim
     wait()
   }
 }
-
-export const getWordBounds = (text: string, pos: number): {start: number; end: number} => {
-  if (!text) return {start: 0, end: 0}
-  if (pos < 0) pos = 0
-  if (pos > text.length) pos = text.length
-
-  let end = pos
-  while (end < text.length && ![' ', '\t', '\n'].includes(text[end]!)) end++
-
-  let start = pos
-  while (start > 0 && ![' ', '\t', '\n'].includes(text[start - 1]!)) start--
-  return {start, end}
-}
-export const spliceString = (str: string, start: number, end: number, insert: string) =>
-  str.slice(0, start) + insert + str.slice(end)
 
 export const indexBy = <T, K extends string>(arr: T[], keyFn: (item: T) => K) => {
   const map = {} as Record<K, T>

@@ -6,15 +6,6 @@ export function generateSalt(length = 16): string {
   return binToBase64(crypto.getRandomValues(new Uint8Array(length)))
 }
 
-export async function hashWithSalt(key: CryptoKey, salt: string): Promise<string> {
-  // Export the key as raw data
-  const rawKey = await crypto.subtle.exportKey('raw', key)
-
-  const saltedKey = new Uint8Array([...base64ToBin(salt), ...new Uint8Array(rawKey)])
-  const hashBuffer = await crypto.subtle.digest('SHA-256', saltedKey)
-  return arrayBufferToBase64(hashBuffer)
-}
-
 export function binToBase64(iv: Uint8Array): string {
   return btoa(String.fromCharCode(...iv))
 }
