@@ -43,7 +43,6 @@ export const LabelSelector = () => {
         content: {position: 'relative', overflowY: 'hidden'},
         body: {height: '100%', display: 'flex', flexDirection: 'column'},
       }}
-      aria-labelledby='label-selector-title'
     >
       <Stack gap='xs' style={{overflowY: 'auto'}} flex={1}>
         {labels.map((label) => (
@@ -104,7 +103,7 @@ export const LabelSelector = () => {
           Unlabeled
         </Paper>
       </Stack>
-      <Flex justify='space-between' pt='md' id='label-selector-title'>
+      <Flex justify='space-between' pt='md'>
         Labels
         <UnstyledButton title='Close label selector' onClick={toggleLabelSelector}>
           <IconX />

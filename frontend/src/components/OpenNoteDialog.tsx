@@ -85,7 +85,6 @@ export const OpenNoteDialog = () => {
           gap: '1rem',
         },
       }}
-      aria-label='Open note'
     >
       <input
         id='open-note-title'
