@@ -21,6 +21,7 @@ export const LabelDropdownContent = ({noteId}: LabelDropdownContentProps) => {
     <>
       <Group align='end' gap='xs'>
         <TextInput
+          autoFocus
           flex={1}
           label='Label'
           placeholder='Search or create label'
