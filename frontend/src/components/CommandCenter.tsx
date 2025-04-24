@@ -14,7 +14,7 @@ import {useHotkeys} from '@mantine/hooks'
 import {openSettingsDialog} from '../state/settings'
 import {db} from '../db'
 import {useLiveQuery} from 'dexie-react-hooks'
-import {useCallback, useMemo} from 'react'
+import {useCallback, useEffect, useMemo} from 'react'
 import {Note} from '../business/models'
 import {exportNotes, openImportDialog, openKeepImportDialog} from '../state/import'
 
@@ -22,7 +22,12 @@ export const CommandCenter = () => {
   const {toggleColorScheme} = useMantineColorScheme()
   const loggedIn = useSelector((state) => state.user.user.loggedIn)
   const anyDialogOpen = useSelector(selectAnyDialogOpen)
-  const notes: Note[] = useLiveQuery(() => db.notes.toArray(), [], [])
+  const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
+
+  useEffect(() => {
+    window.addEventListener('popstate', spotlight.close)
+    return () => window.removeEventListener('popstate', spotlight.close)
+  }, [])
 
   const commands: (SpotlightActionData & {shortcut?: string})[] = useMemo(
     () => [
@@ -118,11 +123,7 @@ export const CommandCenter = () => {
     [enabledCommands]
   )
 
-  useHotkeys(hotkeys, [])
-
-  const openSpotlight = useCallback(() => anyDialogOpen || spotlight.open(), [anyDialogOpen])
-
-  useHotkeys([['mod + k', openSpotlight]], [])
+  useHotkeys(hotkeys, [], true)
 
   const actions = useMemo(
     () => enabledCommands.map(({shortcut, ...a}) => ({...a, rightSection: shortcut})),
@@ -153,14 +154,28 @@ export const CommandCenter = () => {
     [actions, noteActions]
   )
 
+  const onOpen = useCallback(() => {
+    history.pushState(null, '', location.href)
+  }, [])
+
+  const onClose = useCallback(() => {
+    history.back()
+  }, [])
+
   return (
     <Spotlight
-      shortcut=''
+      shortcut='mod + k'
+      tagsToIgnore={emptyArray}
+      triggerOnContentEditable
       scrollable
       maxHeight='100%'
       disabled={anyDialogOpen}
       limit={actions.length}
       actions={actionGroups}
+      onSpotlightOpen={onOpen}
+      onSpotlightClose={onClose}
     />
   )
 }
+
+const emptyArray: string[] = []
