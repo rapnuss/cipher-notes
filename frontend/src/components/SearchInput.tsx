@@ -11,6 +11,7 @@ export const SearchInput = () => {
       flex='0 1 auto'
       value={query}
       onChange={(e) => noteQueryChanged(e.target.value)}
+      placeholder='Search notes'
       rightSection={
         query.length === 0 ? (
           <IconSearch />
