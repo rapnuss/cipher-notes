@@ -1,5 +1,5 @@
 import {Note, NoteHistoryItem, OpenNote, NoteSortProp} from '../business/models'
-import {getState, selectAnyDialogOpen, setState, subscribe} from './store'
+import {getState, setState, subscribe} from './store'
 import {bisectBy, debounce, deepEquals, nonConcurrent} from '../util/misc'
 import {isUnauthorizedRes, reqSyncNotes} from '../services/backend'
 import {Put, decryptSyncData, encryptSyncData} from '../business/notesEncryption'
@@ -58,10 +58,6 @@ new Promise((resolve) => window.addEventListener('DOMContentLoaded', resolve)).t
 })
 
 const onFocus = debounce(() => {
-  const state = getState()
-  if (!selectAnyDialogOpen(state) && state.settings.settings.newNoteOnLaunch) {
-    addNote()
-  }
   syncNotes()
 }, 10)
 

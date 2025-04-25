@@ -4,15 +4,11 @@ import {setState, subscribe} from './store'
 
 export type SettingsState = {
   open: boolean
-  settings: {
-    newNoteOnLaunch: boolean
-  }
+  settings: object
 }
 export const settingsInit: SettingsState = {
   open: false,
-  settings: {
-    newNoteOnLaunch: false,
-  },
+  settings: {},
 }
 
 loadSettings().then((settings) => {
@@ -34,11 +30,6 @@ export const openSettingsDialog = () => {
 export const closeSettingsDialog = () => {
   setState((state) => {
     state.settings.open = false
-  })
-}
-export const toggleNewNoteOnLaunch = () => {
-  setState((state) => {
-    state.settings.settings.newNoteOnLaunch = !state.settings.settings.newNoteOnLaunch
   })
 }
 

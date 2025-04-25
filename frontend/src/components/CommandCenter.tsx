@@ -94,6 +94,7 @@ export const CommandCenter = () => {
         id: 'settings',
         label: 'Settings',
         onClick: openSettingsDialog,
+        disabled: true,
       },
       {
         id: 'deleteServerNotes',
