@@ -1,7 +1,8 @@
-import {TextInput} from '@mantine/core'
+import {TextInput, UnstyledButton} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {noteQueryChanged} from '../state/notes'
 import {IconSearch} from './icons/IconSearch'
+import {IconX} from './icons/IconX'
 
 export const SearchInput = () => {
   const query = useSelector((state) => state.notes.query)
@@ -10,8 +11,15 @@ export const SearchInput = () => {
       flex='0 1 auto'
       value={query}
       onChange={(e) => noteQueryChanged(e.target.value)}
-      rightSection={<IconSearch />}
-      title='Search notes'
+      rightSection={
+        query.length === 0 ? (
+          <IconSearch />
+        ) : (
+          <UnstyledButton display='flex' onClick={() => noteQueryChanged('')}>
+            <IconX />
+          </UnstyledButton>
+        )
+      }
     />
   )
 }
