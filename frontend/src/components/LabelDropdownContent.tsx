@@ -41,14 +41,17 @@ export const LabelDropdownContent = ({noteId}: LabelDropdownContentProps) => {
         <ActionIcon
           size='lg'
           disabled={search.length === 0}
-          onClick={() => applyNewLabel(noteId, search)}
+          onClick={() => {
+            applyNewLabel(noteId, search)
+            setSearch('')
+          }}
           mb='1px'
           title='Apply new label'
         >
           <IconPlus />
         </ActionIcon>
       </Group>
-      <Stack mah={200} style={{overflowY: 'auto'}} mt='md' gap='md'>
+      <Stack h={160} style={{overflowY: 'auto'}} mt='md' gap='md'>
         {labels
           .filter((label) => label.name.toLowerCase().includes(search.toLowerCase()))
           .map((label) => (
