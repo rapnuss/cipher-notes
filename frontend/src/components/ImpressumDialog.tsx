@@ -1,9 +1,15 @@
 import {Modal, Text} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {toggleImpressum} from '../state/user'
+import {useCloseOnBack} from '../business/useCloseOnBack'
 
 export const ImpressumDialog = () => {
   const open = useSelector((state) => state.user.impressumOpen)
+  useCloseOnBack({
+    id: 'impressum-dialog',
+    open,
+    onClose: toggleImpressum,
+  })
   return (
     <Modal opened={open} onClose={toggleImpressum} title='Impressum'>
       <Text>
@@ -14,12 +20,6 @@ export const ImpressumDialog = () => {
         Address: Sohlstraße 3, 6845 Hohenems, Austria
         <br />
         Email: <a href='mailto:raphaeln@outlook.com'>raphaeln@outlook.com</a>
-        <br />
-        <br />
-        Source-code:{' '}
-        <a target='_blank' href='https://github.com/mrNuTz/cipher-notes'>
-          https://github.com/mrNuTz/cipher-notes
-        </a>
       </Text>
     </Modal>
   )

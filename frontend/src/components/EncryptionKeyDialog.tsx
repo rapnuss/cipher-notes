@@ -10,12 +10,18 @@ import {
 import {isValidKeyTokenPair} from '../business/notesEncryption'
 import {QRCodeSVG} from 'qrcode.react'
 import {QRScanner} from './QRScanner'
+import {useCloseOnBack} from '../business/useCloseOnBack'
 
 export const EncryptionKeyDialog = () => {
   const {open, keyTokenPair, visible, qrMode} = useSelector(
     (state) => state.user.encryptionKeyDialog
   )
   const valid = isValidKeyTokenPair(keyTokenPair)
+  useCloseOnBack({
+    id: 'encryption-key-dialog',
+    open,
+    onClose: closeEncryptionKeyDialog,
+  })
   return (
     <Modal title='Encryption key' opened={open} onClose={closeEncryptionKeyDialog}>
       <Flex gap='xs' align='end'>

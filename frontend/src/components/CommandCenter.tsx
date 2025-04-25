@@ -24,11 +24,6 @@ export const CommandCenter = () => {
   const anyDialogOpen = useSelector(selectAnyDialogOpen)
   const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
 
-  useEffect(() => {
-    window.addEventListener('popstate', spotlight.close)
-    return () => window.removeEventListener('popstate', spotlight.close)
-  }, [])
-
   const commands: (SpotlightActionData & {shortcut?: string})[] = useMemo(
     () => [
       {
@@ -153,6 +148,11 @@ export const CommandCenter = () => {
     ],
     [actions, noteActions]
   )
+
+  useEffect(() => {
+    window.addEventListener('popstate', spotlight.close)
+    return () => window.removeEventListener('popstate', spotlight.close)
+  }, [])
 
   const onOpen = useCallback(() => {
     history.pushState(null, '', location.href)

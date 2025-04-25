@@ -19,7 +19,6 @@ import {IconArrowForwardUp} from './icons/IconArrowForwardUp'
 import {useUndoRedo} from '../util/undoHook'
 import {IconTrash} from './icons/IconTrash'
 import {IconX} from './icons/IconX'
-import {useEffect} from 'react'
 import {Hue, NoteHistoryItem, OpenNote} from '../business/models'
 import {XTextarea} from './XTextarea'
 import {TodoControl} from './TodoControl'
@@ -29,6 +28,7 @@ import {LabelDropdownContent} from './LabelDropdownContent'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
 import {labelColor} from '../business/misc'
+import {useCloseOnBack} from '../business/useCloseOnBack'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
@@ -54,22 +54,14 @@ export const OpenNoteDialog = () => {
     openNote?.id ?? null
   )
   const open = !!openNote
-  useEffect(() => {
-    if (open) {
-      window.history.pushState({dialogOpen: true}, '', location.href)
-      window.addEventListener('popstate', noteClosed)
-    }
-    return () => {
-      window.removeEventListener('popstate', noteClosed)
-    }
-  }, [open])
+  useCloseOnBack({id: 'open-note-dialog', open, onClose: noteClosed})
   return (
     <Drawer
       opened={open}
       position='top'
       size='100%'
       withCloseButton={false}
-      onClose={() => window.history.back()}
+      onClose={noteClosed}
       styles={{
         content: {
           height: 'var(--viewport-height, 100dvh)',
@@ -178,12 +170,7 @@ export const OpenNoteDialog = () => {
         <ActionIcon size='xl' title='Redo' onClick={redo} disabled={!canRedo} variant='default'>
           <IconArrowForwardUp />
         </ActionIcon>
-        <ActionIcon
-          size='xl'
-          title='Close note'
-          onClick={() => window.history.back()}
-          variant='default'
-        >
+        <ActionIcon size='xl' title='Close note' onClick={noteClosed} variant='default'>
           <IconX />
         </ActionIcon>
       </Flex>

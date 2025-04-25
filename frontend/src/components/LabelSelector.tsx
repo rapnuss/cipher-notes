@@ -28,12 +28,17 @@ import {IconPlus} from './icons/IconPlus'
 import {darkColorsGradient, labelColor, lightColorsGradient} from '../business/misc'
 import {IconX} from './icons/IconX'
 import {Label} from '../business/models'
+import {useCloseOnBack} from '../business/useCloseOnBack'
 
 export const LabelSelector = () => {
   const {activeLabel, labelSelectorOpen} = useSelector((state) => state.labels)
   const labels = useSelector(selectCachedLabels)
   const colorScheme = useComputedColorScheme()
-
+  useCloseOnBack({
+    id: 'label-selector',
+    open: labelSelectorOpen,
+    onClose: toggleLabelSelector,
+  })
   return (
     <Drawer
       opened={labelSelectorOpen}

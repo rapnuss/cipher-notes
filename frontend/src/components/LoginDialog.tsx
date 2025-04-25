@@ -8,9 +8,15 @@ import {
   loginEmailChanged,
   switchLoginStatus,
 } from '../state/user'
+import {useCloseOnBack} from '../business/useCloseOnBack'
 
 export const LoginDialog = () => {
   const {open, email, code, loading, status} = useSelector((state) => state.user.loginDialog)
+  useCloseOnBack({
+    id: 'login-dialog',
+    open,
+    onClose: closeLoginDialog,
+  })
   return (
     <Modal opened={open} onClose={closeLoginDialog} title='Login'>
       {status === 'email' && (

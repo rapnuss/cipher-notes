@@ -9,10 +9,16 @@ import {
 } from '../state/labels'
 import {hueOptions} from '../business/models'
 import {labelColor} from '../business/misc'
+import {useCloseOnBack} from '../business/useCloseOnBack'
 
 export const LabelDialog = () => {
   const {hue, name, open, id} = useSelector((state) => state.labels.dialog)
   const colorScheme = useComputedColorScheme()
+  useCloseOnBack({
+    id: 'label-dialog',
+    open,
+    onClose: closeLabelDialog,
+  })
   return (
     <Modal opened={open} onClose={closeLabelDialog} title={id ? 'Edit Label' : 'Create Label'}>
       <TextInput
