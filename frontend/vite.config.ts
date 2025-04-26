@@ -36,6 +36,9 @@ export default defineConfig(({mode}) => {
         },
       },
     },
+    define: {
+      ENV_GIT_COMMIT: JSON.stringify(process.env.RENDER_GIT_COMMIT ?? 'unknown'),
+    },
     build: {
       outDir: 'dist',
     },

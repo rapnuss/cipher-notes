@@ -9,7 +9,7 @@ import {EncryptionKeyDialog} from './EncryptionKeyDialog.tsx'
 import {Main} from './Main.tsx'
 import {ConflictDialog} from './ConflictDialog.tsx'
 import {OpenNoteDialog} from './OpenNoteDialog.tsx'
-import {ImpressumDialog} from './ImpressumDialog.tsx'
+import {ImprintDialog} from './ImprintDialog.tsx'
 import {DeleteServerNotesDialog} from './DeleteServerNotesDialog'
 import {SettingsDialog} from './SettingsDialog.tsx'
 import {KeepImportDialog} from './KeepImportDialog.tsx'
@@ -70,7 +70,7 @@ export const App = () => (
     <ConflictDialog />
     <EncryptionKeyDialog />
     <DeleteServerNotesDialog />
-    <ImpressumDialog />
+    <ImprintDialog />
     <PWABadge />
     <MessageBox />
   </>

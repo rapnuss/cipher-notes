@@ -5,7 +5,7 @@ import {
   openEncryptionKeyDialog,
   openLoginDialog,
   openRegisterDialog,
-  toggleImpressum,
+  toggleImprint,
   openDeleteServerNotesDialog,
 } from '../state/user'
 import {selectAnyDialogOpen, useSelector} from '../state/store'
@@ -86,9 +86,9 @@ export const CommandCenter = () => {
         onClick: openEncryptionKeyDialog,
       },
       {
-        id: 'impressum',
-        label: 'Impressum',
-        onClick: toggleImpressum,
+        id: 'imprint',
+        label: 'Imprint',
+        onClick: toggleImprint,
       },
       {
         id: 'logout',

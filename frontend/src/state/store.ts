@@ -49,7 +49,7 @@ export const selectAnyDialogOpen = (state: RootState): boolean =>
   state.user.registerDialog.open ||
   state.user.loginDialog.open ||
   state.user.encryptionKeyDialog.open ||
-  state.user.impressumOpen ||
+  state.user.imprintOpen ||
   state.settings.open ||
   state.labels.labelSelectorOpen ||
   state.labels.dialog.open

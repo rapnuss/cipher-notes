@@ -43,7 +43,7 @@ export type UserState = {
     codeLoading: boolean
     deleteLoading: boolean
   }
-  impressumOpen: boolean
+  imprintOpen: boolean
 }
 
 export const userInit: UserState = {
@@ -53,7 +53,7 @@ export const userInit: UserState = {
   loginDialog: {open: false, email: '', code: '', loading: false, status: 'email'},
   encryptionKeyDialog: {open: false, keyTokenPair: '', visible: false, qrMode: 'hide'},
   deleteServerNotesDialog: {open: false, code: '', codeLoading: false, deleteLoading: false},
-  impressumOpen: false,
+  imprintOpen: false,
 }
 
 // init
@@ -364,9 +364,9 @@ export const loginCode = async () => {
   })
 }
 
-export const toggleImpressum = () => {
+export const toggleImprint = () => {
   setState((state) => {
-    state.user.impressumOpen = !state.user.impressumOpen
+    state.user.imprintOpen = !state.user.imprintOpen
   })
 }
 
