@@ -1,1 +1,4 @@
 *.keystore
+/build/
+/.gradle/
+/app-release-*
