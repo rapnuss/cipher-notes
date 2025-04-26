@@ -35,7 +35,7 @@ export type NotesState = {
 export const notesInit: NotesState = {
   query: '',
   openNote: null,
-  sort: {prop: 'created_at', desc: true},
+  sort: {prop: 'updated_at', desc: true},
   sync: {
     dialogOpen: false,
     syncing: false,
