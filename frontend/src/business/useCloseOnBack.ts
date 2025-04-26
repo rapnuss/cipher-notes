@@ -23,7 +23,7 @@ export function useCloseOnBack({id, open, onClose}: UseDialogBackHandlerProps) {
       if (window.history.state?.dialogId === id) {
         setIgnorePop(true)
         window.history.back()
-        setTimeout(() => setIgnorePop(false), 0)
+        setTimeout(() => setIgnorePop(false), 100)
       }
     }
   }, [open, id])
