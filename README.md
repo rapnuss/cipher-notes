@@ -123,3 +123,12 @@ You can share the key via a QR code directly from app to app.
    ```
    This shows the folder containing `rootCA.pem`
 5. Access `https://<your-ip>:5173` on your mobile device
+
+
+## TWA
+
+### Generate SHA256 fingerprint
+
+```
+~\.bubblewrap\jdk\jdk-17.0.11+9\bin\keytool.exe -printcert -jarfile ".\app-release-signed.apk"
+```
