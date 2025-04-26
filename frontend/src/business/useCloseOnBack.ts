@@ -1,6 +1,7 @@
 import {useEffect, useRef} from 'react'
-import {useSelector} from '../state/store'
-import {popHistory, pushHistory, removeHistory} from '../state/history'
+import {getState} from '../state/store'
+import {popHistory, pushHistory, removeHistory, setIgnorePop} from '../state/history'
+import {last} from '../util/misc'
 
 export type UseDialogBackHandlerProps = {
   id: string
@@ -9,9 +10,7 @@ export type UseDialogBackHandlerProps = {
 }
 
 export function useCloseOnBack({id, open, onClose}: UseDialogBackHandlerProps) {
-  const {stack} = useSelector((state) => state.history)
   const prevOpen = useRef(false)
-  const top = stack[stack.length - 1]
 
   useEffect(() => {
     const wasOpen = prevOpen.current
@@ -22,13 +21,20 @@ export function useCloseOnBack({id, open, onClose}: UseDialogBackHandlerProps) {
     } else if (!open && wasOpen) {
       removeHistory(id)
       if (window.history.state?.dialogId === id) {
+        setIgnorePop(true)
         window.history.back()
+        setTimeout(() => setIgnorePop(false), 0)
       }
     }
   }, [open, id])
 
   useEffect(() => {
     const handlePop = () => {
+      const state = getState()
+      if (state.history.ignorePop) {
+        return
+      }
+      const top = last(state.history.stack)
       if (top === id && prevOpen.current) {
         popHistory()
         onClose()
@@ -36,5 +42,5 @@ export function useCloseOnBack({id, open, onClose}: UseDialogBackHandlerProps) {
     }
     window.addEventListener('popstate', handlePop)
     return () => void window.removeEventListener('popstate', handlePop)
-  }, [id, onClose, top])
+  }, [id, onClose])
 }
