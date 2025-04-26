@@ -135,7 +135,7 @@ export const CommandCenter = () => {
         rightSection: shortcut,
         onClick: async () => {
           spotlight.close()
-          await delay(0)
+          await delay(100)
           onClick()
         },
       })),
