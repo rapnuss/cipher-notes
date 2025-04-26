@@ -1,4 +1,4 @@
-import {Drawer, Flex, ActionIcon, Popover, useComputedColorScheme} from '@mantine/core'
+import {Drawer, Flex, ActionIcon, Popover} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {
   noteClosed,
@@ -29,6 +29,7 @@ import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
 import {labelColor} from '../business/misc'
 import {useCloseOnBack} from '../business/useCloseOnBack'
+import {useMyColorScheme} from '../business/useMyColorScheme'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
@@ -38,7 +39,7 @@ const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null =>
 }
 
 export const OpenNoteDialog = () => {
-  const colorScheme = useComputedColorScheme()
+  const colorScheme = useMyColorScheme()
   const openNote = useSelector((state) => state.notes.openNote)
   const labelsCache = useSelector((state) => state.labels.labelsCache)
   const openNoteLabel = useLiveQuery(

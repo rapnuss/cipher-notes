@@ -8,7 +8,6 @@ import {
   Paper,
   Stack,
   UnstyledButton,
-  useComputedColorScheme,
 } from '@mantine/core'
 import {useSelector} from '../state/store'
 import {
@@ -29,11 +28,12 @@ import {darkColorsGradient, labelColor, lightColorsGradient} from '../business/m
 import {IconX} from './icons/IconX'
 import {Label} from '../business/models'
 import {useCloseOnBack} from '../business/useCloseOnBack'
+import {useMyColorScheme} from '../business/useMyColorScheme'
 
 export const LabelSelector = () => {
   const {activeLabel, labelSelectorOpen} = useSelector((state) => state.labels)
   const labels = useSelector(selectCachedLabels)
-  const colorScheme = useComputedColorScheme()
+  const colorScheme = useMyColorScheme()
   useCloseOnBack({
     id: 'label-selector',
     open: labelSelectorOpen,

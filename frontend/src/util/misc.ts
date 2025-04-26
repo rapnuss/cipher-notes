@@ -253,3 +253,10 @@ export const bisectBy = <T>(arr: T[], pred: (x: T) => boolean): readonly [T[], T
   }
   return [ts, fs]
 }
+
+export const getColorScheme = () => {
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark'
+  }
+  return 'light'
+}
