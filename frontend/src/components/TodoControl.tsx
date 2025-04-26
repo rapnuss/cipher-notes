@@ -1,4 +1,4 @@
-import {Checkbox, Divider, Flex, Stack, Textarea, UnstyledButton} from '@mantine/core'
+import {Divider, Flex, Stack, UnstyledButton} from '@mantine/core'
 import {Todo, Todos} from '../business/models'
 import {useEffect, useMemo, useRef, useState} from 'react'
 import {draggable, dropTargetForElements} from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
@@ -11,6 +11,7 @@ import {getReorderDestinationIndex} from '@atlaskit/pragmatic-drag-and-drop-hitb
 import {IconGridDots} from './icons/IconGridDots'
 import {IconTrash} from './icons/IconTrash'
 import {IconPlus} from './icons/IconPlus'
+import {AutoResizingTextarea} from './AutoResizingTextarea'
 
 export type TodoControlProps = {
   todos: Todos
@@ -164,28 +165,29 @@ const TodoItem = ({
       <div ref={handleRef} style={{padding: '0 12px 0 0'}}>
         <IconGridDots style={{display: 'block', opacity: todo.done ? 0.2 : 0.5}} />
       </div>
-      <Checkbox
+      <input
+        type='checkbox'
         tabIndex={onTodoChecked ? undefined : -1}
-        size='md'
         checked={todo.done}
         readOnly={!onTodoChecked}
         onChange={(e) => onTodoChecked?.(i, e.target.checked)}
-        style={{userSelect: 'none'}}
+        style={{
+          height: '1.35rem',
+          width: '1.35rem',
+        }}
       />
-      <Textarea
+      <AutoResizingTextarea
         tabIndex={onTodoChanged ? undefined : -1}
         placeholder='To do...'
-        styles={{
-          input: {
-            border: 'none',
-            backgroundColor: 'transparent',
-            textDecoration: todo.done ? 'line-through' : 'none',
-          },
+        style={{flex: 1}}
+        rows={1}
+        textareaStyles={{
+          border: 'none',
+          outline: 'none',
+          backgroundColor: 'transparent',
+          textDecoration: todo.done ? 'line-through' : 'none',
+          resize: 'none',
         }}
-        flex={1}
-        autosize
-        minRows={1}
-        maxRows={10}
         value={todo.txt}
         disabled={todo.done}
         readOnly={!onTodoChanged}

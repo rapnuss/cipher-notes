@@ -1,0 +1,18 @@
+.growWrap {
+  display: grid;
+}
+.growWrap::after {
+  content: attr(data-replicated-value) " ";
+  white-space: pre-wrap;
+  visibility: hidden;
+}
+.textarea,
+.growWrap::after {
+  padding: 0.5rem;
+  font: inherit;
+  grid-area: 1 / 1 / 2 / 2;
+}
+.textarea {
+  resize: none;
+  overflow: hidden;
+}
