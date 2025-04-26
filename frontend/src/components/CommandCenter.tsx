@@ -17,6 +17,8 @@ import {useLiveQuery} from 'dexie-react-hooks'
 import {useCallback, useEffect, useMemo} from 'react'
 import {Note} from '../business/models'
 import {exportNotes, openImportDialog, openKeepImportDialog} from '../state/import'
+import {toggleLabelSelector} from '../state/labels'
+import {delay} from '../util/misc'
 
 export const CommandCenter = () => {
   const {toggleColorScheme} = useMantineColorScheme()
@@ -24,14 +26,8 @@ export const CommandCenter = () => {
   const anyDialogOpen = useSelector(selectAnyDialogOpen)
   const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
 
-  const commands: (SpotlightActionData & {shortcut?: string})[] = useMemo(
+  const commands: (SpotlightActionData & {shortcut?: string; onClick: () => void})[] = useMemo(
     () => [
-      {
-        id: 'newNote',
-        label: 'New note',
-        onClick: addNote,
-        shortcut: 'alt+shift+n',
-      },
       {
         id: 'toggleColorScheme',
         label: 'Toggle Dark Mode',
@@ -39,11 +35,22 @@ export const CommandCenter = () => {
         shortcut: 'alt+shift+t',
       },
       {
+        id: 'newNote',
+        label: 'New note',
+        onClick: addNote,
+        shortcut: 'alt+shift+n',
+      },
+      {
+        id: 'labelSelector',
+        label: 'Show label selector',
+        onClick: toggleLabelSelector,
+        shortcut: 'alt+shift+l',
+      },
+      {
         id: 'sync',
-        label: 'Synchronize notes with server',
+        label: 'Manual server sync',
         onClick: openSyncDialogAndSync,
         disabled: !loggedIn,
-        shortcut: 'alt+shift+s',
       },
       {
         id: 'exportNotes',
@@ -115,14 +122,23 @@ export const CommandCenter = () => {
           (c): c is typeof c & {shortcut: string; onClick: () => void} =>
             !!c.shortcut && !!c.onClick
         )
-        .map((c) => [c.shortcut, c.onClick]),
-    [enabledCommands]
+        .map((c) => [c.shortcut, () => !anyDialogOpen && c.onClick()]),
+    [enabledCommands, anyDialogOpen]
   )
 
   useHotkeys(hotkeys, [], true)
 
   const actions = useMemo(
-    () => enabledCommands.map(({shortcut, ...a}) => ({...a, rightSection: shortcut})),
+    () =>
+      enabledCommands.map(({shortcut, onClick, ...a}) => ({
+        ...a,
+        rightSection: shortcut,
+        onClick: async () => {
+          spotlight.close()
+          await delay(0)
+          onClick()
+        },
+      })),
     [enabledCommands]
   )
 
