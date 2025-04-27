@@ -12,6 +12,7 @@ import {IconGridDots} from './icons/IconGridDots'
 import {IconTrash} from './icons/IconTrash'
 import {IconPlus} from './icons/IconPlus'
 import {AutoResizingTextarea} from './AutoResizingTextarea'
+import {FancyCheckbox} from './FancyCheckbox'
 
 export type TodoControlProps = {
   todos: Todos
@@ -165,8 +166,7 @@ const TodoItem = ({
       <div ref={handleRef} style={{padding: '0 12px 0 0'}}>
         <IconGridDots style={{display: 'block', opacity: todo.done ? 0.2 : 0.5}} />
       </div>
-      <input
-        type='checkbox'
+      <FancyCheckbox
         tabIndex={onTodoChecked ? undefined : -1}
         checked={todo.done}
         readOnly={!onTodoChecked}
