@@ -8,11 +8,11 @@ import {
 import {Label, Note, NoteCommon} from '../business/models'
 import {db} from '../db'
 import {downloadJson} from '../util/misc'
-import {showMessage} from './messages'
 import {getState, RootState, setState} from './store'
 import JSZip from 'jszip'
 import XSet from '../util/XSet'
 import {createLabel} from './labels'
+import {notifications} from '@mantine/notifications'
 
 export type ImportState = {
   importDialog: {
@@ -158,8 +158,8 @@ export const importNotes = async (): Promise<void> => {
     await db.notes.bulkPut(res)
     setState((state) => {
       closeImportDialog(state)
-      showMessage(state, {title: 'Success', text: 'Notes imported'})
     })
+    notifications.show({title: 'Success', message: 'Notes imported'})
   } catch {
     setState((state) => {
       state.import.importDialog.error = 'Invalid file format'
@@ -244,16 +244,12 @@ export const keepImportNotes = async (): Promise<void> => {
       }
     }
     if (res.length === 0) {
-      setState((state) =>
-        showMessage(state, {title: 'No notes imported', text: 'No valid notes found'})
-      )
+      notifications.show({title: 'No notes imported', message: 'No valid notes found'})
       return
     }
     await db.notes.bulkPut(res)
-    setState((state) => {
-      closeKeepImportDialog(state)
-      showMessage(state, {title: 'Success', text: 'Keep notes imported'})
-    })
+    closeKeepImportDialog()
+    notifications.show({title: 'Success', message: 'Keep notes imported'})
   } catch (e) {
     console.error(e)
     setState((state) => {

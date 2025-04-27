@@ -1,7 +1,6 @@
 import {create} from 'zustand'
 import {immer} from 'zustand/middleware/immer'
 import {notesInit, NotesState, registerNotesSubscriptions} from './notes'
-import {messagesInit, MessagesState} from './messages'
 import {subscribeWithSelector} from 'zustand/middleware'
 import {registerUserSubscriptions, userInit, UserState} from './user'
 import {conflictsInit, ConflictsState} from './conflicts'
@@ -12,7 +11,6 @@ import {historyInit, HistoryState} from './history'
 
 export type RootState = {
   notes: NotesState
-  messages: MessagesState
   user: UserState
   conflicts: ConflictsState
   settings: SettingsState
@@ -22,7 +20,6 @@ export type RootState = {
 }
 const init: RootState = {
   notes: notesInit,
-  messages: messagesInit,
   user: userInit,
   conflicts: conflictsInit,
   settings: settingsInit,
@@ -41,7 +38,6 @@ registerSettingsSubscriptions()
 
 export const selectAnyDialogOpen = (state: RootState): boolean =>
   state.conflicts.conflicts.length > 0 ||
-  state.messages.messages.length > 0 ||
   state.notes.openNote !== null ||
   state.import.importDialog.open ||
   state.import.keepImportDialog.open ||

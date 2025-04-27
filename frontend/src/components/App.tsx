@@ -1,6 +1,6 @@
 import {PWABadge} from './PWABadge.tsx'
 import {CommandCenter} from './CommandCenter.tsx'
-import {MessageBox} from './MessageBox.tsx'
+import {Notifications} from '@mantine/notifications'
 import {ImportNotesDialog} from './ImportNotesDialog.tsx'
 import {LoginDialog} from './LoginDialog.tsx'
 import {RegisterDialog} from './RegisterDialog.tsx'
@@ -72,6 +72,6 @@ export const App = () => (
     <DeleteServerNotesDialog />
     <ImprintDialog />
     <PWABadge />
-    <MessageBox />
+    <Notifications autoClose={false} />
   </>
 )

@@ -18,8 +18,8 @@ import {
 } from '../business/misc'
 import socket from '../socket'
 import {loadNotesSortOrder, storeNotesSortOrder} from '../services/localStorage'
-import {showMessage} from './messages'
 import XSet from '../util/XSet'
+import {notifications} from '@mantine/notifications'
 
 export type NotesState = {
   query: string
@@ -321,7 +321,7 @@ export const syncNotes = nonConcurrent(async () => {
           state.user.user.loggedIn = false
         }
         if (state.notes.sync.dialogOpen) {
-          showMessage(state, {title: 'Failed to sync notes', text: res.error})
+          notifications.show({title: 'Failed to sync notes', message: res.error, color: 'red'})
         }
       })
       return
@@ -423,9 +423,9 @@ export const syncNotes = nonConcurrent(async () => {
       state.user.user.lastSyncedTo = res.data.synced_to
       state.notes.sync.error = null
       if (state.notes.sync.dialogOpen) {
-        showMessage(state, {
+        notifications.show({
           title: 'Success',
-          text: `Notes synced with ${serverConflicts.length} conflicts`,
+          message: `Notes synced with ${serverConflicts.length} conflicts`,
         })
       }
     })
@@ -434,9 +434,10 @@ export const syncNotes = nonConcurrent(async () => {
       const message = e instanceof Error ? e.message : 'Unknown error'
       state.notes.sync.error = message
       if (state.notes.sync.dialogOpen) {
-        showMessage(state, {
+        notifications.show({
           title: 'Failed to sync notes',
-          text: message,
+          message,
+          color: 'red',
         })
       }
     })
