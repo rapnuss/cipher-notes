@@ -1,7 +1,7 @@
 import {Button, Modal, Text} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {closeSyncDialog, syncNotes} from '../state/notes'
-import {useCloseOnBack} from '../business/useCloseOnBack'
+import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 export const SyncDialog = () => {
   const {syncing, dialogOpen} = useSelector((state) => state.notes.sync)

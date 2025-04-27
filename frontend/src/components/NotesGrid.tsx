@@ -8,7 +8,7 @@ import {IconSquare} from './icons/IconSquare'
 import {IconCheckbox} from './icons/IconCheckbox'
 import {Note} from '../business/models'
 import {labelColor} from '../business/misc'
-import {useMyColorScheme} from '../business/useMyColorScheme'
+import {useMyColorScheme} from '../helpers/useMyColorScheme'
 
 export const NotesGrid = () => {
   const query = useSelector((state) => state.notes.query)

@@ -6,7 +6,7 @@ import {
   keepImportFileChanged,
   keepImportNotes,
 } from '../state/import'
-import {useCloseOnBack} from '../business/useCloseOnBack'
+import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 export const KeepImportDialog = () => {
   const {open, file, error, importArchived} = useSelector((state) => state.import.keepImportDialog)

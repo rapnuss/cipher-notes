@@ -13,7 +13,6 @@ import {
   openNoteTitleChanged,
   moveTodo,
 } from '../state/notes'
-import {modals} from '@mantine/modals'
 import {IconArrowBackUp} from './icons/IconArrowBackUp'
 import {IconArrowForwardUp} from './icons/IconArrowForwardUp'
 import {useUndoRedo} from '../util/undoHook'
@@ -28,8 +27,9 @@ import {LabelDropdownContent} from './LabelDropdownContent'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
 import {labelColor} from '../business/misc'
-import {useCloseOnBack} from '../business/useCloseOnBack'
-import {useMyColorScheme} from '../business/useMyColorScheme'
+import {useCloseOnBack} from '../helpers/useCloseOnBack'
+import {useMyColorScheme} from '../helpers/useMyColorScheme'
+import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
@@ -139,9 +139,9 @@ export const OpenNoteDialog = () => {
           size='xl'
           title='Delete note'
           onClick={() =>
-            modals.openConfirmModal({
+            openConfirmModalWithBackHandler({
+              id: 'delete-open-note',
               title: 'Delete note?',
-              centered: true,
               labels: {confirm: 'Delete', cancel: 'Cancel'},
               confirmProps: {color: 'red'},
               onConfirm: deleteOpenNote,

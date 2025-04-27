@@ -8,7 +8,7 @@ import {
   loginEmailChanged,
   switchLoginStatus,
 } from '../state/user'
-import {useCloseOnBack} from '../business/useCloseOnBack'
+import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 export const LoginDialog = () => {
   const {open, email, code, loading, status} = useSelector((state) => state.user.loginDialog)

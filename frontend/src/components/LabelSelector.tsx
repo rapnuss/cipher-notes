@@ -22,13 +22,13 @@ import {
 } from '../state/labels'
 import {IconPencil} from './icons/IconPencil'
 import {IconTrash} from './icons/IconTrash'
-import {modals} from '@mantine/modals'
 import {IconPlus} from './icons/IconPlus'
 import {darkColorsGradient, labelColor, lightColorsGradient} from '../business/misc'
 import {IconX} from './icons/IconX'
 import {Label} from '../business/models'
-import {useCloseOnBack} from '../business/useCloseOnBack'
-import {useMyColorScheme} from '../business/useMyColorScheme'
+import {useCloseOnBack} from '../helpers/useCloseOnBack'
+import {useMyColorScheme} from '../helpers/useMyColorScheme'
+import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 
 export const LabelSelector = () => {
   const {activeLabel, labelSelectorOpen} = useSelector((state) => state.labels)
@@ -155,7 +155,8 @@ const LabelSelectorItem = ({active, darkMode, ...label}: LabelSelectorItemProps)
       <UnstyledButton
         onClick={(e) => {
           e.stopPropagation()
-          modals.openConfirmModal({
+          openConfirmModalWithBackHandler({
+            id: `delete-label-${label.id}`,
             title: 'Delete Label',
             children: 'Are you sure you want to delete this label?',
             labels: {confirm: 'Delete', cancel: 'Cancel'},

@@ -10,7 +10,7 @@ import {
 import {isValidKeyTokenPair} from '../business/notesEncryption'
 import {QRCodeSVG} from 'qrcode.react'
 import {QRScanner} from './QRScanner'
-import {useCloseOnBack} from '../business/useCloseOnBack'
+import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 export const EncryptionKeyDialog = () => {
   const {open, keyTokenPair, visible, qrMode} = useSelector(

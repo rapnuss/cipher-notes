@@ -9,8 +9,8 @@ import {
 } from '../state/labels'
 import {hueOptions} from '../business/models'
 import {labelColor} from '../business/misc'
-import {useCloseOnBack} from '../business/useCloseOnBack'
-import {useMyColorScheme} from '../business/useMyColorScheme'
+import {useCloseOnBack} from '../helpers/useCloseOnBack'
+import {useMyColorScheme} from '../helpers/useMyColorScheme'
 
 export const LabelDialog = () => {
   const {hue, name, open, id} = useSelector((state) => state.labels.dialog)

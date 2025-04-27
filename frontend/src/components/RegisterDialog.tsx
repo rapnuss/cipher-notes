@@ -4,7 +4,7 @@ import {closeRegisterDialog, registerEmail, registerEmailChanged} from '../state
 import {useRef, useState} from 'react'
 import HCaptcha from '@hcaptcha/react-hcaptcha'
 import {hCaptchaSiteCode} from '../config'
-import {useCloseOnBack} from '../business/useCloseOnBack'
+import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 export const RegisterDialog = () => {
   const {open, email, loading} = useSelector((state) => state.user.registerDialog)

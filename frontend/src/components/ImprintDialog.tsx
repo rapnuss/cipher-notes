@@ -1,7 +1,7 @@
 import {Modal, Text} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {toggleImprint} from '../state/user'
-import {useCloseOnBack} from '../business/useCloseOnBack'
+import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 declare const ENV_GIT_COMMIT: string
 
