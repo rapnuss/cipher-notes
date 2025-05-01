@@ -21,24 +21,22 @@ export const FancyCheckbox: FC<FancyCheckboxProps> = ({
   const inputId = id || `fancy-cb-${autoId}`
 
   return (
-    <div className={`${styles.wrapper} ${className || ''}`} style={style}>
-      <label htmlFor={inputId} className={styles.label}>
-        <input
-          {...rest}
-          type='checkbox'
-          id={inputId}
-          checked={checked}
-          defaultChecked={defaultChecked}
-          onChange={onChange}
-          className={styles.input}
-        />
-        <span className={styles.cbx} aria-hidden='true'>
-          <svg width='12px' height='11px' viewBox='0 0 12 11'>
-            <polyline points='1 6.29411765 4.5 10 11 1' />
-          </svg>
-        </span>
-        {label && <span className={styles.text}>{label}</span>}
-      </label>
-    </div>
+    <label htmlFor={inputId} className={`${styles.label} ${className || ''}`} style={style}>
+      <input
+        {...rest}
+        type='checkbox'
+        id={inputId}
+        checked={checked}
+        defaultChecked={defaultChecked}
+        onChange={onChange}
+        className={styles.input}
+      />
+      <span className={styles.cbx} aria-hidden='true'>
+        <svg width='12px' height='11px' viewBox='0 0 12 11'>
+          <polyline points='1 6.29411765 4.5 10 11 1' />
+        </svg>
+      </span>
+      {label && <span className={styles.text}>{label}</span>}
+    </label>
   )
 }

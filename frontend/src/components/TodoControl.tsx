@@ -163,7 +163,7 @@ const TodoItem = ({
       className='todo-list-item'
       pos='relative'
     >
-      <div ref={handleRef} style={{padding: '0 12px 0 0'}}>
+      <div ref={handleRef} style={{padding: '0 .75rem 0 0'}}>
         <IconGridDots style={{display: 'block', opacity: todo.done ? 0.2 : 0.5}} />
       </div>
       <FancyCheckbox
@@ -171,10 +171,7 @@ const TodoItem = ({
         checked={todo.done}
         readOnly={!onTodoChecked}
         onChange={(e) => onTodoChecked?.(i, e.target.checked)}
-        style={{
-          height: '1.35rem',
-          width: '1.35rem',
-        }}
+        style={{marginRight: '.25rem'}}
       />
       <AutoResizingTextarea
         tabIndex={onTodoChanged ? undefined : -1}

@@ -1,8 +1,5 @@
-.wrapper {
-  display: inline-block;
-  user-select: none;
-}
 .label {
+  user-select: none;
   display: inline-flex;
   align-items: center;
   cursor: pointer;
@@ -24,8 +21,7 @@
   width: 18px;
   height: 18px;
   border-radius: 4px;
-  background-color: #606062;
-  background-image: linear-gradient(#474749, #606062);
+  background-image: linear-gradient(hsl(0, 0%, 35%), hsl(0, 0%, 45%));
   box-shadow: inset 0 1px 1px rgba(255,255,255,0.15), inset 0 -1px 1px rgba(0,0,0,0.15);
   transition: all 0.15s ease;
   flex-shrink: 0;
@@ -49,7 +45,7 @@
 }
 .input:checked + .cbx {
   background-color: #606062;
-  background-image: linear-gradient(#255cd2, #1d52c1);
+  background-image: linear-gradient(hsl(0, 0%, 40%), hsl(0, 0%, 30%));
 }
 .input:checked + .cbx svg {
   stroke-dashoffset: 0;
@@ -63,7 +59,7 @@
 }
 :global(html[data-mantine-color-scheme="dark"]) .wrapper .input:checked + .cbx {
   background-color: #2a2a2a;
-  background-image: linear-gradient(#4a90e2, #357ab7);
+  background-image: linear-gradient(hsl(0, 0%, 75%), hsl(0, 0%, 65%));
 }
 :global(html[data-mantine-color-scheme="dark"]) .wrapper .cbx svg {
   stroke: #2a2a2a;
