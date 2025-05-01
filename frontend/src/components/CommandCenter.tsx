@@ -23,6 +23,7 @@ import {delay} from '../util/misc'
 export const CommandCenter = () => {
   const {toggleColorScheme} = useMantineColorScheme()
   const loggedIn = useSelector((state) => state.user.user.loggedIn)
+  const email = useSelector((state) => state.user.user.email)
   const anyDialogOpen = useSelector(selectAnyDialogOpen)
   const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
 
@@ -71,7 +72,7 @@ export const CommandCenter = () => {
         id: 'register',
         label: 'Register',
         onClick: openRegisterDialog,
-        disabled: loggedIn,
+        disabled: !!email,
       },
       {
         id: 'login',
@@ -110,7 +111,7 @@ export const CommandCenter = () => {
         disabled: !loggedIn,
       },
     ],
-    [loggedIn, toggleColorScheme]
+    [loggedIn, toggleColorScheme, email]
   )
 
   const enabledCommands = useMemo(() => commands.filter((c) => !c.disabled), [commands])

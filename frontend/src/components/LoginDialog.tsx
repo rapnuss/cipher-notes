@@ -12,6 +12,7 @@ import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 export const LoginDialog = () => {
   const {open, email, code, loading, status} = useSelector((state) => state.user.loginDialog)
+  const existingEmail = useSelector((state) => state.user.user.email)
   useCloseOnBack({
     id: 'login-dialog',
     open,
@@ -22,6 +23,7 @@ export const LoginDialog = () => {
       {status === 'email' && (
         <Stack gap='md'>
           <TextInput
+            disabled={!!existingEmail}
             label='Email'
             type='email'
             value={email}
@@ -41,6 +43,7 @@ export const LoginDialog = () => {
       {status === 'code' && (
         <Stack gap='md'>
           <TextInput
+            disabled={!!existingEmail}
             label='Email'
             type='email'
             value={email}
