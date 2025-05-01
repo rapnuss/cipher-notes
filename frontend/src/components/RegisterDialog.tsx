@@ -31,6 +31,7 @@ export const RegisterDialog = () => {
       <Stack gap='md'>
         <TextInput
           label='Email'
+          type='email'
           value={email}
           onChange={(e) => registerEmailChanged(e.target.value)}
         />

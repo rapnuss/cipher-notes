@@ -1,11 +1,13 @@
 import {
-  reqLoginCode,
+  reqLoginWithCode,
   reqSendLoginCode,
   reqRegisterEmail,
   reqDeleteNotes,
   reqSendConfirmCode,
   reqLogout,
   isUnauthorizedRes,
+  reqSendChangeEmailCodes,
+  reqChangeEmail,
 } from '../services/backend'
 import {loadUser, storeUser} from '../services/localStorage'
 import {getState, setState, subscribe} from './store'
@@ -44,6 +46,14 @@ export type UserState = {
     deleteLoading: boolean
   }
   imprintOpen: boolean
+  changeEmailDialog: {
+    open: boolean
+    email: string
+    loading: boolean
+    status: 'email' | 'codes'
+    oldEmailCode: string
+    newEmailCode: string
+  }
 }
 
 export const userInit: UserState = {
@@ -54,6 +64,14 @@ export const userInit: UserState = {
   encryptionKeyDialog: {open: false, keyTokenPair: '', visible: false, qrMode: 'hide'},
   deleteServerNotesDialog: {open: false, code: '', codeLoading: false, deleteLoading: false},
   imprintOpen: false,
+  changeEmailDialog: {
+    open: false,
+    email: '',
+    loading: false,
+    status: 'email',
+    oldEmailCode: '',
+    newEmailCode: '',
+  },
 }
 
 // init
@@ -73,7 +91,6 @@ window.addEventListener('focus', () => {
   })
 })
 
-// actions
 export const registerEmailChanged = (email: string) => {
   setState((state) => {
     state.user.registerDialog.email = email
@@ -89,6 +106,40 @@ export const closeRegisterDialog = () => {
     state.user.registerDialog.open = false
   })
 }
+export const registerEmail = async (captchaToken: string) => {
+  const state = getState()
+  const {email, loading} = state.user.registerDialog
+  if (!email || loading) return
+  setState((state) => {
+    state.user.registerDialog.loading = true
+  })
+  const res = await reqRegisterEmail(email, captchaToken)
+  setState((state) => {
+    state.user.registerDialog.loading = false
+    if (!res.success) {
+      notifications.show({
+        title: 'Register Email Failed',
+        message: res.error,
+        color: 'red',
+      })
+    } else {
+      notifications.show({
+        title: 'Register Email',
+        message: 'Email registered, proceed to login',
+      })
+      state.user.user.email = email
+      state.user.registerDialog.open = false
+      state.user.loginDialog = {
+        open: true,
+        email: state.user.user.email,
+        code: '',
+        loading: false,
+        status: 'email',
+      }
+    }
+  })
+}
+
 export const openLoginDialog = () => {
   setState((state) => {
     state.user.loginDialog = {
@@ -120,6 +171,59 @@ export const switchLoginStatus = () => {
     state.user.loginDialog.status = state.user.loginDialog.status === 'email' ? 'code' : 'email'
   })
 }
+export const sendLoginCode = async () => {
+  const state = getState()
+  const {email, loading} = state.user.loginDialog
+  if (!email || loading) return
+  setState((state) => {
+    state.user.loginDialog.loading = true
+  })
+  const res = await reqSendLoginCode(email)
+  setState((state) => {
+    state.user.loginDialog.loading = false
+    if (!res.success) {
+      notifications.show({
+        title: 'Login Email Failed',
+        message: res.error,
+        color: 'red',
+      })
+    } else {
+      notifications.show({
+        title: 'Login Email',
+        message: 'Email sent, proceed to enter code',
+      })
+      state.user.loginDialog.status = 'code'
+    }
+  })
+}
+export const loginWithCode = async () => {
+  const state = getState()
+  const {email, code, loading} = state.user.loginDialog
+  if (!email || !code || loading) return
+  setState((state) => {
+    state.user.loginDialog.loading = true
+  })
+  const res = await reqLoginWithCode(email, code)
+  setState((state) => {
+    state.user.loginDialog.loading = false
+    if (!res.success) {
+      notifications.show({
+        title: 'Login with code failed',
+        message: res.error,
+        color: 'red',
+      })
+    } else {
+      state.user.user.loggedIn = true
+      state.user.user.email = email
+      notifications.show({
+        title: 'Success',
+        message: 'You are logged in',
+      })
+      state.user.loginDialog.open = false
+    }
+  })
+}
+
 export const socketConnectionChanged = (connected: boolean) => {
   setState((state) => {
     state.user.connected = connected
@@ -231,12 +335,10 @@ export const closeDeleteServerNotesDialog = () =>
       return
     state.user.deleteServerNotesDialog.open = false
   })
-
 export const deleteServerNotesCodeChanged = (code: string) =>
   setState((state) => {
     state.user.deleteServerNotesDialog.code = code
   })
-
 export const deleteServerNotesAndGenerateNewKey = async () => {
   const state = getState()
   const {code, deleteLoading} = state.user.deleteServerNotesDialog
@@ -283,96 +385,98 @@ export const deleteServerNotesAndGenerateNewKey = async () => {
   })
 }
 
-// effects
-export const registerEmail = async (captchaToken: string) => {
-  const state = getState()
-  const {email, loading} = state.user.registerDialog
-  if (!email || loading) return
-  setState((state) => {
-    state.user.registerDialog.loading = true
-  })
-  const res = await reqRegisterEmail(email, captchaToken)
-  setState((state) => {
-    state.user.registerDialog.loading = false
-    if (!res.success) {
-      notifications.show({
-        title: 'Register Email Failed',
-        message: res.error,
-        color: 'red',
-      })
-    } else {
-      notifications.show({
-        title: 'Register Email',
-        message: 'Email registered, proceed to login',
-      })
-      state.user.user.email = email
-      state.user.registerDialog.open = false
-      state.user.loginDialog = {
-        open: true,
-        email: state.user.user.email,
-        code: '',
-        loading: false,
-        status: 'email',
-      }
-    }
-  })
-}
-export const sendLoginCode = async () => {
-  const state = getState()
-  const {email, loading} = state.user.loginDialog
-  if (!email || loading) return
-  setState((state) => {
-    state.user.loginDialog.loading = true
-  })
-  const res = await reqSendLoginCode(email)
-  setState((state) => {
-    state.user.loginDialog.loading = false
-    if (!res.success) {
-      notifications.show({
-        title: 'Login Email Failed',
-        message: res.error,
-        color: 'red',
-      })
-    } else {
-      notifications.show({
-        title: 'Login Email',
-        message: 'Email sent, proceed to enter code',
-      })
-      state.user.loginDialog.status = 'code'
-    }
-  })
-}
-export const loginCode = async () => {
-  const state = getState()
-  const {email, code, loading} = state.user.loginDialog
-  if (!email || !code || loading) return
-  setState((state) => {
-    state.user.loginDialog.loading = true
-  })
-  const res = await reqLoginCode(email, code)
-  setState((state) => {
-    state.user.loginDialog.loading = false
-    if (!res.success) {
-      notifications.show({
-        title: 'Login with code failed',
-        message: res.error,
-        color: 'red',
-      })
-    } else {
-      state.user.user.loggedIn = true
-      state.user.user.email = email
-      notifications.show({
-        title: 'Success',
-        message: 'You are logged in',
-      })
-      state.user.loginDialog.open = false
-    }
-  })
-}
-
-export const toggleImprint = () => {
+export const toggleImprint = () =>
   setState((state) => {
     state.user.imprintOpen = !state.user.imprintOpen
+  })
+
+export const openChangeEmailDialog = () => {
+  setState((state) => {
+    state.user.changeEmailDialog = {
+      open: true,
+      email: '',
+      loading: false,
+      status: 'email',
+      oldEmailCode: '',
+      newEmailCode: '',
+    }
+  })
+}
+export const changeEmailDialogEmailChanged = (email: string) => {
+  setState((state) => {
+    state.user.changeEmailDialog.email = email
+  })
+}
+export const changeEmailDialogOldEmailCodeChanged = (code: string) =>
+  setState((state) => {
+    state.user.changeEmailDialog.oldEmailCode = code
+  })
+export const changeEmailDialogNewEmailCodeChanged = (code: string) =>
+  setState((state) => {
+    state.user.changeEmailDialog.newEmailCode = code
+  })
+export const switchChangeEmailStatus = () =>
+  setState((state) => {
+    state.user.changeEmailDialog.status =
+      state.user.changeEmailDialog.status === 'email' ? 'codes' : 'email'
+  })
+export const closeChangeEmailDialog = () =>
+  setState((state) => {
+    state.user.changeEmailDialog = userInit.changeEmailDialog
+  })
+export const sendChangeEmailCodes = async () => {
+  const state = getState()
+  const {email: newEmail, loading} = state.user.changeEmailDialog
+  const oldEmail = state.user.user.email
+  if (!newEmail || loading || !oldEmail) return
+
+  setState((state) => {
+    state.user.changeEmailDialog.loading = true
+  })
+  const res = await reqSendChangeEmailCodes({newEmail, oldEmail})
+  setState((state) => {
+    state.user.changeEmailDialog.loading = false
+    if (!res.success) {
+      notifications.show({
+        title: 'Failed to send confirmation code',
+        message: res.error,
+        color: 'red',
+      })
+    } else {
+      state.user.changeEmailDialog.status = 'codes'
+      notifications.show({
+        title: 'Confirmation code sent',
+        message: 'Check both your new and old email for the confirmation codes.',
+      })
+    }
+  })
+}
+export const changeEmail = async () => {
+  const state = getState()
+  const {email: newEmail, loading, oldEmailCode, newEmailCode} = state.user.changeEmailDialog
+  const oldEmail = state.user.user.email
+  if (!newEmail || loading || !oldEmail || !oldEmailCode || !newEmailCode) return
+
+  setState((state) => {
+    state.user.changeEmailDialog.loading = true
+  })
+  const res = await reqChangeEmail({oldEmail, oldEmailCode, newEmailCode})
+  setState((state) => {
+    state.user.changeEmailDialog.loading = false
+    if (!res.success) {
+      notifications.show({
+        title: 'Failed to change email',
+        message: res.error,
+        color: 'red',
+      })
+    } else {
+      state.user.user.email = newEmail
+      state.user.changeEmailDialog.open = false
+      notifications.show({
+        title: 'Email changed',
+        message: 'Your email has been changed',
+      })
+    }
   })
 }
 

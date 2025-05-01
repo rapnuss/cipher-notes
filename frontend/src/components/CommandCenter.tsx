@@ -7,6 +7,7 @@ import {
   openRegisterDialog,
   toggleImprint,
   openDeleteServerNotesDialog,
+  openChangeEmailDialog,
 } from '../state/user'
 import {selectAnyDialogOpen, useSelector} from '../state/store'
 import {useMantineColorScheme} from '@mantine/core'
@@ -109,6 +110,12 @@ export const CommandCenter = () => {
         label: 'Delete Server Notes and generate new crypto key',
         onClick: openDeleteServerNotesDialog,
         disabled: !loggedIn,
+      },
+      {
+        id: 'changeEmail',
+        label: 'Change Email',
+        onClick: openChangeEmailDialog,
+        disabled: !email,
       },
     ],
     [loggedIn, toggleColorScheme, email]

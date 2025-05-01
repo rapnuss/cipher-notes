@@ -16,6 +16,7 @@ import {KeepImportDialog} from './KeepImportDialog.tsx'
 import {debounce, delay} from '../util/misc.ts'
 import {LabelSelector} from './LabelSelector.tsx'
 import {LabelDialog} from './LabelDialog.tsx'
+import {ChangeEmailDialog} from './ChangeEmailDialog.tsx'
 
 window.addEventListener(
   'scroll',
@@ -70,6 +71,7 @@ export const App = () => (
     <ConflictDialog />
     <EncryptionKeyDialog />
     <DeleteServerNotesDialog />
+    <ChangeEmailDialog />
     <ImprintDialog />
     <PWABadge />
     <Notifications autoClose={false} />

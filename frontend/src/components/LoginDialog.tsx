@@ -2,7 +2,7 @@ import {Button, Flex, Modal, Stack, TextInput} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {
   closeLoginDialog,
-  loginCode,
+  loginWithCode,
   loginCodeChanged,
   sendLoginCode,
   loginEmailChanged,
@@ -12,7 +12,6 @@ import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 export const LoginDialog = () => {
   const {open, email, code, loading, status} = useSelector((state) => state.user.loginDialog)
-  const existingEmail = useSelector((state) => state.user.user.email)
   useCloseOnBack({
     id: 'login-dialog',
     open,
@@ -23,7 +22,6 @@ export const LoginDialog = () => {
       {status === 'email' && (
         <Stack gap='md'>
           <TextInput
-            disabled={!!existingEmail}
             label='Email'
             type='email'
             value={email}
@@ -43,14 +41,13 @@ export const LoginDialog = () => {
       {status === 'code' && (
         <Stack gap='md'>
           <TextInput
-            disabled={!!existingEmail}
             label='Email'
             type='email'
             value={email}
             onChange={(e) => loginEmailChanged(e.target.value)}
           />
           <TextInput label='Code' value={code} onChange={(e) => loginCodeChanged(e.target.value)} />
-          <Button loading={loading} onClick={loginCode}>
+          <Button loading={loading} onClick={loginWithCode}>
             Login
           </Button>
           <Flex gap='md' align='center'>

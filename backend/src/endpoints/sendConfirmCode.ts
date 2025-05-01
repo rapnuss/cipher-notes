@@ -21,7 +21,15 @@ export const sendConfirmCodeEndpoint = authEndpointsFactory.build({
     await sendConfirmCode(user.email, confirm_code)
     await db
       .update(usersTbl)
-      .set({confirm_code, confirm_code_created_at: Date.now(), confirm_code_tries_left: 3})
+      .set({
+        confirm_code,
+        confirm_code_created_at: Date.now(),
+        confirm_code_tries_left: 3,
+        new_email: null,
+        login_code: null,
+        login_code_created_at: null,
+        login_tries_left: 0,
+      })
       .where(eq(usersTbl.id, user.id))
 
     return {}

@@ -56,6 +56,10 @@ export const sendLoginCodeEndpoint = endpointsFactory.build({
         login_code,
         login_code_created_at: Date.now(),
         login_tries_left: 3,
+        confirm_code: null,
+        confirm_code_tries_left: 0,
+        confirm_code_created_at: null,
+        new_email: null,
       })
       .where(eq(usersTbl.id, user.id))
 
@@ -63,7 +67,7 @@ export const sendLoginCodeEndpoint = endpointsFactory.build({
   },
 })
 
-export const loginCodeEndpoint = endpointsFactory.build({
+export const loginWithCodeEndpoint = endpointsFactory.build({
   method: 'post',
   input: z.object({
     email: z.string().email(),
@@ -96,21 +100,29 @@ export const loginCodeEndpoint = endpointsFactory.build({
       throw createHttpError(400, 'Invalid login code')
     }
 
-    await db
-      .update(usersTbl)
-      .set({login_code: null, login_code_created_at: null, login_tries_left: 0})
-      .where(eq(usersTbl.id, user.id))
-
-    const {accessToken, salt, hash} = generateSession()
-    const [{session_id} = {}] = await db
-      .insert(sessionsTbl)
-      .values({
-        user_id: user.id,
-        access_token_hash: hash,
-        access_token_salt: salt,
-      })
-      .returning({session_id: sessionsTbl.id})
-
-    return {access_token: accessToken, session_id: session_id!}
+    return await db.transaction(async (tx) => {
+      await tx
+        .update(usersTbl)
+        .set({
+          login_code: null,
+          login_code_created_at: null,
+          login_tries_left: 0,
+          confirm_code: null,
+          confirm_code_tries_left: 0,
+          confirm_code_created_at: null,
+          new_email: null,
+        })
+        .where(eq(usersTbl.id, user.id))
+      const {accessToken, salt, hash} = generateSession()
+      const [{session_id} = {}] = await tx
+        .insert(sessionsTbl)
+        .values({
+          user_id: user.id,
+          access_token_hash: hash,
+          access_token_salt: salt,
+        })
+        .returning({session_id: sessionsTbl.id})
+      return {access_token: accessToken, session_id: session_id!}
+    })
   },
 })

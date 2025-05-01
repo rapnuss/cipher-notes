@@ -52,8 +52,8 @@ export const reqRegisterEmail = (email: string, captchaToken: string) =>
 export const reqSendLoginCode = (email: string) =>
   request<void>('/sendLoginCode', {method: 'POST', body: {email}})
 
-export const reqLoginCode = (email: string, code: string) =>
-  request<void>('/loginCode', {
+export const reqLoginWithCode = (email: string, code: string) =>
+  request<void>('/loginWithCode', {
     method: 'POST',
     body: {email, login_code: code},
   })
@@ -102,3 +102,33 @@ export const reqSendConfirmCode = () =>
 export const reqLogout = () => request<void>('/logout', {method: 'POST'})
 
 export const isUnauthorizedRes = (res: Res<unknown>) => !res.success && res.statusCode === 401
+
+export const reqSendChangeEmailCodes = ({
+  newEmail,
+  oldEmail,
+}: {
+  newEmail: string
+  oldEmail: string
+}) =>
+  request<void>('/sendChangeEmailCodes', {
+    method: 'POST',
+    body: {new_email: newEmail, old_email: oldEmail},
+  })
+
+export const reqChangeEmail = ({
+  oldEmail,
+  oldEmailCode,
+  newEmailCode,
+}: {
+  oldEmail: string
+  oldEmailCode: string
+  newEmailCode: string
+}) =>
+  request<void>('/changeEmail', {
+    method: 'POST',
+    body: {
+      old_email: oldEmail,
+      old_email_code: oldEmailCode,
+      new_email_code: newEmailCode,
+    },
+  })
