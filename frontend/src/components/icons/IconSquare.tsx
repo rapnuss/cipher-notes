@@ -13,6 +13,6 @@ export const IconSquare = (props: SVGProps<SVGSVGElement>) => (
     strokeLinejoin='round'
     {...props}
   >
-    <path d='M3 3m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z' />
+    <rect x='3' y='3' width='18' height='18' rx='2' ry='2'></rect>
   </svg>
 )
