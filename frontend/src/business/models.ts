@@ -30,6 +30,7 @@ export const todoSchema = z.object({
   updated_at: z.number().optional(),
   done: z.boolean(),
   txt: z.string(),
+  indent: z.boolean().optional(),
 })
 export type Todo = z.infer<typeof todoSchema>
 export const todosSchema = z.array(todoSchema)

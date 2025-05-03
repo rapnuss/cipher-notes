@@ -225,7 +225,7 @@ export const deleteTodo = (index: number) =>
     state.notes.openNote.todos.splice(index, 1)
     state.notes.openNote.updatedAt = Date.now()
   })
-export const moveTodo = (source: number, target: number) =>
+export const moveTodo = (source: number, target: number, indent: boolean) =>
   setState((state) => {
     if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
     const todos = state.notes.openNote.todos
@@ -233,6 +233,7 @@ export const moveTodo = (source: number, target: number) =>
     if (todo) {
       todos.splice(target, 0, todo)
     }
+    todos[target]!.indent = target !== 0 && indent
     state.notes.openNote.updatedAt = Date.now()
   })
 export const openNoteHistoryHandler = (historyItem: NoteHistoryItem | null) => {

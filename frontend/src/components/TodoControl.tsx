@@ -23,7 +23,7 @@ export type TodoControlProps = {
   onUndo?: () => void
   onRedo?: () => void
   onUp?: () => void
-  onMoveTodo?: (source: number, target: number) => void
+  onMoveTodo?: (source: number, target: number, indent: boolean) => void
 }
 export const TodoControl = ({
   todos,
@@ -97,11 +97,14 @@ const TodoItem = ({
   onUndo?: () => void
   onRedo?: () => void
   onUp?: () => void
-  onMoveTodo?: (source: number, target: number) => void
+  onMoveTodo?: (source: number, target: number, indent: boolean) => void
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const handleRef = useRef<HTMLDivElement>(null)
-  const [highlightedEdge, setHighlightedEdge] = useState<Edge | null>(null)
+  const [dragState, setDragState] = useState<{
+    edge: Edge | null
+    indented: boolean
+  } | null>(null)
   const data = useMemo(() => ({i}), [i])
 
   useEffect(() => {
@@ -114,27 +117,31 @@ const TodoItem = ({
     const dropTargetCleanup = dropTargetForElements({
       element: containerRef.current!,
       canDrop: () => !todo.done,
-      getData({input}) {
-        return attachClosestEdge(data, {
+      getData({input, element}) {
+        let dataWithEdge = attachClosestEdge(data, {
           element: containerRef.current!,
           input,
           allowedEdges: ['top', 'bottom'],
         })
+        const rect = element.getBoundingClientRect()
+        const xInTarget = input.clientX - rect.left
+        return {
+          ...dataWithEdge,
+          indented: xInTarget > 32,
+        }
       },
-      onDrag({self, source}) {
-        if (self.element === source.element) return
-        setHighlightedEdge(extractClosestEdge(self.data))
+      onDrag({self}) {
+        setDragState({
+          edge: extractClosestEdge(self.data),
+          indented: !!self.data.indented,
+        })
       },
       onDragLeave() {
-        setHighlightedEdge(null)
+        setDragState(null)
       },
       onDrop({self, source}) {
-        setHighlightedEdge(null)
-        if (
-          source.data.i !== self.data.i &&
-          typeof source.data.i === 'number' &&
-          typeof self.data.i === 'number'
-        ) {
+        setDragState(null)
+        if (typeof source.data.i === 'number' && typeof self.data.i === 'number') {
           const edge = extractClosestEdge(self.data)
           const dest = getReorderDestinationIndex({
             startIndex: source.data.i,
@@ -142,9 +149,7 @@ const TodoItem = ({
             indexOfTarget: self.data.i,
             axis: 'vertical',
           })
-          if (source.data.i !== dest) {
-            onMoveTodo?.(source.data.i, dest)
-          }
+          onMoveTodo?.(source.data.i, dest, !!self.data.indented)
         }
       },
     })
@@ -163,7 +168,7 @@ const TodoItem = ({
       className='todo-list-item'
       pos='relative'
     >
-      <div ref={handleRef} style={{padding: '0 .75rem 0 0'}}>
+      <div ref={handleRef} style={{padding: '0 .75rem 0 0', marginLeft: todo.indent ? '2rem' : 0}}>
         <IconGridDots style={{display: 'block', opacity: todo.done ? 0.2 : 0.5}} />
       </div>
       <IconsCheckbox
@@ -249,19 +254,19 @@ const TodoItem = ({
           <IconTrash />
         </UnstyledButton>
       )}
-      <DropIndicator edge={highlightedEdge} />
+      <DropIndicator edge={dragState?.edge ?? null} indented={dragState?.indented ?? false} />
     </Flex>
   )
 }
 
-const DropIndicator = ({edge}: {edge: Edge | null}) =>
+const DropIndicator = ({edge, indented}: {edge: Edge | null; indented: boolean}) =>
   edge !== null &&
   (edge === 'top' || edge === 'bottom') && (
     <div
       style={{
         position: 'absolute',
         top: edge === 'top' ? 0 : undefined,
-        left: 0,
+        left: indented ? '2rem' : 0,
         right: 0,
         bottom: edge === 'bottom' ? 0 : undefined,
         border: '2px solid var(--mantine-primary-color-filled)',
