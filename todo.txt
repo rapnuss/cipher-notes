@@ -43,6 +43,9 @@ DONE:
   auto merge
   keep import
 FIRST:
+  sub todos
+    preview
+    should be under above todo when indicator on top and indented
 TODO:
 LATER:
   labels

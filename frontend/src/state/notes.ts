@@ -196,16 +196,24 @@ export const todoChecked = (index: number, checked: boolean) =>
     const todos = state.notes.openNote.todos
     const todo = todos[index]!
 
+    if (todo.done === checked) return
+
     todo.done = checked
     todo.updated_at = Date.now()
 
+    const children = todos.filter((t) => t.parent === todo.id)
     if (checked) {
-      const children = todos.filter((t) => t.parent === todo.id)
       for (const child of children) {
         if (child.done) {
           continue
         }
         child.done = true
+        child.updated_at = Date.now()
+      }
+    }
+    if (!checked && children.every((c) => c.done)) {
+      for (const child of children) {
+        child.done = false
         child.updated_at = Date.now()
       }
     }
