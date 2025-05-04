@@ -1,4 +1,4 @@
-import {Note, NoteHistoryItem, OpenNote, NoteSortProp} from '../business/models'
+import {Note, NoteHistoryItem, OpenNote, NoteSortProp, Todo} from '../business/models'
 import {getState, setState, subscribe} from './store'
 import {bisectBy, debounce, deepEquals, nonConcurrent} from '../util/misc'
 import {isUnauthorizedRes, reqSyncNotes} from '../services/backend'
@@ -192,8 +192,30 @@ export const todoChecked = (index: number, checked: boolean) =>
       !state.notes.openNote.todos[index]
     )
       return
-    state.notes.openNote.todos[index].done = checked
-    state.notes.openNote.todos[index].updated_at = Date.now()
+
+    const todos = state.notes.openNote.todos
+    const todo = todos[index]!
+
+    todo.done = checked
+    todo.updated_at = Date.now()
+
+    if (checked) {
+      const children = todos.filter((t) => t.parent === todo.id)
+      for (const child of children) {
+        if (child.done) {
+          continue
+        }
+        child.done = true
+        child.updated_at = Date.now()
+      }
+    }
+
+    const parent = todos.find((t) => t.id === todo.parent)
+    if (!checked && parent && parent.done) {
+      parent.done = false
+      parent.updated_at = Date.now()
+    }
+
     state.notes.openNote.updatedAt = Date.now()
   })
 export const todoChanged = (index: number, txt: string) =>
@@ -222,18 +244,49 @@ export const insertTodo = (bellow: number) =>
 export const deleteTodo = (index: number) =>
   setState((state) => {
     if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
-    state.notes.openNote.todos.splice(index, 1)
+
+    const todos = state.notes.openNote.todos
+    const todo = todos[index]!
+    const delIds = todos
+      .filter((t) => t.parent === todo.id)
+      .map((c) => c.id)
+      .concat(todo.id)
+
+    state.notes.openNote.todos = todos.filter((t) => !delIds.includes(t.id))
     state.notes.openNote.updatedAt = Date.now()
   })
 export const moveTodo = (source: number, target: number, indent: boolean) =>
   setState((state) => {
     if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
     const todos = state.notes.openNote.todos
+
+    const children = todos.filter((t) => t.parent === todos[source]!.id)
+
+    if (indent && target !== 0 && source !== target) {
+      todos[source]!.parent = todos[target]!.parent ?? todos[target]!.id
+      children.forEach((c) => (c.parent = todos[source]!.parent))
+    } else if (target !== 0 && source === target) {
+      if (indent) {
+        let above: Todo | undefined = undefined
+        for (let i = source - 1; i >= 0; i--) {
+          if (!todos[i]?.done) {
+            above = todos[i]!
+            break
+          }
+        }
+        todos[source]!.parent = above?.parent ?? above?.id
+        children.forEach((c) => (c.parent = todos[source]!.parent))
+      } else {
+        todos[source]!.parent = undefined
+      }
+    } else {
+      todos[source]!.parent = undefined
+    }
+
     const [todo] = todos.splice(source, 1)
     if (todo) {
       todos.splice(target, 0, todo)
     }
-    todos[target]!.indent = target !== 0 && indent
     state.notes.openNote.updatedAt = Date.now()
   })
 export const openNoteHistoryHandler = (historyItem: NoteHistoryItem | null) => {

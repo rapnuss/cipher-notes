@@ -90,7 +90,7 @@ const NotePreview = ({note}: {note: Note}) => {
               <Flex
                 align='center'
                 gap='xs'
-                ml={todo.indent ? '1rem' : 0}
+                ml={todo.parent ? '1rem' : 0}
                 style={{textDecoration: todo.done ? 'line-through' : 'none'}}
                 key={i}
               >

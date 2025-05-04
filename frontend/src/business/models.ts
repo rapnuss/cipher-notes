@@ -26,11 +26,11 @@ export type NoteSortProp = (typeof noteSortProps)[number]
 
 // TODO: make id mandatory except for imports
 export const todoSchema = z.object({
-  id: z.string().optional(),
+  id: z.string(),
   updated_at: z.number().optional(),
   done: z.boolean(),
   txt: z.string(),
-  indent: z.boolean().optional(),
+  parent: z.string().optional(),
 })
 export type Todo = z.infer<typeof todoSchema>
 export const todosSchema = z.array(todoSchema)

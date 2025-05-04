@@ -1,6 +1,6 @@
 import {Divider, Flex, Stack, UnstyledButton} from '@mantine/core'
 import {Todo, Todos} from '../business/models'
-import {useEffect, useMemo, useRef, useState} from 'react'
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react'
 import {draggable, dropTargetForElements} from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
 import {
   attachClosestEdge,
@@ -13,6 +13,7 @@ import {IconTrash} from './icons/IconTrash'
 import {IconPlus} from './icons/IconPlus'
 import {AutoResizingTextarea} from './AutoResizingTextarea'
 import {IconsCheckbox} from './IconsCheckbox'
+import {IconSquareMinus} from './icons/IconSquareMinus'
 
 export type TodoControlProps = {
   todos: Todos
@@ -35,50 +36,118 @@ export const TodoControl = ({
   onRedo,
   onUp,
   onMoveTodo,
-}: TodoControlProps) => (
-  <Stack flex={1} style={{overflowY: 'auto', paddingTop: '1px'}} gap={0}>
-    {todos.map((todo, i) =>
-      todo.done ? null : (
-        <TodoItem
-          key={i}
-          todo={todo}
-          i={i}
-          onTodoChecked={onTodoChecked}
-          onTodoChanged={onTodoChanged}
-          onInsertTodo={onInsertTodo}
-          onTodoDeleted={todos.length === 1 ? undefined : onTodoDeleted}
-          onUndo={onUndo}
-          onRedo={onRedo}
-          onUp={onUp}
-          onMoveTodo={onMoveTodo}
-        />
-      )
-    )}
-    {!!onInsertTodo && (
-      <Flex justify='end'>
-        <UnstyledButton title='Add todo' onClick={() => onInsertTodo(todos.length - 1)}>
-          <IconPlus />
-        </UnstyledButton>
-      </Flex>
-    )}
-    <Divider m='5px 0' />
-    {todos.map((todo, i) =>
-      todo.done ? (
-        <TodoItem
-          key={i}
-          todo={todo}
-          i={i}
-          onTodoChecked={onTodoChecked}
-          onTodoDeleted={onTodoDeleted}
-        />
-      ) : null
-    )}
-  </Stack>
-)
+}: TodoControlProps) => {
+  const parentToChildIds: Record<string, string[]> = {}
+  const idToTodo = {} as Record<string, Todo>
+  const idToIndex = {} as Record<string, number>
+  for (let i = 0; i < todos.length; i++) {
+    const todo = todos[i]!
+    idToTodo[todo.id] = todo
+    idToIndex[todo.id] = i
+    if (todo.parent) {
+      if (!parentToChildIds[todo.parent]) {
+        parentToChildIds[todo.parent] = [todo.id]
+      } else {
+        parentToChildIds[todo.parent]!.push(todo.id)
+      }
+    }
+  }
+  const parentToChildrenDone = {} as Record<string, 'all' | 'some' | 'none'>
+  for (const [parent, children] of Object.entries(parentToChildIds)) {
+    let anyDone = false
+    let anyUndone = false
+    for (const childId of children) {
+      if (idToTodo[childId]!.done) {
+        anyDone = true
+      } else {
+        anyUndone = true
+      }
+    }
+    parentToChildrenDone[parent] = anyDone && anyUndone ? 'some' : anyDone ? 'all' : 'none'
+  }
+  return (
+    <Stack flex={1} style={{overflowY: 'auto', paddingTop: '1px'}} gap={0}>
+      {todos.map((todo, i) =>
+        todo.done || todo.parent ? null : (
+          <Fragment key={`${i}undone`}>
+            <TodoItem
+              todo={todo}
+              i={i}
+              onTodoChecked={onTodoChecked}
+              onTodoChanged={onTodoChanged}
+              onInsertTodo={onInsertTodo}
+              onTodoDeleted={todos.length === 1 ? undefined : onTodoDeleted}
+              onUndo={onUndo}
+              onRedo={onRedo}
+              onUp={onUp}
+              onMoveTodo={onMoveTodo}
+            />
+            {parentToChildIds[todo.id] &&
+              parentToChildIds[todo.id]!.map(
+                (childId) =>
+                  !idToTodo[childId]!.done && (
+                    <TodoItem
+                      key={childId}
+                      todo={idToTodo[childId]!}
+                      i={idToIndex[childId]!}
+                      onTodoChecked={onTodoChecked}
+                      onTodoChanged={onTodoChanged}
+                      onInsertTodo={onInsertTodo}
+                      onTodoDeleted={todos.length === 1 ? undefined : onTodoDeleted}
+                      onUndo={onUndo}
+                      onRedo={onRedo}
+                      onUp={onUp}
+                      onMoveTodo={onMoveTodo}
+                    />
+                  )
+              )}
+          </Fragment>
+        )
+      )}
+      {!!onInsertTodo && (
+        <Flex justify='end'>
+          <UnstyledButton title='Add todo' onClick={() => onInsertTodo(todos.length - 1)}>
+            <IconPlus />
+          </UnstyledButton>
+        </Flex>
+      )}
+      <Divider m='5px 0' />
+      {todos.map((todo, i) => {
+        return todo.parent ||
+          (!todo.done && !(todo.id in parentToChildrenDone)) ||
+          (!todo.done && parentToChildrenDone[todo.id] === 'none') ? null : (
+          <Fragment key={`${i}done`}>
+            <TodoItem
+              todo={todo}
+              i={i}
+              onTodoChecked={onTodoChecked}
+              onTodoDeleted={todo.done ? onTodoDeleted : undefined}
+              ghost={!todo.done}
+            />
+            {parentToChildIds[todo.id] &&
+              parentToChildIds[todo.id]!.map(
+                (childId) =>
+                  idToTodo[childId]!.done && (
+                    <TodoItem
+                      key={childId}
+                      todo={idToTodo[childId]!}
+                      i={idToIndex[childId]!}
+                      onTodoChecked={onTodoChecked}
+                      onTodoDeleted={onTodoDeleted}
+                    />
+                  )
+              )}
+          </Fragment>
+        )
+      })}
+    </Stack>
+  )
+}
 
 const TodoItem = ({
   todo,
   i,
+  ghost,
   onTodoChecked,
   onTodoChanged,
   onInsertTodo,
@@ -90,6 +159,7 @@ const TodoItem = ({
 }: {
   todo: Todo
   i: number
+  ghost?: boolean
   onTodoChecked?: (index: number, checked: boolean) => void
   onTodoChanged?: (index: number, txt: string) => void
   onInsertTodo?: (bellow: number) => void
@@ -112,11 +182,11 @@ const TodoItem = ({
       element: containerRef.current!,
       dragHandle: handleRef.current!,
       getInitialData: () => data,
-      canDrag: () => !todo.done,
+      canDrag: () => !todo.done && !ghost,
     })
     const dropTargetCleanup = dropTargetForElements({
       element: containerRef.current!,
-      canDrop: () => !todo.done,
+      canDrop: () => !todo.done && !ghost,
       getData({input, element}) {
         let dataWithEdge = attachClosestEdge(data, {
           element: containerRef.current!,
@@ -157,7 +227,7 @@ const TodoItem = ({
       draggableCleanup()
       dropTargetCleanup()
     }
-  }, [i, todo.done, data, onMoveTodo])
+  }, [i, todo.done, data, onMoveTodo, ghost])
 
   return (
     <Flex
@@ -167,17 +237,22 @@ const TodoItem = ({
       gap={0}
       className='todo-list-item'
       pos='relative'
+      style={{opacity: ghost ? 0.5 : 1}}
     >
-      <div ref={handleRef} style={{padding: '0 .75rem 0 0', marginLeft: todo.indent ? '2rem' : 0}}>
+      <div ref={handleRef} style={{padding: '0 .75rem 0 0', marginLeft: todo.parent ? '2rem' : 0}}>
         <IconGridDots style={{display: 'block', opacity: todo.done ? 0.2 : 0.5}} />
       </div>
-      <IconsCheckbox
-        tabIndex={onTodoChecked ? undefined : -1}
-        checked={todo.done}
-        readOnly={!onTodoChecked}
-        onChange={(e) => onTodoChecked?.(i, e.target.checked)}
-        style={{marginRight: '.25rem'}}
-      />
+      {ghost ? (
+        <IconSquareMinus />
+      ) : (
+        <IconsCheckbox
+          tabIndex={onTodoChecked ? undefined : -1}
+          checked={todo.done}
+          readOnly={!onTodoChecked}
+          onChange={(e) => onTodoChecked?.(i, e.target.checked)}
+          style={{marginRight: '.25rem'}}
+        />
+      )}
       <AutoResizingTextarea
         tabIndex={onTodoChanged ? undefined : -1}
         placeholder='To do...'
