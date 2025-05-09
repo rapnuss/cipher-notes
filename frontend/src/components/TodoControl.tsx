@@ -7,13 +7,14 @@ import {
   Edge,
   extractClosestEdge,
 } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge'
-import {getReorderDestinationIndex} from '@atlaskit/pragmatic-drag-and-drop-hitbox/util/get-reorder-destination-index'
 import {IconGridDots} from './icons/IconGridDots'
 import {IconTrash} from './icons/IconTrash'
 import {IconPlus} from './icons/IconPlus'
 import {AutoResizingTextarea} from './AutoResizingTextarea'
 import {IconsCheckbox} from './IconsCheckbox'
 import {IconSquareMinus} from './icons/IconSquareMinus'
+import {moveTodo} from '../state/notes'
+import {deriveTodosData} from '../business/misc'
 
 export type TodoControlProps = {
   todos: Todos
@@ -24,7 +25,7 @@ export type TodoControlProps = {
   onUndo?: () => void
   onRedo?: () => void
   onUp?: () => void
-  onMoveTodo?: (source: number, target: number, indent: boolean) => void
+  onMoveTodo?: typeof moveTodo
 }
 export const TodoControl = ({
   todos,
@@ -37,34 +38,7 @@ export const TodoControl = ({
   onUp,
   onMoveTodo,
 }: TodoControlProps) => {
-  const parentToChildIds: Record<string, string[]> = {}
-  const idToTodo = {} as Record<string, Todo>
-  const idToIndex = {} as Record<string, number>
-  for (let i = 0; i < todos.length; i++) {
-    const todo = todos[i]!
-    idToTodo[todo.id] = todo
-    idToIndex[todo.id] = i
-    if (todo.parent) {
-      if (!parentToChildIds[todo.parent]) {
-        parentToChildIds[todo.parent] = [todo.id]
-      } else {
-        parentToChildIds[todo.parent]!.push(todo.id)
-      }
-    }
-  }
-  const parentToChildrenDone = {} as Record<string, 'all' | 'some' | 'none'>
-  for (const [parent, children] of Object.entries(parentToChildIds)) {
-    let anyDone = false
-    let anyUndone = false
-    for (const childId of children) {
-      if (idToTodo[childId]!.done) {
-        anyDone = true
-      } else {
-        anyUndone = true
-      }
-    }
-    parentToChildrenDone[parent] = anyDone && anyUndone ? 'some' : anyDone ? 'all' : 'none'
-  }
+  const {idToTodo, idToIndex, parentToChildIds, parentToChildrenDone} = deriveTodosData(todos)
   return (
     <Stack flex={1} style={{overflowY: 'auto', paddingTop: '1px'}} gap={0}>
       {todos.map((todo, i) =>
@@ -167,7 +141,7 @@ const TodoItem = ({
   onUndo?: () => void
   onRedo?: () => void
   onUp?: () => void
-  onMoveTodo?: (source: number, target: number, indent: boolean) => void
+  onMoveTodo?: typeof moveTodo
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const handleRef = useRef<HTMLDivElement>(null)
@@ -213,13 +187,15 @@ const TodoItem = ({
         setDragState(null)
         if (typeof source.data.i === 'number' && typeof self.data.i === 'number') {
           const edge = extractClosestEdge(self.data)
-          const dest = getReorderDestinationIndex({
-            startIndex: source.data.i,
-            closestEdgeOfTarget: edge,
-            indexOfTarget: self.data.i,
-            axis: 'vertical',
+          if (edge !== 'top' && edge !== 'bottom') {
+            return
+          }
+          onMoveTodo?.({
+            dragIndex: source.data.i,
+            dropIndex: self.data.i,
+            closestEdge: edge,
+            indent: !!self.data.indented,
           })
-          onMoveTodo?.(source.data.i, dest, !!self.data.indented)
         }
       },
     })

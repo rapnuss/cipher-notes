@@ -1,10 +1,11 @@
-import {Note, NoteHistoryItem, OpenNote, NoteSortProp, Todo} from '../business/models'
+import {Note, NoteHistoryItem, OpenNote, NoteSortProp} from '../business/models'
 import {getState, setState, subscribe} from './store'
 import {bisectBy, debounce, deepEquals, nonConcurrent} from '../util/misc'
 import {isUnauthorizedRes, reqSyncNotes} from '../services/backend'
 import {Put, decryptSyncData, encryptSyncData} from '../business/notesEncryption'
 import {db, hasDirtyLabelsObservable, hasDirtyNotesObservable} from '../db'
 import {
+  deriveTodosData,
   labelToPut,
   mergeConflicts,
   mergeLabelConflicts,
@@ -20,6 +21,7 @@ import socket from '../socket'
 import {loadNotesSortOrder, storeNotesSortOrder} from '../services/localStorage'
 import XSet from '../util/XSet'
 import {notifications} from '@mantine/notifications'
+import {WritableDraft} from 'immer'
 
 export type NotesState = {
   query: string
@@ -263,40 +265,78 @@ export const deleteTodo = (index: number) =>
     state.notes.openNote.todos = todos.filter((t) => !delIds.includes(t.id))
     state.notes.openNote.updatedAt = Date.now()
   })
-export const moveTodo = (source: number, target: number, indent: boolean) =>
+export const moveTodo = ({
+  dragIndex,
+  dropIndex,
+  closestEdge,
+  indent,
+}: {
+  dragIndex: number
+  dropIndex: number
+  closestEdge: 'top' | 'bottom'
+  indent: boolean
+}) =>
   setState((state) => {
     if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
     const todos = state.notes.openNote.todos
+    const derivedData = deriveTodosData(todos)
+    const {idToTodo, idToIndex, visualOrderUndone, parentToChildIds} = derivedData
+    let {todoTree} = derivedData
+    const dropTodo = todos[dropIndex]!
+    const visualDropIndex = visualOrderUndone.indexOf(dropTodo.id)
+    const aboveEdgeVisIdx = closestEdge === 'bottom' ? visualDropIndex : visualDropIndex - 1
+    const aboveEdgeId = visualOrderUndone[aboveEdgeVisIdx]
+    const aboveEdge = idToTodo[aboveEdgeId!]
+    const dragTodo = todos[dragIndex]!
+    const dragChildren = parentToChildIds[dragTodo.id]
+    const moveUnder = aboveEdge?.parent ?? aboveEdge?.id
 
-    const children = todos.filter((t) => t.parent === todos[source]!.id)
+    // (move parent to its own children)
+    if (dragTodo.id === aboveEdge?.parent) {
+      return
+    }
 
-    if (indent && target !== 0 && source !== target) {
-      todos[source]!.parent = todos[target]!.parent ?? todos[target]!.id
-      children.forEach((c) => (c.parent = todos[source]!.parent))
-    } else if (target !== 0 && source === target) {
-      if (indent) {
-        let above: Todo | undefined = undefined
-        for (let i = source - 1; i >= 0; i--) {
-          if (!todos[i]?.done) {
-            above = todos[i]!
-            break
-          }
-        }
-        todos[source]!.parent = above?.parent ?? above?.id
-        children.forEach((c) => (c.parent = todos[source]!.parent))
-      } else {
-        todos[source]!.parent = undefined
+    // move within children
+    // move from children to children
+    // move parent without children in list
+    // move parent with children in list
+
+    // move parent without children to children
+    // move parent without children under parent without children
+    // move parent with children to children
+    // move parent with children under parent without children
+    if (indent) {
+      const insertNode = todoTree.find(([id]) => id === aboveEdge?.id)
+      if (insertNode) {
+        insertNode[1].push(dragTodo.id, ...(dragChildren ?? []))
       }
-    } else {
-      todos[source]!.parent = undefined
+      todoTree = todoTree.filter(([id]) => id !== dragTodo.id)
     }
 
-    const [todo] = todos.splice(source, 1)
-    if (todo) {
-      todos.splice(target, 0, todo)
-    }
     state.notes.openNote.updatedAt = Date.now()
   })
+
+const moveWithinList = <Item>(
+  list: WritableDraft<Item[]>,
+  itemIndex: number,
+  insertIndex: number
+) => {
+  const [item] = list.splice(itemIndex, 1)
+  if (item) {
+    list.splice(insertIndex, 0, item)
+  }
+}
+const getTargetIndex = (dragIndex: number, dropIndex: number, closestEdge: 'top' | 'bottom') => {
+  const movingForward = dragIndex < dropIndex
+  const goingAfter = closestEdge === 'bottom'
+  let targetIndex = 0
+  if (movingForward) {
+    targetIndex = goingAfter ? dropIndex : dropIndex - 1
+  } else {
+    targetIndex = goingAfter ? dropIndex + 1 : dropIndex
+  }
+  return targetIndex
+}
 export const openNoteHistoryHandler = (historyItem: NoteHistoryItem | null) => {
   if (!historyItem) {
     return

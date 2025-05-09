@@ -366,3 +366,57 @@ export const darkColorsGradient = `linear-gradient(90deg,${Object.values(darkCol
 
 export const labelColor = (hue: Hue, darkMode: boolean): string =>
   hue === null ? `var(--mantine-color-body)` : darkMode ? darkColorByHue[hue] : lightColorByHue[hue]
+
+export const deriveTodosData = (todos: Todo[]) => {
+  const parentToChildIds: Record<string, string[]> = {}
+  const idToTodo = {} as Record<string, Todo>
+  const idToIndex = {} as Record<string, number>
+  for (let i = 0; i < todos.length; i++) {
+    const todo = todos[i]!
+    idToTodo[todo.id] = todo
+    idToIndex[todo.id] = i
+    if (todo.parent) {
+      if (!parentToChildIds[todo.parent]) {
+        parentToChildIds[todo.parent] = [todo.id]
+      } else {
+        parentToChildIds[todo.parent]!.push(todo.id)
+      }
+    }
+  }
+  const todoTree: [string, string[]][] = []
+  const visualOrderUndone: string[] = []
+  for (const todo of todos) {
+    if (todo.parent) {
+      continue
+    }
+    todoTree.push([todo.id, parentToChildIds[todo.id] ?? []])
+    if (todo.done) {
+      continue
+    }
+    visualOrderUndone.push(
+      todo.id,
+      ...(parentToChildIds[todo.id] ?? []).filter((id) => !idToTodo[id]!.done)
+    )
+  }
+  const parentToChildrenDone = {} as Record<string, 'all' | 'some' | 'none'>
+  for (const [parent, children] of Object.entries(parentToChildIds)) {
+    let anyDone = false
+    let anyUndone = false
+    for (const childId of children) {
+      if (idToTodo[childId]!.done) {
+        anyDone = true
+      } else {
+        anyUndone = true
+      }
+    }
+    parentToChildrenDone[parent] = anyDone && anyUndone ? 'some' : anyDone ? 'all' : 'none'
+  }
+  return {
+    idToTodo,
+    idToIndex,
+    todoTree,
+    visualOrderUndone,
+    parentToChildIds,
+    parentToChildrenDone,
+  }
+}
