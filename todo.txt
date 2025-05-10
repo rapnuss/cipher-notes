@@ -45,11 +45,9 @@ DONE:
   sub todos
     move below itself indented and not indented, moves it one lower, should do nothing
     it's possible to indent a todo under itself which disappears the todo
-FIRST:
-  sub todos
     prevent indent above the first todo
-    preview
-    should be under above todo when indicator on top and indented
+  how to merge conflicts with moved todos and sub todos -> set updated_at when parent is changed
+FIRST:
 TODO:
 LATER:
   labels

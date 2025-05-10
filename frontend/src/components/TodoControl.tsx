@@ -171,7 +171,7 @@ const TodoItem = ({
         const xInTarget = input.clientX - rect.left
         return {
           ...dataWithEdge,
-          indented: xInTarget > 32,
+          indented: (i !== 0 || extractClosestEdge(dataWithEdge) === 'bottom') && xInTarget > 32,
         }
       },
       onDrag({self}) {
@@ -311,7 +311,6 @@ const TodoItem = ({
 }
 
 const DropIndicator = ({edge, indented}: {edge: Edge | null; indented: boolean}) =>
-  edge !== null &&
   (edge === 'top' || edge === 'bottom') && (
     <div
       style={{

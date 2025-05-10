@@ -1,6 +1,6 @@
 import {Note, NoteHistoryItem, OpenNote, NoteSortProp, Todo} from '../business/models'
 import {getState, setState, subscribe} from './store'
-import {bisectBy, debounce, deepEquals, nonConcurrent} from '../util/misc'
+import {bisectBy, debounce, deepEquals, moveWithinListViaDnD, nonConcurrent} from '../util/misc'
 import {isUnauthorizedRes, reqSyncNotes} from '../services/backend'
 import {Put, decryptSyncData, encryptSyncData} from '../business/notesEncryption'
 import {db, hasDirtyLabelsObservable, hasDirtyNotesObservable} from '../db'
@@ -307,7 +307,7 @@ export const moveTodo = ({
       const parentNode = todoTree.find(([id]) => id === dragTodo.parent)!
       const dragIndex = parentNode[1].findIndex((id) => id === dragTodo.id)
       const dropIndex = parentNode[1].findIndex((id) => id === dropTodo.id)
-      moveWithinListViaDnDIdx(parentNode[1], dragIndex, dropIndex, closestEdge)
+      moveWithinListViaDnD(parentNode[1], dragIndex, dropIndex, closestEdge)
     }
     // move from children to children
     else if (indent && dragTodo.parent) {
@@ -328,7 +328,7 @@ export const moveTodo = ({
     else if (!indent && dragTodo.parent === undefined) {
       const dragIndex = todoTree.findIndex(([id]) => id === dragTodo.id)
       const dropIndex = todoTree.findIndex(([id]) => id === dropTodo.id)
-      moveWithinListViaDnDIdx(todoTree, dragIndex, dropIndex, closestEdge)
+      moveWithinListViaDnD(todoTree, dragIndex, dropIndex, closestEdge)
     }
     // move parent without children to children
     // move parent without children under parent without children
@@ -339,23 +339,27 @@ export const moveTodo = ({
       if (!insertNode) {
         return
       }
-
       insertNode[1].push(dragTodo.id)
       for (const child of dragChildIds ?? []) {
         insertNode[1].push(child)
       }
-
       todoTree = todoTree.filter(([id]) => id !== dragTodo.id)
     }
 
     const newTodos: Todo[] = []
     for (const [id, children] of todoTree) {
       const todo = idToTodo[id]!
-      todo.parent = undefined
+      if (todo.parent !== undefined) {
+        todo.parent = undefined
+        todo.updated_at = Date.now()
+      }
       newTodos.push(todo)
       for (const childId of children) {
         const child = idToTodo[childId]!
-        child.parent = todo.id
+        if (child.parent !== todo.id) {
+          child.parent = todo.id
+          child.updated_at = Date.now()
+        }
         newTodos.push(child)
       }
     }
@@ -363,25 +367,6 @@ export const moveTodo = ({
     state.notes.openNote.todos = newTodos
     state.notes.openNote.updatedAt = Date.now()
   })
-const moveWithinListViaDnDIdx = <Item>(
-  list: Item[],
-  dragIndex: number,
-  dropIndex: number,
-  closestEdge: 'top' | 'bottom'
-) => {
-  const movingForward = dragIndex < dropIndex
-  const goingAfter = closestEdge === 'bottom'
-  let targetIndex = 0
-  if (movingForward) {
-    targetIndex = goingAfter ? dropIndex : dropIndex - 1
-  } else {
-    targetIndex = goingAfter ? dropIndex + 1 : dropIndex
-  }
-  const [item] = list.splice(dragIndex, 1)
-  if (item) {
-    list.splice(targetIndex, 0, item)
-  }
-}
 export const openNoteHistoryHandler = (historyItem: NoteHistoryItem | null) => {
   if (!historyItem) {
     return
