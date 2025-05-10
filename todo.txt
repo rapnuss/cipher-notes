@@ -42,6 +42,9 @@ DONE:
   todo add button
   auto merge
   keep import
+  sub todos
+    move below itself indented and not indented, moves it one lower, should do nothing
+    it's possible to indent a todo under itself which disappears the todo
 FIRST:
   sub todos
     prevent indent above the first todo

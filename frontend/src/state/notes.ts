@@ -290,12 +290,16 @@ export const moveTodo = ({
     const dragChildIds = parentToChildIds[dragTodo.id]
     const moveUnderId = aboveEdge?.parent ?? aboveEdge?.id
 
-    // (move parent to its own children)
+    // move parent to its own children
     if (dragTodo.id === aboveEdge?.parent) {
       return
     }
     // indent above first todo
     else if (indent && aboveEdgeVisIdx === -1) {
+      return
+    }
+    // move below itself indented and not indented should do nothing
+    else if (aboveEdge?.id === dragTodo.id) {
       return
     }
     // move within children
@@ -323,7 +327,7 @@ export const moveTodo = ({
     // move parent with children in list
     else if (!indent && dragTodo.parent === undefined) {
       const dragIndex = todoTree.findIndex(([id]) => id === dragTodo.id)
-      const dropIndex = todoTree.findIndex(([id]) => id === moveUnderId)
+      const dropIndex = todoTree.findIndex(([id]) => id === dropTodo.id)
       moveWithinListViaDnDIdx(todoTree, dragIndex, dropIndex, closestEdge)
     }
     // move parent without children to children
