@@ -44,6 +44,7 @@ DONE:
   keep import
 FIRST:
   sub todos
+    prevent indent above the first todo
     preview
     should be under above todo when indicator on top and indented
 TODO:

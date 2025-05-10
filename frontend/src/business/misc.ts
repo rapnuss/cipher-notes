@@ -390,13 +390,12 @@ export const deriveTodosData = (todos: Todo[]) => {
       continue
     }
     todoTree.push([todo.id, parentToChildIds[todo.id] ?? []])
-    if (todo.done) {
-      continue
+    if (!todo.done) {
+      visualOrderUndone.push(
+        todo.id,
+        ...(parentToChildIds[todo.id] ?? []).filter((id) => !idToTodo[id]!.done)
+      )
     }
-    visualOrderUndone.push(
-      todo.id,
-      ...(parentToChildIds[todo.id] ?? []).filter((id) => !idToTodo[id]!.done)
-    )
   }
   const parentToChildrenDone = {} as Record<string, 'all' | 'some' | 'none'>
   for (const [parent, children] of Object.entries(parentToChildIds)) {

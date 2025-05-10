@@ -1,4 +1,4 @@
-import {Note, NoteHistoryItem, OpenNote, NoteSortProp} from '../business/models'
+import {Note, NoteHistoryItem, OpenNote, NoteSortProp, Todo} from '../business/models'
 import {getState, setState, subscribe} from './store'
 import {bisectBy, debounce, deepEquals, nonConcurrent} from '../util/misc'
 import {isUnauthorizedRes, reqSyncNotes} from '../services/backend'
@@ -21,7 +21,6 @@ import socket from '../socket'
 import {loadNotesSortOrder, storeNotesSortOrder} from '../services/localStorage'
 import XSet from '../util/XSet'
 import {notifications} from '@mantine/notifications'
-import {WritableDraft} from 'immer'
 
 export type NotesState = {
   query: string
@@ -280,7 +279,7 @@ export const moveTodo = ({
     if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
     const todos = state.notes.openNote.todos
     const derivedData = deriveTodosData(todos)
-    const {idToTodo, idToIndex, visualOrderUndone, parentToChildIds} = derivedData
+    const {idToTodo, visualOrderUndone, parentToChildIds} = derivedData
     let {todoTree} = derivedData
     const dropTodo = todos[dropIndex]!
     const visualDropIndex = visualOrderUndone.indexOf(dropTodo.id)
@@ -288,45 +287,84 @@ export const moveTodo = ({
     const aboveEdgeId = visualOrderUndone[aboveEdgeVisIdx]
     const aboveEdge = idToTodo[aboveEdgeId!]
     const dragTodo = todos[dragIndex]!
-    const dragChildren = parentToChildIds[dragTodo.id]
-    const moveUnder = aboveEdge?.parent ?? aboveEdge?.id
+    const dragChildIds = parentToChildIds[dragTodo.id]
+    const moveUnderId = aboveEdge?.parent ?? aboveEdge?.id
 
     // (move parent to its own children)
     if (dragTodo.id === aboveEdge?.parent) {
       return
     }
-
+    // indent above first todo
+    else if (indent && aboveEdgeVisIdx === -1) {
+      return
+    }
     // move within children
+    else if (indent && moveUnderId === dragTodo.parent) {
+      const parentNode = todoTree.find(([id]) => id === dragTodo.parent)!
+      const dragIndex = parentNode[1].findIndex((id) => id === dragTodo.id)
+      const dropIndex = parentNode[1].findIndex((id) => id === dropTodo.id)
+      moveWithinListViaDnDIdx(parentNode[1], dragIndex, dropIndex, closestEdge)
+    }
     // move from children to children
+    else if (indent && dragTodo.parent) {
+      const fromParent = todoTree.find(([id]) => id === dragTodo.parent)!
+      const toParent = todoTree.find(([id]) => id === moveUnderId)!
+      fromParent[1] = fromParent[1].filter((id) => id !== dragTodo.id)
+      toParent[1].push(dragTodo.id)
+    }
+    // move from children to list
+    else if (!indent && dragTodo.parent) {
+      const parentNode = todoTree.find(([id]) => id === dragTodo.parent)!
+      parentNode[1] = parentNode[1].filter((id) => id !== dragTodo.id)
+      const targetIndex = todoTree.findIndex(([id]) => id === moveUnderId)
+      todoTree.splice(targetIndex + 1, 0, [dragTodo.id, []])
+    }
     // move parent without children in list
     // move parent with children in list
-
+    else if (!indent && dragTodo.parent === undefined) {
+      const dragIndex = todoTree.findIndex(([id]) => id === dragTodo.id)
+      const dropIndex = todoTree.findIndex(([id]) => id === moveUnderId)
+      moveWithinListViaDnDIdx(todoTree, dragIndex, dropIndex, closestEdge)
+    }
     // move parent without children to children
     // move parent without children under parent without children
     // move parent with children to children
     // move parent with children under parent without children
-    if (indent) {
-      const insertNode = todoTree.find(([id]) => id === aboveEdge?.id)
-      if (insertNode) {
-        insertNode[1].push(dragTodo.id, ...(dragChildren ?? []))
+    else if (indent && dragTodo.parent === undefined) {
+      const insertNode = todoTree.find(([id]) => id === moveUnderId)
+      if (!insertNode) {
+        return
       }
+
+      insertNode[1].push(dragTodo.id)
+      for (const child of dragChildIds ?? []) {
+        insertNode[1].push(child)
+      }
+
       todoTree = todoTree.filter(([id]) => id !== dragTodo.id)
     }
 
+    const newTodos: Todo[] = []
+    for (const [id, children] of todoTree) {
+      const todo = idToTodo[id]!
+      todo.parent = undefined
+      newTodos.push(todo)
+      for (const childId of children) {
+        const child = idToTodo[childId]!
+        child.parent = todo.id
+        newTodos.push(child)
+      }
+    }
+
+    state.notes.openNote.todos = newTodos
     state.notes.openNote.updatedAt = Date.now()
   })
-
-const moveWithinList = <Item>(
-  list: WritableDraft<Item[]>,
-  itemIndex: number,
-  insertIndex: number
+const moveWithinListViaDnDIdx = <Item>(
+  list: Item[],
+  dragIndex: number,
+  dropIndex: number,
+  closestEdge: 'top' | 'bottom'
 ) => {
-  const [item] = list.splice(itemIndex, 1)
-  if (item) {
-    list.splice(insertIndex, 0, item)
-  }
-}
-const getTargetIndex = (dragIndex: number, dropIndex: number, closestEdge: 'top' | 'bottom') => {
   const movingForward = dragIndex < dropIndex
   const goingAfter = closestEdge === 'bottom'
   let targetIndex = 0
@@ -335,7 +373,10 @@ const getTargetIndex = (dragIndex: number, dropIndex: number, closestEdge: 'top'
   } else {
     targetIndex = goingAfter ? dropIndex + 1 : dropIndex
   }
-  return targetIndex
+  const [item] = list.splice(dragIndex, 1)
+  if (item) {
+    list.splice(targetIndex, 0, item)
+  }
 }
 export const openNoteHistoryHandler = (historyItem: NoteHistoryItem | null) => {
   if (!historyItem) {

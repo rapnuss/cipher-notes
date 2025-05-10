@@ -41,6 +41,7 @@ export default [
       '@typescript-eslint/no-explicit-any': 'off',
       'no-redeclare': 'off',
       'no-dupe-class-members': 'off',
+      'no-empty': 'off',
     },
   },
 ]
