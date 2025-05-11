@@ -1,14 +1,4 @@
-import {
-  ActionIcon,
-  Box,
-  Divider,
-  Drawer,
-  Flex,
-  Group,
-  Paper,
-  Stack,
-  UnstyledButton,
-} from '@mantine/core'
+import {Box, Divider, Drawer, Flex, Group, Paper, Stack, UnstyledButton} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {
   deleteLabel,
