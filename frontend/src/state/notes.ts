@@ -185,17 +185,17 @@ export const openNoteTypeToggled = () =>
     }
   })
 
-export const todoChecked = (index: number, checked: boolean) =>
+export const todoChecked = (id: string, checked: boolean) =>
   setState((state) => {
     if (
       !state.notes.openNote ||
       state.notes.openNote.type !== 'todo' ||
-      !state.notes.openNote.todos[index]
+      !state.notes.openNote.todos.find((t) => t.id === id)
     )
       return
 
     const todos = state.notes.openNote.todos
-    const todo = todos[index]!
+    const todo = todos.find((t) => t.id === id)!
 
     if (todo.done === checked) return
 
@@ -226,22 +226,21 @@ export const todoChecked = (index: number, checked: boolean) =>
 
     state.notes.openNote.updatedAt = Date.now()
   })
-export const todoChanged = (index: number, txt: string) =>
-  setState((state) => {
-    if (
-      !state.notes.openNote ||
-      state.notes.openNote.type !== 'todo' ||
-      !state.notes.openNote.todos[index]
-    )
-      return
-    state.notes.openNote.todos[index].txt = txt
-    state.notes.openNote.todos[index].updated_at = Date.now()
-    state.notes.openNote.updatedAt = Date.now()
-  })
-export const insertTodo = (bellow: number) =>
+export const todoChanged = (id: string, txt: string) =>
   setState((state) => {
     if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
-    state.notes.openNote.todos.splice(bellow + 1, 0, {
+    const todo = state.notes.openNote.todos.find((t) => t.id === id)!
+    todo.txt = txt
+    todo.updated_at = Date.now()
+    state.notes.openNote.updatedAt = Date.now()
+  })
+export const insertTodo = (bellowId?: string) =>
+  setState((state) => {
+    if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
+    const belowIndex = bellowId
+      ? state.notes.openNote.todos.findIndex((t) => t.id === bellowId)
+      : -1
+    state.notes.openNote.todos.splice(belowIndex + 1, 0, {
       txt: '',
       done: false,
       id: crypto.randomUUID(),
@@ -249,28 +248,23 @@ export const insertTodo = (bellow: number) =>
     })
     state.notes.openNote.updatedAt = Date.now()
   })
-export const deleteTodo = (index: number) =>
+export const deleteTodo = (id: string) =>
   setState((state) => {
     if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
 
     const todos = state.notes.openNote.todos
-    const todo = todos[index]!
-    const delIds = todos
-      .filter((t) => t.parent === todo.id)
-      .map((c) => c.id)
-      .concat(todo.id)
 
-    state.notes.openNote.todos = todos.filter((t) => !delIds.includes(t.id))
+    state.notes.openNote.todos = todos.filter((t) => t.id !== id && t.parent !== id)
     state.notes.openNote.updatedAt = Date.now()
   })
 export const moveTodo = ({
-  dragIndex,
-  dropIndex,
+  dragId,
+  dropId,
   closestEdge,
   indent,
 }: {
-  dragIndex: number
-  dropIndex: number
+  dragId: string
+  dropId: string
   closestEdge: 'top' | 'bottom'
   indent: boolean
 }) =>
@@ -280,12 +274,12 @@ export const moveTodo = ({
     const derivedData = deriveTodosData(todos)
     const {idToTodo, visualOrderUndone, parentToChildIds} = derivedData
     let {todoTree} = derivedData
-    const dropTodo = todos[dropIndex]!
+    const dropTodo = todos.find((t) => t.id === dropId)!
     const visualDropIndex = visualOrderUndone.indexOf(dropTodo.id)
     const aboveEdgeVisIdx = closestEdge === 'bottom' ? visualDropIndex : visualDropIndex - 1
     const aboveEdgeId = visualOrderUndone[aboveEdgeVisIdx]
     const aboveEdge = idToTodo[aboveEdgeId!]
-    const dragTodo = todos[dragIndex]!
+    const dragTodo = todos.find((t) => t.id === dragId)!
     const dragChildIds = parentToChildIds[dragTodo.id]
     const moveUnderId = aboveEdge?.parent ?? aboveEdge?.id
 

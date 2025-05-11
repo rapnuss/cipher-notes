@@ -105,7 +105,7 @@ export const OpenNoteDialog = () => {
             e.preventDefault()
             e.stopPropagation()
             if (openNote?.type === 'todo' && openNote.todos.every((t) => t.done)) {
-              insertTodo(0)
+              insertTodo()
             }
             const parent = e.currentTarget.parentElement
             Promise.resolve().then(() => parent?.querySelector('textarea')?.focus())

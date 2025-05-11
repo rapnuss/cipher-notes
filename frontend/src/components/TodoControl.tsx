@@ -15,13 +15,14 @@ import {IconsCheckbox} from './IconsCheckbox'
 import {IconSquareMinus} from './icons/IconSquareMinus'
 import {moveTodo} from '../state/notes'
 import {deriveTodosData} from '../business/misc'
+import {last} from '../util/misc'
 
 export type TodoControlProps = {
   todos: Todos
-  onTodoChecked?: (index: number, checked: boolean) => void
-  onTodoChanged?: (index: number, txt: string) => void
-  onInsertTodo?: (bellow: number) => void
-  onTodoDeleted?: (index: number) => void
+  onTodoChecked?: (id: string, checked: boolean) => void
+  onTodoChanged?: (id: string, txt: string) => void
+  onInsertTodo?: (bellowId?: string) => void
+  onTodoDeleted?: (id: string) => void
   onUndo?: () => void
   onRedo?: () => void
   onUp?: () => void
@@ -38,15 +39,16 @@ export const TodoControl = ({
   onUp,
   onMoveTodo,
 }: TodoControlProps) => {
-  const {idToTodo, idToIndex, parentToChildIds, parentToChildrenDone} = deriveTodosData(todos)
+  const {idToTodo, parentToChildIds, parentToChildrenDone} = deriveTodosData(todos)
+  const firstTodoId = todos.find((t) => !t.done)?.id
   return (
     <Stack flex={1} style={{overflowY: 'auto', paddingTop: '1px'}} gap={0}>
-      {todos.map((todo, i) =>
+      {todos.map((todo) =>
         todo.done || todo.parent ? null : (
-          <Fragment key={`${i}undone`}>
+          <Fragment key={`${todo.id}undone`}>
             <TodoItem
+              first={firstTodoId === todo.id}
               todo={todo}
-              i={i}
               onTodoChecked={onTodoChecked}
               onTodoChanged={onTodoChanged}
               onInsertTodo={onInsertTodo}
@@ -63,7 +65,6 @@ export const TodoControl = ({
                     <TodoItem
                       key={childId}
                       todo={idToTodo[childId]!}
-                      i={idToIndex[childId]!}
                       onTodoChecked={onTodoChecked}
                       onTodoChanged={onTodoChanged}
                       onInsertTodo={onInsertTodo}
@@ -80,20 +81,24 @@ export const TodoControl = ({
       )}
       {!!onInsertTodo && (
         <Flex justify='end'>
-          <UnstyledButton title='Add todo' onClick={() => onInsertTodo(todos.length - 1)}>
+          <UnstyledButton
+            title='Add todo'
+            onClick={() => {
+              onInsertTodo(last(todos)?.id)
+            }}
+          >
             <IconPlus />
           </UnstyledButton>
         </Flex>
       )}
       <Divider m='5px 0' />
-      {todos.map((todo, i) => {
+      {todos.map((todo) => {
         return todo.parent ||
           (!todo.done && !(todo.id in parentToChildrenDone)) ||
           (!todo.done && parentToChildrenDone[todo.id] === 'none') ? null : (
-          <Fragment key={`${i}done`}>
+          <Fragment key={`${todo.id}done`}>
             <TodoItem
               todo={todo}
-              i={i}
               onTodoChecked={onTodoChecked}
               onTodoDeleted={todo.done ? onTodoDeleted : undefined}
               ghost={!todo.done}
@@ -105,7 +110,6 @@ export const TodoControl = ({
                     <TodoItem
                       key={childId}
                       todo={idToTodo[childId]!}
-                      i={idToIndex[childId]!}
                       onTodoChecked={onTodoChecked}
                       onTodoDeleted={onTodoDeleted}
                     />
@@ -119,8 +123,8 @@ export const TodoControl = ({
 }
 
 const TodoItem = ({
+  first,
   todo,
-  i,
   ghost,
   onTodoChecked,
   onTodoChanged,
@@ -131,13 +135,13 @@ const TodoItem = ({
   onUp,
   onMoveTodo,
 }: {
+  first?: boolean
   todo: Todo
-  i: number
   ghost?: boolean
-  onTodoChecked?: (index: number, checked: boolean) => void
-  onTodoChanged?: (index: number, txt: string) => void
-  onInsertTodo?: (bellow: number) => void
-  onTodoDeleted?: (index: number) => void
+  onTodoChecked?: (id: string, checked: boolean) => void
+  onTodoChanged?: (id: string, txt: string) => void
+  onInsertTodo?: (bellowId: string) => void
+  onTodoDeleted?: (id: string) => void
   onUndo?: () => void
   onRedo?: () => void
   onUp?: () => void
@@ -149,7 +153,7 @@ const TodoItem = ({
     edge: Edge | null
     indented: boolean
   } | null>(null)
-  const data = useMemo(() => ({i}), [i])
+  const data = useMemo(() => ({id: todo.id}), [todo.id])
 
   useEffect(() => {
     const draggableCleanup = draggable({
@@ -171,7 +175,7 @@ const TodoItem = ({
         const xInTarget = input.clientX - rect.left
         return {
           ...dataWithEdge,
-          indented: (i !== 0 || extractClosestEdge(dataWithEdge) === 'bottom') && xInTarget > 32,
+          indented: (!first || extractClosestEdge(dataWithEdge) === 'bottom') && xInTarget > 32,
         }
       },
       onDrag({self}) {
@@ -185,14 +189,14 @@ const TodoItem = ({
       },
       onDrop({self, source}) {
         setDragState(null)
-        if (typeof source.data.i === 'number' && typeof self.data.i === 'number') {
+        if (typeof source.data.id === 'string' && typeof self.data.id === 'string') {
           const edge = extractClosestEdge(self.data)
           if (edge !== 'top' && edge !== 'bottom') {
             return
           }
           onMoveTodo?.({
-            dragIndex: source.data.i,
-            dropIndex: self.data.i,
+            dragId: source.data.id,
+            dropId: self.data.id,
             closestEdge: edge,
             indent: !!self.data.indented,
           })
@@ -203,7 +207,7 @@ const TodoItem = ({
       draggableCleanup()
       dropTargetCleanup()
     }
-  }, [i, todo.done, data, onMoveTodo, ghost])
+  }, [todo.done, data, onMoveTodo, ghost, first])
 
   return (
     <Flex
@@ -225,7 +229,7 @@ const TodoItem = ({
           tabIndex={onTodoChecked ? undefined : -1}
           checked={todo.done}
           readOnly={!onTodoChecked}
-          onChange={(e) => onTodoChecked?.(i, e.target.checked)}
+          onChange={(e) => onTodoChecked?.(todo.id, e.target.checked)}
           style={{marginRight: '.25rem'}}
         />
       )}
@@ -244,10 +248,10 @@ const TodoItem = ({
         value={todo.txt}
         disabled={todo.done}
         readOnly={!onTodoChanged}
-        onChange={(e) => onTodoChanged?.(i, e.target.value)}
+        onChange={(e) => onTodoChanged?.(todo.id, e.target.value)}
         onKeyDown={(e) => {
           if (
-            i === 0 &&
+            first &&
             e.currentTarget.selectionStart === 0 &&
             (e.key === 'Backspace' || e.key === 'ArrowUp')
           ) {
@@ -268,7 +272,7 @@ const TodoItem = ({
           }
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
-            onInsertTodo?.(i)
+            onInsertTodo?.(todo.id)
             const target = e.currentTarget
             Promise.resolve().then(() => {
               target
@@ -283,7 +287,7 @@ const TodoItem = ({
               .closest('.todo-list-item')
               ?.previousElementSibling?.querySelector('textarea')
               ?.focus()
-            onTodoDeleted?.(i)
+            onTodoDeleted?.(todo.id)
           }
           const target = e.currentTarget
           if (e.key === 'ArrowDown' && target.selectionEnd === todo.txt.length) {
@@ -301,7 +305,7 @@ const TodoItem = ({
         }}
       />
       {!!onTodoDeleted && (
-        <UnstyledButton title='Delete todo' onClick={() => onTodoDeleted(i)}>
+        <UnstyledButton title='Delete todo' onClick={() => onTodoDeleted(todo.id)}>
           <IconTrash />
         </UnstyledButton>
       )}

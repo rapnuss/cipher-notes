@@ -370,11 +370,9 @@ export const labelColor = (hue: Hue, darkMode: boolean): string =>
 export const deriveTodosData = (todos: Todo[]) => {
   const parentToChildIds: Record<string, string[]> = {}
   const idToTodo = {} as Record<string, Todo>
-  const idToIndex = {} as Record<string, number>
   for (let i = 0; i < todos.length; i++) {
     const todo = todos[i]!
     idToTodo[todo.id] = todo
-    idToIndex[todo.id] = i
     if (todo.parent) {
       if (!parentToChildIds[todo.parent]) {
         parentToChildIds[todo.parent] = [todo.id]
@@ -412,7 +410,6 @@ export const deriveTodosData = (todos: Todo[]) => {
   }
   return {
     idToTodo,
-    idToIndex,
     todoTree,
     visualOrderUndone,
     parentToChildIds,
