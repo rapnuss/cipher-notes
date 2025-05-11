@@ -234,7 +234,7 @@ export const todoChanged = (id: string, txt: string) =>
     todo.updated_at = Date.now()
     state.notes.openNote.updatedAt = Date.now()
   })
-export const insertTodo = (bellowId?: string) =>
+export const insertTodo = (bellowId?: string, parentId?: string) =>
   setState((state) => {
     if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
     const belowIndex = bellowId
@@ -245,6 +245,7 @@ export const insertTodo = (bellowId?: string) =>
       done: false,
       id: crypto.randomUUID(),
       updated_at: Date.now(),
+      parent: parentId,
     })
     state.notes.openNote.updatedAt = Date.now()
   })

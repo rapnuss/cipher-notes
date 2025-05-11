@@ -140,7 +140,7 @@ const TodoItem = ({
   ghost?: boolean
   onTodoChecked?: (id: string, checked: boolean) => void
   onTodoChanged?: (id: string, txt: string) => void
-  onInsertTodo?: (bellowId: string) => void
+  onInsertTodo?: (bellowId?: string, parentId?: string) => void
   onTodoDeleted?: (id: string) => void
   onUndo?: () => void
   onRedo?: () => void
@@ -272,7 +272,7 @@ const TodoItem = ({
           }
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
-            onInsertTodo?.(todo.id)
+            onInsertTodo?.(todo.id, todo.parent)
             const target = e.currentTarget
             Promise.resolve().then(() => {
               target
