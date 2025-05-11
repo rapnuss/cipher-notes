@@ -29,6 +29,7 @@ import {Label} from '../business/models'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
+import {ActionIconWithText} from './ActionIconWithText'
 
 export const LabelSelector = () => {
   const {activeLabel, labelSelectorOpen} = useSelector((state) => state.labels)
@@ -61,18 +62,14 @@ export const LabelSelector = () => {
         <div style={{paddingBottom: '3rem'}} />
       </Stack>
       <div style={{position: 'relative', overflow: 'visible'}}>
-        <ActionIcon
-          pos='absolute'
-          bottom='4px'
-          right='4px'
-          size='xl'
-          variant='default'
-          radius='xl'
+        <ActionIconWithText
+          style={{position: 'absolute', bottom: '4px', right: '4px'}}
+          text='new'
           onClick={openCreateLabelDialog}
           title='Create new label'
         >
           <IconPlus />
-        </ActionIcon>
+        </ActionIconWithText>
       </div>
       <Divider mb='md' mt='xs' />
       <Stack gap='xs'>
