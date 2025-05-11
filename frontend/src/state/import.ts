@@ -121,6 +121,7 @@ export const importNotes = async (): Promise<void> => {
       if (todos === undefined && txt === undefined) {
         continue
       }
+      const todoIds = XSet.fromItr(todos ?? [], (t) => t.id)
       const type = todos ? 'todo' : 'note'
       const existingNote = await db.notes.get(id)
       if (!existingNote || existingNote.deleted_at !== 0 || updated_at > existingNote.updated_at) {
@@ -143,6 +144,7 @@ export const importNotes = async (): Promise<void> => {
             ...t,
             id: t.id ?? crypto.randomUUID(),
             updated_at: t.updated_at ?? updated_at,
+            parent: todoIds.has(t.parent) ? t.parent : undefined,
           })),
           labels: XSet.fromItr(existingNote?.labels ?? [])
             .addItr(labels ?? [], (l) => nameToId[l]!)
