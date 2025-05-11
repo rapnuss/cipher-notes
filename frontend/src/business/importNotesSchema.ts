@@ -7,6 +7,7 @@ const importTodosSchema = z.array(
       updated_at: z.number().optional(),
       done: z.boolean(),
       txt: z.string(),
+      parent: z.string().uuid().optional(),
     })
     .strip()
 )

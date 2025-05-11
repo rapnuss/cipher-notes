@@ -92,6 +92,7 @@ export const OpenNoteDialog = () => {
           outline: 'none',
           background: 'transparent',
         }}
+        autoComplete='off'
         placeholder='Title'
         type='text'
         value={openNote?.title ?? ''}

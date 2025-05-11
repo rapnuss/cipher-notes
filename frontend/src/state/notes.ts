@@ -1,10 +1,11 @@
-import {Note, NoteHistoryItem, OpenNote, NoteSortProp} from '../business/models'
+import {Note, NoteHistoryItem, OpenNote, NoteSortProp, Todo} from '../business/models'
 import {getState, setState, subscribe} from './store'
-import {bisectBy, debounce, deepEquals, nonConcurrent} from '../util/misc'
+import {bisectBy, debounce, deepEquals, moveWithinListViaDnD, nonConcurrent} from '../util/misc'
 import {isUnauthorizedRes, reqSyncNotes} from '../services/backend'
 import {Put, decryptSyncData, encryptSyncData} from '../business/notesEncryption'
 import {db, hasDirtyLabelsObservable, hasDirtyNotesObservable} from '../db'
 import {
+  deriveTodosData,
   labelToPut,
   mergeConflicts,
   mergeLabelConflicts,
@@ -192,8 +193,37 @@ export const todoChecked = (index: number, checked: boolean) =>
       !state.notes.openNote.todos[index]
     )
       return
-    state.notes.openNote.todos[index].done = checked
-    state.notes.openNote.todos[index].updated_at = Date.now()
+
+    const todos = state.notes.openNote.todos
+    const todo = todos[index]!
+
+    if (todo.done === checked) return
+
+    todo.done = checked
+    todo.updated_at = Date.now()
+
+    const children = todos.filter((t) => t.parent === todo.id)
+    if (checked) {
+      for (const child of children) {
+        if (child.done) {
+          continue
+        }
+        child.done = true
+        child.updated_at = Date.now()
+      }
+    } else if (!checked && children.every((c) => c.done)) {
+      for (const child of children) {
+        child.done = false
+        child.updated_at = Date.now()
+      }
+    }
+
+    const parent = todos.find((t) => t.id === todo.parent)
+    if (!checked && parent && parent.done) {
+      parent.done = false
+      parent.updated_at = Date.now()
+    }
+
     state.notes.openNote.updatedAt = Date.now()
   })
 export const todoChanged = (index: number, txt: string) =>
@@ -222,17 +252,118 @@ export const insertTodo = (bellow: number) =>
 export const deleteTodo = (index: number) =>
   setState((state) => {
     if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
-    state.notes.openNote.todos.splice(index, 1)
+
+    const todos = state.notes.openNote.todos
+    const todo = todos[index]!
+    const delIds = todos
+      .filter((t) => t.parent === todo.id)
+      .map((c) => c.id)
+      .concat(todo.id)
+
+    state.notes.openNote.todos = todos.filter((t) => !delIds.includes(t.id))
     state.notes.openNote.updatedAt = Date.now()
   })
-export const moveTodo = (source: number, target: number) =>
+export const moveTodo = ({
+  dragIndex,
+  dropIndex,
+  closestEdge,
+  indent,
+}: {
+  dragIndex: number
+  dropIndex: number
+  closestEdge: 'top' | 'bottom'
+  indent: boolean
+}) =>
   setState((state) => {
     if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
     const todos = state.notes.openNote.todos
-    const [todo] = todos.splice(source, 1)
-    if (todo) {
-      todos.splice(target, 0, todo)
+    const derivedData = deriveTodosData(todos)
+    const {idToTodo, visualOrderUndone, parentToChildIds} = derivedData
+    let {todoTree} = derivedData
+    const dropTodo = todos[dropIndex]!
+    const visualDropIndex = visualOrderUndone.indexOf(dropTodo.id)
+    const aboveEdgeVisIdx = closestEdge === 'bottom' ? visualDropIndex : visualDropIndex - 1
+    const aboveEdgeId = visualOrderUndone[aboveEdgeVisIdx]
+    const aboveEdge = idToTodo[aboveEdgeId!]
+    const dragTodo = todos[dragIndex]!
+    const dragChildIds = parentToChildIds[dragTodo.id]
+    const moveUnderId = aboveEdge?.parent ?? aboveEdge?.id
+
+    // move parent to its own children
+    if (dragTodo.id === aboveEdge?.parent) {
+      return
     }
+    // indent above first todo
+    else if (indent && aboveEdgeVisIdx === -1) {
+      return
+    }
+    // move below itself indented and not indented should do nothing
+    else if (aboveEdge?.id === dragTodo.id) {
+      return
+    }
+    // move within children
+    else if (indent && moveUnderId === dragTodo.parent) {
+      const parentNode = todoTree.find(([id]) => id === dragTodo.parent)!
+      const dragIndex = parentNode[1].findIndex((id) => id === dragTodo.id)
+      const dropIndex = parentNode[1].findIndex((id) => id === dropTodo.id)
+      moveWithinListViaDnD(parentNode[1], dragIndex, dropIndex, closestEdge)
+    }
+    // move from children to children
+    else if (indent && dragTodo.parent) {
+      const fromParent = todoTree.find(([id]) => id === dragTodo.parent)!
+      const toParent = todoTree.find(([id]) => id === moveUnderId)!
+      fromParent[1] = fromParent[1].filter((id) => id !== dragTodo.id)
+      toParent[1].push(dragTodo.id)
+    }
+    // move from children to list
+    else if (!indent && dragTodo.parent) {
+      const parentNode = todoTree.find(([id]) => id === dragTodo.parent)!
+      parentNode[1] = parentNode[1].filter((id) => id !== dragTodo.id)
+      const targetIndex = todoTree.findIndex(([id]) => id === moveUnderId)
+      todoTree.splice(targetIndex + 1, 0, [dragTodo.id, []])
+    }
+    // move parent without children in list
+    // move parent with children in list
+    else if (!indent && dragTodo.parent === undefined) {
+      const dragIndex = todoTree.findIndex(([id]) => id === dragTodo.id)
+      const dropIndex = todoTree.findIndex(([id]) => id === dropTodo.id)
+      moveWithinListViaDnD(todoTree, dragIndex, dropIndex, closestEdge)
+    }
+    // move parent without children to children
+    // move parent without children under parent without children
+    // move parent with children to children
+    // move parent with children under parent without children
+    else if (indent && dragTodo.parent === undefined) {
+      const insertNode = todoTree.find(([id]) => id === moveUnderId)
+      if (!insertNode) {
+        return
+      }
+      insertNode[1].push(dragTodo.id)
+      for (const child of dragChildIds ?? []) {
+        insertNode[1].push(child)
+      }
+      todoTree = todoTree.filter(([id]) => id !== dragTodo.id)
+    }
+
+    const newTodos: Todo[] = []
+    for (const [id, children] of todoTree) {
+      const todo = idToTodo[id]!
+      if (todo.parent !== undefined) {
+        todo.parent = undefined
+        todo.updated_at = Date.now()
+      }
+      newTodos.push(todo)
+      for (const childId of children) {
+        const child = idToTodo[childId]!
+        if (child.parent !== todo.id) {
+          child.parent = todo.id
+          child.updated_at = Date.now()
+        }
+        newTodos.push(child)
+      }
+    }
+
+    state.notes.openNote.todos = newTodos
     state.notes.openNote.updatedAt = Date.now()
   })
 export const openNoteHistoryHandler = (historyItem: NoteHistoryItem | null) => {

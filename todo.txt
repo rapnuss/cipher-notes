@@ -42,15 +42,19 @@ DONE:
   todo add button
   auto merge
   keep import
+  labels with color
+  change email
+  sub todos
+    move below itself indented and not indented, moves it one lower, should do nothing
+    it's possible to indent a todo under itself which disappears the todo
+    prevent indent above the first todo
+  how to merge conflicts with moved todos and sub todos -> set updated_at when parent is changed
 FIRST:
+  disable drop indicator under drag todo itself
 TODO:
 LATER:
-  labels
-  colors
-  quicker delete
-  change email
-  delete account
 MAYBE:
+  delete account
   notes grid paging
   debounce notes search
   password protected notes

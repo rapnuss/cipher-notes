@@ -260,3 +260,23 @@ export const getColorScheme = () => {
   }
   return 'light'
 }
+
+export const moveWithinListViaDnD = <Item>(
+  list: Item[],
+  dragIndex: number,
+  dropIndex: number,
+  closestEdge: 'top' | 'bottom'
+) => {
+  const movingForward = dragIndex < dropIndex
+  const goingAfter = closestEdge === 'bottom'
+  let targetIndex = 0
+  if (movingForward) {
+    targetIndex = goingAfter ? dropIndex : dropIndex - 1
+  } else {
+    targetIndex = goingAfter ? dropIndex + 1 : dropIndex
+  }
+  const [item] = list.splice(dragIndex, 1)
+  if (item) {
+    list.splice(targetIndex, 0, item)
+  }
+}
