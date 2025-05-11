@@ -18,7 +18,12 @@ import {
   todosToText,
 } from '../business/misc'
 import socket from '../socket'
-import {loadNotesSortOrder, storeNotesSortOrder} from '../services/localStorage'
+import {
+  loadNotesSortOrder,
+  loadOpenNoteId,
+  storeNotesSortOrder,
+  storeOpenNoteId,
+} from '../services/localStorage'
 import XSet from '../util/XSet'
 import {notifications} from '@mantine/notifications'
 
@@ -56,6 +61,12 @@ loadNotesSortOrder().then((sort) => {
 new Promise((resolve) => window.addEventListener('DOMContentLoaded', resolve)).then(() => {
   onFocus()
   window.addEventListener('focus', onFocus)
+})
+
+loadOpenNoteId().then((id) => {
+  if (id) {
+    noteOpened(id)
+  }
 })
 
 const onFocus = debounce(() => {
@@ -661,6 +672,7 @@ export const registerNotesSubscriptions = () => {
       }
     }
   )
+  subscribe((state) => state.notes.openNote?.id ?? null, storeOpenNoteId)
 
   const syncNotesDebounced = debounce(syncNotes, 1000)
   hasDirtyNotesObservable.subscribe((hasDirtyNotes) => {

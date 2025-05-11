@@ -6,7 +6,7 @@ import {registerUserSubscriptions, userInit, UserState} from './user'
 import {conflictsInit, ConflictsState} from './conflicts'
 import {registerSettingsSubscriptions, settingsInit, SettingsState} from './settings'
 import {importInit, ImportState} from './import'
-import {labelsInit, LabelsState} from './labels'
+import {labelsInit, LabelsState, registerLabelsSubscriptions} from './labels'
 import {historyInit, HistoryState} from './history'
 
 export type RootState = {
@@ -35,6 +35,7 @@ export const subscribe = useSelector.subscribe
 registerUserSubscriptions()
 registerNotesSubscriptions()
 registerSettingsSubscriptions()
+registerLabelsSubscriptions()
 
 export const selectAnyDialogOpen = (state: RootState): boolean =>
   state.conflicts.conflicts.length > 0 ||

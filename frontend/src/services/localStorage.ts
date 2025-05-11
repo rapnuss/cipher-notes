@@ -34,3 +34,28 @@ export const loadNotesSortOrder = (): Promise<NotesState['sort'] | null> =>
     const sortStr = localStorage.getItem('notesSortOrder')
     return sortStr ? JSON.parse(sortStr) : null
   })
+
+export const storeOpenNoteId = (id: string | null): Promise<void> =>
+  Promise.resolve().then(() => {
+    if (id === null) {
+      localStorage.removeItem('openNoteId')
+    } else {
+      localStorage.setItem('openNoteId', id)
+    }
+  })
+
+export const loadOpenNoteId = (): Promise<string | null> =>
+  Promise.resolve().then(() => {
+    return localStorage.getItem('openNoteId')
+  })
+
+export const storeActiveLabelId = (labelId: string | false | null): Promise<void> =>
+  Promise.resolve().then(() => {
+    localStorage.setItem('activeLabelId', JSON.stringify(labelId))
+  })
+
+export const loadActiveLabelId = (): Promise<string | false | null> =>
+  Promise.resolve().then(() => {
+    const labelIdStr = localStorage.getItem('activeLabelId')
+    return labelIdStr ? JSON.parse(labelIdStr) : null
+  })

@@ -2,6 +2,7 @@ import {useSelector} from '../state/store'
 import {closeSettingsDialog} from '../state/settings'
 import {Modal} from '@mantine/core'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
+
 export const SettingsDialog = () => {
   const {open} = useSelector((state) => state.settings)
   useCloseOnBack({

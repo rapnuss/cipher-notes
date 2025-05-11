@@ -1,8 +1,9 @@
 import {createSelector} from 'reselect'
 import {Hue, Label} from '../business/models'
 import {db, labelsObservable} from '../db'
-import {RootState, setState} from './store'
+import {RootState, setState, subscribe} from './store'
 import {byProp} from '../util/misc'
+import {loadActiveLabelId, storeActiveLabelId} from '../services/localStorage'
 
 export type LabelsState = {
   labelSelectorOpen: boolean
@@ -27,6 +28,8 @@ export const labelsInit: LabelsState = {
   },
 }
 
+loadActiveLabelId().then((labelId) => labelSelected(labelId))
+
 labelsObservable.subscribe((labels) => {
   setState((state) => {
     state.labels.labelsCache = labels.reduce((acc, label) => {
@@ -48,17 +51,7 @@ export const toggleLabelSelector = () => {
     state.labels.labelSelectorOpen = !state.labels.labelSelectorOpen
   })
 }
-export const allLabelsSelected = () => {
-  setState((state) => {
-    state.labels.activeLabel = null
-  })
-}
-export const unlabeledSelected = () => {
-  setState((state) => {
-    state.labels.activeLabel = false
-  })
-}
-export const labelSelected = (id: string) => {
+export const labelSelected = (id: string | false | null) => {
   setState((state) => {
     state.labels.activeLabel = id
   })
@@ -198,3 +191,7 @@ export const selectCachedLabels = createSelector(
   (state: RootState) => state.labels.labelsCache,
   (labelsCache) => Object.values(labelsCache).sort(byProp('name'))
 )
+
+export const registerLabelsSubscriptions = () => {
+  subscribe((state) => state.labels.activeLabel, storeActiveLabelId)
+}

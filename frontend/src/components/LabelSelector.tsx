@@ -6,8 +6,6 @@ import {
   openEditLabelDialog,
   labelSelected,
   toggleLabelSelector,
-  allLabelsSelected,
-  unlabeledSelected,
   selectCachedLabels,
 } from '../state/labels'
 import {IconPencil} from './icons/IconPencil'
@@ -70,7 +68,7 @@ export const LabelSelector = () => {
           style={{borderRadius: 'var(--mantine-radius-md)', outlineOffset: '2px'}}
           bg={colorScheme === 'dark' ? darkColorsGradient : lightColorsGradient}
           onClick={() => {
-            allLabelsSelected()
+            labelSelected(null)
             toggleLabelSelector()
           }}
           component='button'
@@ -85,7 +83,7 @@ export const LabelSelector = () => {
           p='xs'
           style={{borderRadius: 'var(--mantine-radius-md)', outlineOffset: '2px'}}
           onClick={() => {
-            unlabeledSelected()
+            labelSelected(false)
             toggleLabelSelector()
           }}
           bg='var(--mantine-color-body)'
