@@ -23,7 +23,6 @@ export const Main = () => (
       </Flex>
     </Flex>
     <div style={{flex: '1 1 auto', overflow: 'hidden', position: 'relative'}}>
-      <NotesGrid />
       <ActionIconWithText
         onClick={toggleLabelSelector}
         style={{position: 'absolute', bottom: '1.25rem', left: '1.25rem'}}
@@ -40,6 +39,7 @@ export const Main = () => (
       >
         <IconPlus />
       </ActionIconWithText>
+      <NotesGrid />
     </div>
     <StatusBar />
   </>
