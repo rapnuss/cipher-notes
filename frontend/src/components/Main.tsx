@@ -9,6 +9,7 @@ import {spotlight} from '@mantine/spotlight'
 import {StatusBar} from './StatusBar'
 import {toggleLabelSelector} from '../state/labels'
 import {IconLabel} from './icons/IconLabel'
+import {ActionIconWithText} from './ActionIconWithText'
 
 export const Main = () => (
   <>
@@ -23,30 +24,22 @@ export const Main = () => (
     </Flex>
     <div style={{flex: '1 1 auto', overflow: 'hidden', position: 'relative'}}>
       <NotesGrid />
-      <ActionIcon
-        size='xl'
-        variant='default'
-        radius='xl'
+      <ActionIconWithText
         onClick={toggleLabelSelector}
-        pos='absolute'
-        bottom='1.25rem'
-        left='1.25rem'
+        style={{position: 'absolute', bottom: '1.25rem', left: '1.25rem'}}
         title='Open Label Selector'
+        text='labels'
       >
         <IconLabel />
-      </ActionIcon>
-      <ActionIcon
-        size='xl'
-        variant='default'
-        radius='xl'
+      </ActionIconWithText>
+      <ActionIconWithText
         onClick={addNote}
-        pos='absolute'
-        bottom='1.25rem'
-        right='1.25rem'
+        style={{position: 'absolute', bottom: '1.25rem', right: '1.25rem'}}
         title='Create new note'
+        text='new'
       >
         <IconPlus />
-      </ActionIcon>
+      </ActionIconWithText>
     </div>
     <StatusBar />
   </>

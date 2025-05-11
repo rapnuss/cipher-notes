@@ -1,4 +1,4 @@
-import {Drawer, Flex, ActionIcon, Popover} from '@mantine/core'
+import {Drawer, Flex, Popover} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {
   noteClosed,
@@ -30,6 +30,7 @@ import {labelColor} from '../business/misc'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
+import {ActionIconWithText} from './ActionIconWithText'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
@@ -135,10 +136,9 @@ export const OpenNoteDialog = () => {
         />
       ) : null}
       <Flex gap='xs'>
-        <ActionIcon
-          variant='default'
-          size='xl'
+        <ActionIconWithText
           title='Delete note'
+          text='delete'
           onClick={() =>
             openConfirmModalWithBackHandler({
               id: 'delete-open-note',
@@ -150,35 +150,34 @@ export const OpenNoteDialog = () => {
           }
         >
           <IconTrash />
-        </ActionIcon>
+        </ActionIconWithText>
         <div style={{flex: '1 1 0'}} />
         <Popover width='300px' position='top' withArrow shadow='md'>
           <Popover.Target>
-            <ActionIcon title='Add label' size='xl' variant='default'>
+            <ActionIconWithText title='Add label' text='label'>
               <IconLabel />
-            </ActionIcon>
+            </ActionIconWithText>
           </Popover.Target>
           <Popover.Dropdown>
             {openNote && <LabelDropdownContent noteId={openNote.id} />}
           </Popover.Dropdown>
         </Popover>
-        <ActionIcon
-          size='xl'
+        <ActionIconWithText
           title={openNote?.type === 'todo' ? 'Turn into text note' : 'Turn into todo list'}
+          text={openNote?.type === 'todo' ? 'text' : 'todo'}
           onClick={openNoteTypeToggled}
-          variant='default'
         >
           <IconCheckbox />
-        </ActionIcon>
-        <ActionIcon size='xl' title='Undo' onClick={undo} disabled={!canUndo} variant='default'>
+        </ActionIconWithText>
+        <ActionIconWithText title='Undo' text='undo' onClick={undo} disabled={!canUndo}>
           <IconArrowBackUp />
-        </ActionIcon>
-        <ActionIcon size='xl' title='Redo' onClick={redo} disabled={!canRedo} variant='default'>
+        </ActionIconWithText>
+        <ActionIconWithText title='Redo' text='redo' onClick={redo} disabled={!canRedo}>
           <IconArrowForwardUp />
-        </ActionIcon>
-        <ActionIcon size='xl' title='Close note' onClick={noteClosed} variant='default'>
+        </ActionIconWithText>
+        <ActionIconWithText title='Close note' text='close' onClick={noteClosed}>
           <IconX />
-        </ActionIcon>
+        </ActionIconWithText>
       </Flex>
     </Drawer>
   )
