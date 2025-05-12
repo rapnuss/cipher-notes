@@ -290,6 +290,11 @@ export const saveEncryptionKey = async (keyTokenPair: string) => {
     }
     state.user.encryptionKeyDialog.open = false
   })
+  if (isNewKey) {
+    notifications.show({
+      message: 'New encryption key saved',
+    })
+  }
   if (state.user.user.loggedIn) {
     await syncNotes()
   }
