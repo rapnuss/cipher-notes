@@ -16,6 +16,7 @@ import {generateKey, generateSalt} from '../util/encryption'
 import {db} from '../db'
 import socket from '../socket'
 import {notifications} from '@mantine/notifications'
+import {syncNotes} from './notes'
 
 export type UserState = {
   user: {
@@ -271,7 +272,8 @@ export const saveEncryptionKey = async (keyTokenPair: string) => {
   const [cryptoKey, syncToken] = keyTokenPair.split(':')
   if (!cryptoKey || !syncToken) return
 
-  const oldKeyTokenPair = getState().user.user.keyTokenPair
+  const state = getState()
+  const oldKeyTokenPair = state.user.user.keyTokenPair
   const isNewKey =
     oldKeyTokenPair?.cryptoKey !== cryptoKey || oldKeyTokenPair?.syncToken !== syncToken
   if (isNewKey) {
@@ -288,6 +290,9 @@ export const saveEncryptionKey = async (keyTokenPair: string) => {
     }
     state.user.encryptionKeyDialog.open = false
   })
+  if (state.user.user.loggedIn) {
+    await syncNotes()
+  }
 }
 
 export const openDeleteServerNotesDialog = async () => {
