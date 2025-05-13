@@ -271,7 +271,7 @@ export const keyTokenPairChanged = (keyTokenPair: string) => {
 }
 export const saveEncryptionKey = async (keyTokenPair: string) => {
   const state = getState()
-  if (!isValidKeyTokenPair(keyTokenPair) || state.user.user.keyTokenPair !== null) return
+  if (!isValidKeyTokenPair(keyTokenPair) || state.user.user.lastSyncedTo !== 0) return
   const [cryptoKey, syncToken] = keyTokenPair.split(':')
   if (!cryptoKey || !syncToken) return
   setState((state) => {

@@ -15,7 +15,7 @@ import {ActionIconWithText} from './ActionIconWithText'
 import {IconCopy} from './icons/IconCopy'
 
 export const EncryptionKeyDialog = () => {
-  const storedKeyTokenPair = useSelector((state) => state.user.user.keyTokenPair)
+  const lastSyncedTo = useSelector((state) => state.user.user.lastSyncedTo)
   const {open, keyTokenPair, qrMode} = useSelector((state) => state.user.encryptionKeyDialog)
   const valid = isValidKeyTokenPair(keyTokenPair)
   useCloseOnBack({
@@ -32,7 +32,7 @@ export const EncryptionKeyDialog = () => {
           value={keyTokenPair}
           onChange={(e) => keyTokenPairChanged(e.target.value)}
           error={!valid ? 'Invalid key token pair' : undefined}
-          readOnly={storedKeyTokenPair !== null}
+          readOnly={lastSyncedTo !== 0}
         />
         <ActionIconWithText
           title='Copy to Clipboard'
@@ -43,32 +43,32 @@ export const EncryptionKeyDialog = () => {
         </ActionIconWithText>
       </Flex>
       <Group my='md'>
-        {storedKeyTokenPair === null && (
+        {lastSyncedTo === 0 && (
           <Button onClick={generateKeyTokenPairString}>Generate new key</Button>
         )}
-        {storedKeyTokenPair !== null && (
+        {valid && (
           <Button onClick={() => qrModeChanged(qrMode === 'show' ? 'hide' : 'show')}>
             {qrMode === 'show' ? 'Hide QR' : 'Show QR'}
           </Button>
         )}
-        {storedKeyTokenPair === null && (
+        {lastSyncedTo === 0 && (
           <Button onClick={() => qrModeChanged(qrMode === 'scan' ? 'hide' : 'scan')}>
             {qrMode === 'scan' ? 'Stop scan' : 'Scan QR'}
           </Button>
         )}
-        {storedKeyTokenPair === null && (
+        {lastSyncedTo === 0 && valid && (
           <Button onClick={() => saveEncryptionKey(keyTokenPair)} disabled={!valid}>
             Save new key
           </Button>
         )}
       </Group>
-      {qrMode === 'show' && (
+      {qrMode === 'show' && valid && (
         <QRCodeSVG
           style={{width: '100%', height: 'auto', padding: '1rem', background: 'white'}}
           value={keyTokenPair}
         />
       )}
-      {qrMode === 'scan' && (
+      {qrMode === 'scan' && lastSyncedTo === 0 && (
         <QRScanner
           style={{width: '100%', height: 'auto'}}
           onScan={(text) => {
