@@ -1,21 +1,22 @@
-import {Button, Flex, Group, Modal, TextInput} from '@mantine/core'
+import {Button, Flex, Group, Modal, PasswordInput} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {
   closeEncryptionKeyDialog,
+  generateKeyTokenPairString,
   keyTokenPairChanged,
   qrModeChanged,
   saveEncryptionKey,
-  toggleEncryptionKeyDialogVisibility,
 } from '../state/user'
 import {isValidKeyTokenPair} from '../business/notesEncryption'
 import {QRCodeSVG} from 'qrcode.react'
 import {QRScanner} from './QRScanner'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
+import {ActionIconWithText} from './ActionIconWithText'
+import {IconCopy} from './icons/IconCopy'
 
 export const EncryptionKeyDialog = () => {
-  const {open, keyTokenPair, visible, qrMode} = useSelector(
-    (state) => state.user.encryptionKeyDialog
-  )
+  const storedKeyTokenPair = useSelector((state) => state.user.user.keyTokenPair)
+  const {open, keyTokenPair, qrMode} = useSelector((state) => state.user.encryptionKeyDialog)
   const valid = isValidKeyTokenPair(keyTokenPair)
   useCloseOnBack({
     id: 'encryption-key-dialog',
@@ -24,32 +25,42 @@ export const EncryptionKeyDialog = () => {
   })
   return (
     <Modal title='Encryption key' opened={open} onClose={closeEncryptionKeyDialog}>
-      <Flex gap='xs' align='end'>
-        <TextInput
+      <Flex align='start'>
+        <PasswordInput
+          size='md'
           flex={1}
-          label='Encryption key'
           value={keyTokenPair}
           onChange={(e) => keyTokenPairChanged(e.target.value)}
           error={!valid ? 'Invalid key token pair' : undefined}
-          type={visible ? 'text' : 'password'}
+          readOnly={storedKeyTokenPair !== null}
         />
-        <Button onClick={toggleEncryptionKeyDialogVisibility}>{visible ? 'Hide' : 'Show'}</Button>
+        <ActionIconWithText
+          title='Copy to Clipboard'
+          text='clipb.'
+          onClick={() => navigator.clipboard.writeText(keyTokenPair)}
+        >
+          <IconCopy />
+        </ActionIconWithText>
       </Flex>
-      <Group mt='md'>
-        <Button onClick={() => saveEncryptionKey(keyTokenPair)} disabled={!valid}>
-          Save new key
-        </Button>
-        <Button onClick={() => navigator.clipboard.writeText(keyTokenPair)}>
-          Copy to Clipboard
-        </Button>
-      </Group>
       <Group my='md'>
-        <Button onClick={() => qrModeChanged(qrMode === 'show' ? 'hide' : 'show')}>
-          {qrMode === 'show' ? 'Hide QR' : 'Show QR'}
-        </Button>
-        <Button onClick={() => qrModeChanged(qrMode === 'scan' ? 'hide' : 'scan')}>
-          {qrMode === 'scan' ? 'Stop scan' : 'Scan QR'}
-        </Button>
+        {storedKeyTokenPair === null && (
+          <Button onClick={generateKeyTokenPairString}>Generate new key</Button>
+        )}
+        {storedKeyTokenPair !== null && (
+          <Button onClick={() => qrModeChanged(qrMode === 'show' ? 'hide' : 'show')}>
+            {qrMode === 'show' ? 'Hide QR' : 'Show QR'}
+          </Button>
+        )}
+        {storedKeyTokenPair === null && (
+          <Button onClick={() => qrModeChanged(qrMode === 'scan' ? 'hide' : 'scan')}>
+            {qrMode === 'scan' ? 'Stop scan' : 'Scan QR'}
+          </Button>
+        )}
+        {storedKeyTokenPair === null && (
+          <Button onClick={() => saveEncryptionKey(keyTokenPair)} disabled={!valid}>
+            Save new key
+          </Button>
+        )}
       </Group>
       {qrMode === 'show' && (
         <QRCodeSVG

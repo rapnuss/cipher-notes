@@ -37,7 +37,6 @@ export type UserState = {
   encryptionKeyDialog: {
     open: boolean
     keyTokenPair: string
-    visible: boolean
     qrMode: 'hide' | 'show' | 'scan'
   }
   deleteServerNotesDialog: {
@@ -62,7 +61,7 @@ export const userInit: UserState = {
   connected: false,
   registerDialog: {open: false, email: '', loading: false},
   loginDialog: {open: false, email: '', code: '', loading: false, status: 'email'},
-  encryptionKeyDialog: {open: false, keyTokenPair: '', visible: false, qrMode: 'hide'},
+  encryptionKeyDialog: {open: false, keyTokenPair: '', qrMode: 'hide'},
   deleteServerNotesDialog: {open: false, code: '', codeLoading: false, deleteLoading: false},
   imprintOpen: false,
   changeEmailDialog: {
@@ -234,22 +233,25 @@ export const socketConnectionChanged = (connected: boolean) => {
 export const openEncryptionKeyDialog = async () => {
   const state = getState()
   let keyTokenPair = state.user.user.keyTokenPair
-  if (!keyTokenPair) {
-    keyTokenPair = {cryptoKey: await generateKey(), syncToken: generateSalt(16)}
-  }
   setState((state) => {
-    const checksum = calcChecksum(keyTokenPair.cryptoKey, keyTokenPair.syncToken)
     state.user.encryptionKeyDialog = {
       open: true,
-      keyTokenPair: `${keyTokenPair.cryptoKey}:${keyTokenPair.syncToken}:${checksum}`,
-      visible: false,
+      keyTokenPair: keyTokenPair
+        ? `${keyTokenPair.cryptoKey}:${keyTokenPair.syncToken}:${calcChecksum(
+            keyTokenPair.cryptoKey,
+            keyTokenPair.syncToken
+          )}`
+        : '',
       qrMode: 'hide',
     }
   })
 }
-export const toggleEncryptionKeyDialogVisibility = () => {
+export const generateKeyTokenPairString = async () => {
+  const cryptoKey = await generateKey()
+  const syncToken = generateSalt(16)
+  const checksum = calcChecksum(cryptoKey, syncToken)
   setState((state) => {
-    state.user.encryptionKeyDialog.visible = !state.user.encryptionKeyDialog.visible
+    state.user.encryptionKeyDialog.keyTokenPair = `${cryptoKey}:${syncToken}:${checksum}`
   })
 }
 export const qrModeChanged = (qrMode: 'hide' | 'show' | 'scan') => {
@@ -268,33 +270,17 @@ export const keyTokenPairChanged = (keyTokenPair: string) => {
   })
 }
 export const saveEncryptionKey = async (keyTokenPair: string) => {
-  if (!isValidKeyTokenPair(keyTokenPair)) return
+  const state = getState()
+  if (!isValidKeyTokenPair(keyTokenPair) || state.user.user.keyTokenPair !== null) return
   const [cryptoKey, syncToken] = keyTokenPair.split(':')
   if (!cryptoKey || !syncToken) return
-
-  const state = getState()
-  const oldKeyTokenPair = state.user.user.keyTokenPair
-  const isNewKey =
-    oldKeyTokenPair?.cryptoKey !== cryptoKey || oldKeyTokenPair?.syncToken !== syncToken
-  if (isNewKey) {
-    const deletedNoteIds = await db.notes.where('deleted_at').notEqual(0).primaryKeys()
-    await db.notes.bulkDelete(deletedNoteIds)
-
-    const keys = await db.notes.toCollection().primaryKeys()
-    await db.notes.bulkUpdate(keys.map((key) => ({key, changes: {state: 'dirty'}})))
-  }
   setState((state) => {
-    if (isNewKey) {
-      state.user.user.lastSyncedTo = 0
-      state.user.user.keyTokenPair = {cryptoKey, syncToken}
-    }
+    state.user.user.keyTokenPair = {cryptoKey, syncToken}
     state.user.encryptionKeyDialog.open = false
   })
-  if (isNewKey) {
-    notifications.show({
-      message: 'New encryption key saved',
-    })
-  }
+  notifications.show({
+    message: 'New encryption key saved',
+  })
   if (state.user.user.loggedIn) {
     await syncNotes()
   }
