@@ -331,9 +331,11 @@ export const moveTodo = ({
     // move parent without children in list
     // move parent with children in list
     else if (!indent && dragTodo.parent === undefined) {
-      const dragIndex = todoTree.findIndex(([id]) => id === dragTodo.id)
-      const dropIndex = todoTree.findIndex(([id]) => id === moveUnderId)
-      moveWithinListViaDnD(todoTree, dragIndex, dropIndex, closestEdge)
+      const dragIndex = todoTree.findIndex(([id]) => id === dragId)
+      const dropParentId = dropTodo.parent ?? dropTodo.id
+      const dropIndex = todoTree.findIndex(([id]) => id === dropParentId)
+      const closestParentEdge = dropTodo.parent ? 'bottom' : closestEdge
+      moveWithinListViaDnD(todoTree, dragIndex, dropIndex, closestParentEdge)
     }
     // move parent without children to children
     // move parent without children under parent without children

@@ -280,3 +280,8 @@ export const moveWithinListViaDnD = <Item>(
     list.splice(targetIndex, 0, item)
   }
 }
+
+export const findIndex = <T>(arr: T[], pred: (x: T) => boolean): number | null => {
+  const index = arr.findIndex(pred)
+  return index === -1 ? null : index
+}
