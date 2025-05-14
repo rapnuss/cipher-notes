@@ -1,6 +1,6 @@
 import {PWABadge} from './PWABadge.tsx'
 import {CommandCenter} from './CommandCenter.tsx'
-import {Notifications} from '@mantine/notifications'
+import {notifications, Notifications} from '@mantine/notifications'
 import {ImportNotesDialog} from './ImportNotesDialog.tsx'
 import {LoginDialog} from './LoginDialog.tsx'
 import {RegisterDialog} from './RegisterDialog.tsx'
@@ -17,6 +17,7 @@ import {debounce, delay} from '../util/misc.ts'
 import {LabelSelector} from './LabelSelector.tsx'
 import {LabelDialog} from './LabelDialog.tsx'
 import {ChangeEmailDialog} from './ChangeEmailDialog.tsx'
+import {useHotkeys} from '@mantine/hooks'
 
 window.addEventListener(
   'scroll',
@@ -55,25 +56,28 @@ document.addEventListener(
   true
 )
 
-export const App = () => (
-  <>
-    <Main />
-    <LabelSelector />
-    <LabelDialog />
-    <OpenNoteDialog />
-    <CommandCenter />
-    <ImportNotesDialog />
-    <KeepImportDialog />
-    <RegisterDialog />
-    <LoginDialog />
-    <SyncDialog />
-    <SettingsDialog />
-    <ConflictDialog />
-    <EncryptionKeyDialog />
-    <DeleteServerNotesDialog />
-    <ChangeEmailDialog />
-    <ImprintDialog />
-    <PWABadge />
-    <Notifications autoClose={false} />
-  </>
-)
+export const App = () => {
+  useHotkeys([['Escape', () => notifications.clean()]], [], true)
+  return (
+    <>
+      <Main />
+      <LabelSelector />
+      <LabelDialog />
+      <OpenNoteDialog />
+      <CommandCenter />
+      <ImportNotesDialog />
+      <KeepImportDialog />
+      <RegisterDialog />
+      <LoginDialog />
+      <SyncDialog />
+      <SettingsDialog />
+      <ConflictDialog />
+      <EncryptionKeyDialog />
+      <DeleteServerNotesDialog />
+      <ChangeEmailDialog />
+      <ImprintDialog />
+      <PWABadge />
+      <Notifications autoClose={false} />
+    </>
+  )
+}
