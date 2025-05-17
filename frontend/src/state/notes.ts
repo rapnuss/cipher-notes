@@ -245,18 +245,18 @@ export const todoChanged = (id: string, txt: string) =>
     todo.updated_at = Date.now()
     state.notes.openNote.updatedAt = Date.now()
   })
-export const insertTodo = (bellowId?: string, parentId?: string) =>
+export const insertTodo = (todoId?: string, parentId?: string) =>
   setState((state) => {
     if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
-    const belowIndex = bellowId
-      ? state.notes.openNote.todos.findIndex((t) => t.id === bellowId)
-      : -1
-    state.notes.openNote.todos.splice(belowIndex + 1, 0, {
+    const todos = state.notes.openNote.todos
+    const todoIndex = todoId ? todos.findIndex((t) => t.id === todoId) : -1
+    const hasChildren = todos.some((t) => t.parent === todoId)
+    state.notes.openNote.todos.splice(todoIndex + 1, 0, {
       txt: '',
       done: false,
       id: crypto.randomUUID(),
       updated_at: Date.now(),
-      parent: parentId,
+      parent: hasChildren ? todoId : parentId,
     })
     state.notes.openNote.updatedAt = Date.now()
   })
