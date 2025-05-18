@@ -49,12 +49,9 @@ DONE:
     it's possible to indent a todo under itself which disappears the todo
     prevent indent above the first todo
   how to merge conflicts with moved todos and sub todos -> set updated_at when parent is changed
-FIRST:
-  disable drop indicator under drag todo itself
+FIRST
 TODO:
 LATER:
 MAYBE:
-  delete account
   notes grid paging
   debounce notes search
-  password protected notes

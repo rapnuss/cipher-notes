@@ -39,16 +39,16 @@ export const TodoControl = ({
   onUp,
   onMoveTodo,
 }: TodoControlProps) => {
-  const {idToTodo, parentToChildIds, parentToChildrenDone} = deriveTodosData(todos)
-  const firstTodoId = todos.find((t) => !t.done)?.id
+  const {idToTodo, parentToChildIds, parentToChildrenDone, visualOrderUndone} =
+    deriveTodosData(todos)
   return (
     <Stack flex={1} style={{overflowY: 'auto', paddingTop: '1px'}} gap={0}>
       {todos.map((todo) =>
         todo.done || todo.parent ? null : (
           <Fragment key={`${todo.id}undone`}>
             <TodoItem
-              first={firstTodoId === todo.id}
               todo={todo}
+              visualIndex={visualOrderUndone.indexOf(todo.id)}
               onTodoChecked={onTodoChecked}
               onTodoChanged={onTodoChanged}
               onInsertTodo={onInsertTodo}
@@ -65,6 +65,7 @@ export const TodoControl = ({
                     <TodoItem
                       key={childId}
                       todo={idToTodo[childId]!}
+                      visualIndex={visualOrderUndone.indexOf(childId)}
                       onTodoChecked={onTodoChecked}
                       onTodoChanged={onTodoChanged}
                       onInsertTodo={onInsertTodo}
@@ -123,8 +124,8 @@ export const TodoControl = ({
 }
 
 const TodoItem = ({
-  first,
   todo,
+  visualIndex,
   ghost,
   onTodoChecked,
   onTodoChanged,
@@ -135,8 +136,8 @@ const TodoItem = ({
   onUp,
   onMoveTodo,
 }: {
-  first?: boolean
   todo: Todo
+  visualIndex?: number
   ghost?: boolean
   onTodoChecked?: (id: string, checked: boolean) => void
   onTodoChanged?: (id: string, txt: string) => void
@@ -153,7 +154,7 @@ const TodoItem = ({
     edge: Edge | null
     indented: boolean
   } | null>(null)
-  const data = useMemo(() => ({id: todo.id}), [todo.id])
+  const data = useMemo(() => ({id: todo.id, visualIndex}), [todo.id, visualIndex])
 
   useEffect(() => {
     const draggableCleanup = draggable({
@@ -165,7 +166,7 @@ const TodoItem = ({
     const dropTargetCleanup = dropTargetForElements({
       element: containerRef.current!,
       canDrop: () => !todo.done && !ghost,
-      getData({input, element}) {
+      getData({input, element, source}) {
         let dataWithEdge = attachClosestEdge(data, {
           element: containerRef.current!,
           input,
@@ -173,16 +174,31 @@ const TodoItem = ({
         })
         const rect = element.getBoundingClientRect()
         const xInTarget = input.clientX - rect.left
+        const edge = extractClosestEdge(dataWithEdge)
+        const sourceVisualIndex = Number(source.data.visualIndex)
         return {
           ...dataWithEdge,
-          indented: (!first || extractClosestEdge(dataWithEdge) === 'bottom') && xInTarget > 32,
+          indented: (visualIndex !== 0 || edge === 'bottom') && xInTarget > 32,
+          insertInSameSlot:
+            source.data.id === todo.id ||
+            visualIndex === undefined ||
+            (edge === 'top'
+              ? sourceVisualIndex === visualIndex - 1
+              : sourceVisualIndex === visualIndex + 1),
         }
       },
       onDrag({self}) {
-        setDragState({
-          edge: extractClosestEdge(self.data),
-          indented: !!self.data.indented,
-        })
+        const indented = !!self.data.indented
+        const insertInSameSlot = !!self.data.insertInSameSlot
+        const edge = extractClosestEdge(self.data)
+        setDragState(
+          insertInSameSlot && indented === !!todo.parent
+            ? null
+            : {
+                edge,
+                indented,
+              }
+        )
       },
       onDragLeave() {
         setDragState(null)
@@ -207,7 +223,7 @@ const TodoItem = ({
       draggableCleanup()
       dropTargetCleanup()
     }
-  }, [todo.done, data, onMoveTodo, ghost, first])
+  }, [todo.done, data, onMoveTodo, ghost, visualIndex, todo.parent, todo.id])
 
   return (
     <Flex
@@ -251,7 +267,7 @@ const TodoItem = ({
         onChange={(e) => onTodoChanged?.(todo.id, e.target.value)}
         onKeyDown={(e) => {
           if (
-            first &&
+            visualIndex === 0 &&
             e.currentTarget.selectionStart === 0 &&
             (e.key === 'Backspace' || e.key === 'ArrowUp')
           ) {

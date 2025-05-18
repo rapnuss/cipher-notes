@@ -293,7 +293,14 @@ export const moveTodo = ({
     const aboveEdge = idToTodo[aboveEdgeId!]
     const dragTodo = todos.find((t) => t.id === dragId)!
     const dragChildIds = parentToChildIds[dragTodo.id]
-    const moveUnderId = aboveEdge?.parent ?? aboveEdge?.id
+    let moveUnderId = aboveEdge?.parent ?? aboveEdge?.id
+
+    // move below itself, when not on top of the list, should move under the todo above itself
+    if (aboveEdge?.id === dragTodo.id && aboveEdgeVisIdx > 0) {
+      const aboveSelfId = visualOrderUndone[aboveEdgeVisIdx - 1]!
+      const aboveSelf = idToTodo[aboveSelfId]!
+      moveUnderId = aboveSelf.parent ?? aboveSelf.id
+    }
 
     // move parent to its own children
     if (dragTodo.id === aboveEdge?.parent) {
@@ -303,8 +310,8 @@ export const moveTodo = ({
     else if (indent && aboveEdgeVisIdx === -1) {
       return
     }
-    // move below itself indented and not indented should do nothing
-    else if (aboveEdge?.id === dragTodo.id) {
+    // move below itself, when on top of the list, should do nothing
+    else if (aboveEdge?.id === dragTodo.id && aboveEdgeVisIdx === 0) {
       return
     }
     // move within children
@@ -671,7 +678,6 @@ export const registerNotesSubscriptions = () => {
   const syncNotesDebounced = debounce(syncNotes, 1000)
   hasDirtyNotesObservable.subscribe((hasDirtyNotes) => {
     if (hasDirtyNotes) {
-      console.log('hasDirtyNotes')
       syncNotesDebounced()
     }
   })
