@@ -1,6 +1,6 @@
 import {Divider, Flex, Stack, UnstyledButton} from '@mantine/core'
 import {Todo, Todos} from '../business/models'
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react'
+import {useEffect, useMemo, useRef, useState} from 'react'
 import {draggable, dropTargetForElements} from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
 import {
   attachClosestEdge,
@@ -39,47 +39,24 @@ export const TodoControl = ({
   onUp,
   onMoveTodo,
 }: TodoControlProps) => {
-  const {idToTodo, parentToChildIds, parentToChildrenDone, visualOrderUndone} =
-    deriveTodosData(todos)
+  const {idToTodo, visualOrderUndone, visualOrderDone} = deriveTodosData(todos)
   return (
     <Stack flex={1} style={{overflowY: 'auto', paddingTop: '1px'}} gap={0}>
-      {todos.map((todo) =>
-        todo.done || todo.parent ? null : (
-          <Fragment key={`${todo.id}undone`}>
-            <TodoItem
-              todo={todo}
-              visualIndex={visualOrderUndone.indexOf(todo.id)}
-              onTodoChecked={onTodoChecked}
-              onTodoChanged={onTodoChanged}
-              onInsertTodo={onInsertTodo}
-              onTodoDeleted={todos.length === 1 ? undefined : onTodoDeleted}
-              onUndo={onUndo}
-              onRedo={onRedo}
-              onUp={onUp}
-              onMoveTodo={onMoveTodo}
-            />
-            {parentToChildIds[todo.id] &&
-              parentToChildIds[todo.id]!.map(
-                (childId) =>
-                  !idToTodo[childId]!.done && (
-                    <TodoItem
-                      key={childId}
-                      todo={idToTodo[childId]!}
-                      visualIndex={visualOrderUndone.indexOf(childId)}
-                      onTodoChecked={onTodoChecked}
-                      onTodoChanged={onTodoChanged}
-                      onInsertTodo={onInsertTodo}
-                      onTodoDeleted={todos.length === 1 ? undefined : onTodoDeleted}
-                      onUndo={onUndo}
-                      onRedo={onRedo}
-                      onUp={onUp}
-                      onMoveTodo={onMoveTodo}
-                    />
-                  )
-              )}
-          </Fragment>
-        )
-      )}
+      {visualOrderUndone.map((id, visualIndex) => (
+        <TodoItem
+          key={`${id}undone`}
+          todo={idToTodo[id]!}
+          visualIndex={visualIndex}
+          onTodoChecked={onTodoChecked}
+          onTodoChanged={onTodoChanged}
+          onInsertTodo={onInsertTodo}
+          onTodoDeleted={todos.length === 1 ? undefined : onTodoDeleted}
+          onUndo={onUndo}
+          onRedo={onRedo}
+          onUp={onUp}
+          onMoveTodo={onMoveTodo}
+        />
+      ))}
       {!!onInsertTodo && (
         <Flex justify='end'>
           <UnstyledButton
@@ -93,30 +70,16 @@ export const TodoControl = ({
         </Flex>
       )}
       <Divider m='5px 0' />
-      {todos.map((todo) => {
-        return todo.parent ||
-          (!todo.done && !(todo.id in parentToChildrenDone)) ||
-          (!todo.done && parentToChildrenDone[todo.id] === 'none') ? null : (
-          <Fragment key={`${todo.id}done`}>
-            <TodoItem
-              todo={todo}
-              onTodoChecked={onTodoChecked}
-              onTodoDeleted={todo.done ? onTodoDeleted : undefined}
-              ghost={!todo.done}
-            />
-            {parentToChildIds[todo.id] &&
-              parentToChildIds[todo.id]!.map(
-                (childId) =>
-                  idToTodo[childId]!.done && (
-                    <TodoItem
-                      key={childId}
-                      todo={idToTodo[childId]!}
-                      onTodoChecked={onTodoChecked}
-                      onTodoDeleted={onTodoDeleted}
-                    />
-                  )
-              )}
-          </Fragment>
+      {visualOrderDone.map((id) => {
+        const todo = idToTodo[id]!
+        return (
+          <TodoItem
+            key={`${id}done`}
+            todo={todo}
+            onTodoChecked={onTodoChecked}
+            onTodoDeleted={todo.done ? onTodoDeleted : undefined}
+            ghost={!todo.done && !todo.parent}
+          />
         )
       })}
     </Stack>
@@ -266,57 +229,58 @@ const TodoItem = ({
         readOnly={!onTodoChanged}
         onChange={(e) => onTodoChanged?.(todo.id, e.target.value)}
         onKeyDown={(e) => {
+          const target = e.currentTarget
           if (
             visualIndex === 0 &&
-            e.currentTarget.selectionStart === 0 &&
+            target.selectionStart === 0 &&
             (e.key === 'Backspace' || e.key === 'ArrowUp')
           ) {
             e.preventDefault()
             onUp?.()
-          }
-          if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+          } else if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
             e.preventDefault()
             if (e.shiftKey) {
               onRedo?.()
             } else {
               onUndo?.()
             }
-          }
-          if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
+          } else if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
             e.preventDefault()
             onRedo?.()
-          }
-          if (e.key === 'Enter' && !e.shiftKey) {
+          } else if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
             onInsertTodo?.(todo.id, todo.parent)
-            const target = e.currentTarget
             Promise.resolve().then(() => {
               target
                 .closest('.todo-list-item')
                 ?.nextElementSibling?.querySelector('textarea')
                 ?.focus()
             })
-          }
-          if (e.key === 'Backspace' && todo.txt === '') {
+          } else if (e.key === 'Backspace' && todo.txt === '') {
             e.preventDefault()
-            e.currentTarget
+            target
               .closest('.todo-list-item')
               ?.previousElementSibling?.querySelector('textarea')
               ?.focus()
             onTodoDeleted?.(todo.id)
-          }
-          const target = e.currentTarget
-          if (e.key === 'ArrowDown' && target.selectionEnd === todo.txt.length) {
+          } else if (e.key === 'ArrowDown' && target.selectionEnd === todo.txt.length) {
             target
               .closest('.todo-list-item')
               ?.nextElementSibling?.querySelector('textarea')
               ?.focus()
-          }
-          if (e.key === 'ArrowUp' && target.selectionEnd === 0) {
+          } else if (e.key === 'ArrowUp' && target.selectionEnd === 0) {
             target
               .closest('.todo-list-item')
               ?.previousElementSibling?.querySelector('textarea')
               ?.focus()
+          } else if (e.key === 'I' && e.shiftKey && e.altKey) {
+            e.preventDefault()
+            onMoveTodo?.({
+              dragId: todo.id,
+              dropId: todo.id,
+              closestEdge: 'top',
+              indent: !todo.parent,
+            })
           }
         }}
       />

@@ -370,8 +370,7 @@ export const labelColor = (hue: Hue, darkMode: boolean): string =>
 export const deriveTodosData = (todos: Todo[]) => {
   const parentToChildIds: Record<string, string[]> = {}
   const idToTodo = {} as Record<string, Todo>
-  for (let i = 0; i < todos.length; i++) {
-    const todo = todos[i]!
+  for (const todo of todos) {
     idToTodo[todo.id] = todo
     if (todo.parent) {
       if (!parentToChildIds[todo.parent]) {
@@ -395,24 +394,19 @@ export const deriveTodosData = (todos: Todo[]) => {
       )
     }
   }
-  const parentToChildrenDone = {} as Record<string, 'all' | 'some' | 'none'>
-  for (const [parent, children] of Object.entries(parentToChildIds)) {
-    let anyDone = false
-    let anyUndone = false
-    for (const childId of children) {
-      if (idToTodo[childId]!.done) {
-        anyDone = true
-      } else {
-        anyUndone = true
-      }
+  const visualOrderDone: string[] = []
+  for (const [id, childIds] of todoTree) {
+    const todo = idToTodo[id]!
+    const doneChildren = childIds.filter((id) => idToTodo[id]!.done)
+    if (todo.done || doneChildren.length > 0) {
+      visualOrderDone.push(id, ...doneChildren)
     }
-    parentToChildrenDone[parent] = anyDone && anyUndone ? 'some' : anyDone ? 'all' : 'none'
   }
   return {
     idToTodo,
     todoTree,
     visualOrderUndone,
+    visualOrderDone,
     parentToChildIds,
-    parentToChildrenDone,
   }
 }
