@@ -222,6 +222,9 @@ export const loginWithCode = async () => {
       state.user.loginDialog.open = false
     }
   })
+  if (getState().user.user.loggedIn) {
+    await syncNotes()
+  }
 }
 
 export const socketConnectionChanged = (connected: boolean) => {

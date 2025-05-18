@@ -666,19 +666,12 @@ export const registerNotesSubscriptions = () => {
       }
     }
   )
-  subscribe(
-    (state) => state.user.user.loggedIn,
-    (curr, prev) => {
-      if (!prev && curr) {
-        syncNotes()
-      }
-    }
-  )
   subscribe((state) => state.notes.openNote?.id ?? null, storeOpenNoteId)
 
   const syncNotesDebounced = debounce(syncNotes, 1000)
   hasDirtyNotesObservable.subscribe((hasDirtyNotes) => {
     if (hasDirtyNotes) {
+      console.log('hasDirtyNotes')
       syncNotesDebounced()
     }
   })

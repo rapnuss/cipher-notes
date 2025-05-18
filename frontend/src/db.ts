@@ -50,12 +50,20 @@ db.version(5).stores({
   labels: 'id, deleted_at, state',
 })
 
-export const hasDirtyNotesObservable = liveQuery(
-  () => db.notes.where('state').equals('dirty').first() !== undefined
+export const hasDirtyNotesObservable = liveQuery(() =>
+  db.notes
+    .where('state')
+    .equals('dirty')
+    .first()
+    .then((n) => n !== undefined)
 )
 
 export const labelsObservable = liveQuery(() => db.labels.where('deleted_at').equals(0).toArray())
 
-export const hasDirtyLabelsObservable = liveQuery(
-  () => db.labels.where('state').equals('dirty').first() !== undefined
+export const hasDirtyLabelsObservable = liveQuery(() =>
+  db.labels
+    .where('state')
+    .equals('dirty')
+    .first()
+    .then((n) => n !== undefined)
 )
