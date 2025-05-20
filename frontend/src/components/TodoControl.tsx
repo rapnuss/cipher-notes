@@ -27,6 +27,7 @@ export type TodoControlProps = {
   onRedo?: () => void
   onUp?: () => void
   onMoveTodo?: typeof moveTodo
+  onMoveTodoByOne?: (id: string, direction: 'up' | 'down') => void
 }
 export const TodoControl = ({
   todos,
@@ -38,6 +39,7 @@ export const TodoControl = ({
   onRedo,
   onUp,
   onMoveTodo,
+  onMoveTodoByOne,
 }: TodoControlProps) => {
   const {idToTodo, visualOrderUndone, visualOrderDone} = deriveTodosData(todos)
   return (
@@ -55,6 +57,7 @@ export const TodoControl = ({
           onRedo={onRedo}
           onUp={onUp}
           onMoveTodo={onMoveTodo}
+          onMoveTodoByOne={onMoveTodoByOne}
         />
       ))}
       {!!onInsertTodo && (
@@ -98,6 +101,7 @@ const TodoItem = ({
   onRedo,
   onUp,
   onMoveTodo,
+  onMoveTodoByOne,
 }: {
   todo: Todo
   visualIndex?: number
@@ -110,6 +114,7 @@ const TodoItem = ({
   onRedo?: () => void
   onUp?: () => void
   onMoveTodo?: typeof moveTodo
+  onMoveTodoByOne?: (id: string, direction: 'up' | 'down') => void
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const handleRef = useRef<HTMLDivElement>(null)
@@ -263,6 +268,9 @@ const TodoItem = ({
               ?.previousElementSibling?.querySelector('textarea')
               ?.focus()
             onTodoDeleted?.(todo.id)
+          } else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.altKey) {
+            e.preventDefault()
+            onMoveTodoByOne?.(todo.id, e.key === 'ArrowUp' ? 'up' : 'down')
           } else if (e.key === 'ArrowDown' && target.selectionEnd === todo.txt.length) {
             target
               .closest('.todo-list-item')

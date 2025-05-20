@@ -269,6 +269,43 @@ export const deleteTodo = (id: string) =>
     state.notes.openNote.todos = todos.filter((t) => t.id !== id && t.parent !== id)
     state.notes.openNote.updatedAt = Date.now()
   })
+export const moveTodoByOne = (id: string, direction: 'up' | 'down') => {
+  const state = getState()
+  if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
+  const todos = state.notes.openNote.todos
+  const {visualOrderUndone, idToTodo} = deriveTodosData(todos)
+  const todo = idToTodo[id]!
+  const visualIndex = visualOrderUndone.indexOf(id)
+
+  if (direction === 'up' && visualIndex === 0) {
+    return
+  } else if (direction === 'down' && visualIndex === visualOrderUndone.length - 1) {
+    return
+  }
+  let dropId: string | undefined = undefined
+  if (!todo.parent) {
+    const inc = direction === 'up' ? -1 : 1
+    for (let i = visualIndex + inc; i >= 0 && i < visualOrderUndone.length; i += inc) {
+      const id = visualOrderUndone[i]!
+      if (!idToTodo[id]!.parent) {
+        dropId = id
+        break
+      }
+    }
+  } else {
+    dropId = visualOrderUndone[visualIndex + (direction === 'up' ? -1 : 1)]!
+  }
+  if (dropId === undefined) {
+    return
+  }
+
+  moveTodo({
+    dragId: id,
+    dropId,
+    closestEdge: direction === 'up' ? 'top' : 'bottom',
+    indent: !!todo.parent,
+  })
+}
 export const moveTodo = ({
   dragId,
   dropId,

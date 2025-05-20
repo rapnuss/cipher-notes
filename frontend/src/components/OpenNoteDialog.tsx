@@ -12,6 +12,7 @@ import {
   openNoteTypeToggled,
   openNoteTitleChanged,
   moveTodo,
+  moveTodoByOne,
 } from '../state/notes'
 import {IconArrowBackUp} from './icons/IconArrowBackUp'
 import {IconArrowForwardUp} from './icons/IconArrowForwardUp'
@@ -130,6 +131,7 @@ export const OpenNoteDialog = () => {
           onInsertTodo={insertTodo}
           onTodoDeleted={deleteTodo}
           onMoveTodo={moveTodo}
+          onMoveTodoByOne={moveTodoByOne}
           onUndo={undo}
           onRedo={redo}
           onUp={focusTitleInput}
