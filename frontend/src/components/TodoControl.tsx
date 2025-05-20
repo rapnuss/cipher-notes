@@ -21,7 +21,7 @@ export type TodoControlProps = {
   todos: Todos
   onTodoChecked?: (id: string, checked: boolean) => void
   onTodoChanged?: (id: string, txt: string) => void
-  onInsertTodo?: (bellowId?: string) => void
+  onInsertTodo?: (bellowId?: string, parentId?: string, txt?: string) => void
   onTodoDeleted?: (id: string) => void
   onUndo?: () => void
   onRedo?: () => void
@@ -108,7 +108,7 @@ const TodoItem = ({
   ghost?: boolean
   onTodoChecked?: (id: string, checked: boolean) => void
   onTodoChanged?: (id: string, txt: string) => void
-  onInsertTodo?: (bellowId?: string, parentId?: string) => void
+  onInsertTodo?: (bellowId?: string, parentId?: string, txt?: string) => void
   onTodoDeleted?: (id: string) => void
   onUndo?: () => void
   onRedo?: () => void
@@ -254,7 +254,10 @@ const TodoItem = ({
             onRedo?.()
           } else if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
-            onInsertTodo?.(todo.id, todo.parent)
+            const {selectionStart, selectionEnd} = e.currentTarget
+            const insetTodoTxt = todo.txt.slice(selectionEnd)
+            onTodoChanged?.(todo.id, todo.txt.slice(0, selectionStart))
+            onInsertTodo?.(todo.id, todo.parent, insetTodoTxt)
             Promise.resolve().then(() => {
               target
                 .closest('.todo-list-item')
