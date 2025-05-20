@@ -260,11 +260,20 @@ export const insertTodo = (todoId?: string, parentId?: string, txt?: string) =>
     })
     state.notes.openNote.updatedAt = Date.now()
   })
-export const deleteTodo = (id: string) =>
+export const deleteTodo = (id: string, appendAbove?: boolean) =>
   setState((state) => {
     if (!state.notes.openNote || state.notes.openNote.type !== 'todo') return
 
     const todos = state.notes.openNote.todos
+    const {idToTodo, visualOrderUndone} = deriveTodosData(todos)
+    const todo = idToTodo[id]!
+    const visualIndex = visualOrderUndone.indexOf(id)
+    if (appendAbove && visualIndex > 0 && todo.txt) {
+      const aboveId = visualOrderUndone[visualIndex - 1]!
+      const aboveDraft = todos.find((t) => t.id === aboveId)!
+      aboveDraft.txt = aboveDraft.txt + todo.txt
+      aboveDraft.updated_at = Date.now()
+    }
 
     state.notes.openNote.todos = todos.filter((t) => t.id !== id && t.parent !== id)
     state.notes.openNote.updatedAt = Date.now()

@@ -22,7 +22,7 @@ export type TodoControlProps = {
   onTodoChecked?: (id: string, checked: boolean) => void
   onTodoChanged?: (id: string, txt: string) => void
   onInsertTodo?: (bellowId?: string, parentId?: string, txt?: string) => void
-  onTodoDeleted?: (id: string) => void
+  onTodoDeleted?: (id: string, appendAbove?: boolean) => void
   onUndo?: () => void
   onRedo?: () => void
   onUp?: () => void
@@ -109,7 +109,7 @@ const TodoItem = ({
   onTodoChecked?: (id: string, checked: boolean) => void
   onTodoChanged?: (id: string, txt: string) => void
   onInsertTodo?: (bellowId?: string, parentId?: string, txt?: string) => void
-  onTodoDeleted?: (id: string) => void
+  onTodoDeleted?: (id: string, appendAbove?: boolean) => void
   onUndo?: () => void
   onRedo?: () => void
   onUp?: () => void
@@ -254,7 +254,7 @@ const TodoItem = ({
             onRedo?.()
           } else if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
-            const {selectionStart, selectionEnd} = e.currentTarget
+            const {selectionStart, selectionEnd} = target
             const insetTodoTxt = todo.txt.slice(selectionEnd)
             onTodoChanged?.(todo.id, todo.txt.slice(0, selectionStart))
             onInsertTodo?.(todo.id, todo.parent, insetTodoTxt)
@@ -264,13 +264,17 @@ const TodoItem = ({
                 ?.nextElementSibling?.querySelector('textarea')
                 ?.focus()
             })
-          } else if (e.key === 'Backspace' && todo.txt === '') {
+          } else if (
+            e.key === 'Backspace' &&
+            target.selectionStart === 0 &&
+            target.selectionEnd === 0
+          ) {
             e.preventDefault()
             target
               .closest('.todo-list-item')
               ?.previousElementSibling?.querySelector('textarea')
               ?.focus()
-            onTodoDeleted?.(todo.id)
+            onTodoDeleted?.(todo.id, true)
           } else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.altKey) {
             e.preventDefault()
             onMoveTodoByOne?.(todo.id, e.key === 'ArrowUp' ? 'up' : 'down')
