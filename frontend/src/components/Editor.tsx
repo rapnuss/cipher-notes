@@ -2,27 +2,20 @@ import {
   ChangeEvent,
   CSSProperties,
   FocusEventHandler,
-  forwardRef,
   HTMLAttributes,
   KeyboardEvent,
   KeyboardEventHandler,
   MouseEventHandler,
-  Ref,
   useCallback,
   useEffect,
-  useImperativeHandle,
   useRef,
-  useState,
 } from 'react'
-
-type Padding<T> = T | {top?: T; right?: T; bottom?: T; left?: T}
 
 type Props = HTMLAttributes<HTMLDivElement> & {
   // Props for the component
   ignoreTabKey?: boolean
   insertSpaces?: boolean
   onValueChange: (value: string) => void
-  padding?: Padding<number | string>
   style?: CSSProperties
   tabSize?: number
   value: string
@@ -60,19 +53,7 @@ type History = {
 const HISTORY_LIMIT = 100
 const HISTORY_TIME_GAP = 3000
 
-const isWindows =
-  typeof window !== 'undefined' && 'navigator' in window && /Win/i.test(navigator.platform)
-const isMacLike =
-  typeof window !== 'undefined' &&
-  'navigator' in window &&
-  /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform)
-
-const className = 'npm__react-simple-code-editor__textarea'
-
-const Editor = forwardRef(function Editor(
-  props: Props,
-  ref: Ref<null | {session: {history: History}}>
-) {
+const Editor = (props: Props) => {
   const {
     autoFocus,
     disabled,
@@ -88,7 +69,6 @@ const Editor = forwardRef(function Editor(
     onKeyDown,
     onKeyUp,
     onValueChange,
-    padding = 0,
     placeholder,
     readOnly,
     required,
@@ -105,13 +85,6 @@ const Editor = forwardRef(function Editor(
     offset: -1,
   })
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
-  const [capture, setCapture] = useState(true)
-  const contentStyle = {
-    paddingTop: typeof padding === 'object' ? padding.top : padding,
-    paddingRight: typeof padding === 'object' ? padding.right : padding,
-    paddingBottom: typeof padding === 'object' ? padding.bottom : padding,
-    paddingLeft: typeof padding === 'object' ? padding.left : padding,
-  }
 
   const getLines = (text: string, position: number) => text.substring(0, position).split('\n')
 
@@ -214,32 +187,6 @@ const Editor = forwardRef(function Editor(
     updateInput(record)
   }
 
-  const undoEdit = () => {
-    const {stack, offset} = historyRef.current
-
-    // Get the previous edit
-    const record = stack[offset - 1]
-
-    if (record) {
-      // Apply the changes and update the offset
-      updateInput(record)
-      historyRef.current.offset = Math.max(offset - 1, 0)
-    }
-  }
-
-  const redoEdit = () => {
-    const {stack, offset} = historyRef.current
-
-    // Get the next edit
-    const record = stack[offset + 1]
-
-    if (record) {
-      // Apply the changes and update the offset
-      updateInput(record)
-      historyRef.current.offset = Math.min(offset + 1, stack.length - 1)
-    }
-  }
-
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (onKeyDown) {
       onKeyDown(e)
@@ -257,7 +204,7 @@ const Editor = forwardRef(function Editor(
 
     const tabCharacter = (insertSpaces ? ' ' : '\t').repeat(tabSize)
 
-    if (e.key === 'Tab' && !ignoreTabKey && capture) {
+    if (e.key === 'Tab' && !ignoreTabKey) {
       // Prevent focus change
       e.preventDefault()
 
@@ -402,37 +349,38 @@ const Editor = forwardRef(function Editor(
           selectionEnd: selectionEnd + 2,
         })
       }
-    } else if (
-      (isMacLike
-        ? // Trigger undo with ⌘+Z on Mac
-          e.metaKey && e.key === 'z'
-        : // Trigger undo with Ctrl+Z on other platforms
-          e.ctrlKey && e.key === 'z') &&
-      !e.shiftKey &&
-      !e.altKey
-    ) {
+    } else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && e.altKey) {
       e.preventDefault()
+      const startLine = getLines(value, selectionStart).length - 1
+      const endLine = getLines(value, selectionEnd).length - 1
+      const lines = value.split('\n')
 
-      undoEdit()
-    } else if (
-      (isMacLike
-        ? // Trigger redo with ⌘+Shift+Z on Mac
-          e.metaKey && e.key === 'z' && e.shiftKey
-        : isWindows
-        ? // Trigger redo with Ctrl+Y on Windows
-          e.ctrlKey && e.key === 'y'
-        : // Trigger redo with Ctrl+Shift+Z on other platforms
-          e.ctrlKey && e.key === 'z' && e.shiftKey) &&
-      !e.altKey
-    ) {
-      e.preventDefault()
+      if (
+        lines.length === 1 ||
+        (e.key === 'ArrowDown' && endLine === lines.length - 1) ||
+        (e.key === 'ArrowUp' && startLine === 0)
+      ) {
+        return
+      }
 
-      redoEdit()
-    } else if (e.key === 'm' && e.ctrlKey && (isMacLike ? e.shiftKey : true)) {
-      e.preventDefault()
+      const swapLineIndex = e.key === 'ArrowDown' ? endLine + 1 : startLine - 1
+      const swapLine = lines[swapLineIndex]!
 
-      // Toggle capturing tab key so users can focus away
-      setCapture((prev) => !prev)
+      if (e.key === 'ArrowUp') {
+        lines.splice(endLine + 1, 0, swapLine)
+        lines.splice(swapLineIndex, 1)
+      } else if (e.key === 'ArrowDown') {
+        lines.splice(startLine, 0, swapLine)
+        lines.splice(swapLineIndex + 1, 1)
+      }
+
+      const selectionMove = e.key === 'ArrowDown' ? swapLine.length + 1 : -swapLine.length - 1
+
+      applyEdits({
+        value: lines.join('\n'),
+        selectionStart: selectionStart + selectionMove,
+        selectionEnd: selectionEnd + selectionMove,
+      })
     }
   }
 
@@ -455,32 +403,12 @@ const Editor = forwardRef(function Editor(
     recordCurrentState()
   }, [recordCurrentState])
 
-  useImperativeHandle(
-    ref,
-    () => {
-      return {
-        get session() {
-          return {
-            history: historyRef.current,
-          }
-        },
-        set session(session: {history: History}) {
-          historyRef.current = session.history
-        },
-      }
-    },
-    []
-  )
-
   return (
     <div {...rest} style={{...styles.container, ...style}}>
       <textarea
         ref={inputRef}
-        style={{
-          ...styles.textarea,
-          ...contentStyle,
-        }}
-        className={className + (textareaClassName ? ` ${textareaClassName}` : '')}
+        style={styles.textarea}
+        className={textareaClassName}
         id={textareaId}
         value={value}
         onChange={handleChange}
@@ -501,12 +429,11 @@ const Editor = forwardRef(function Editor(
         autoCapitalize='off'
         autoComplete='off'
         autoCorrect='off'
-        spellCheck={false}
         data-gramm={false}
       />
     </div>
   )
-})
+}
 
 const styles = {
   container: {
