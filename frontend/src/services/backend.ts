@@ -94,6 +94,12 @@ export const reqDeleteNotes = (confirm: string) =>
     body: {confirm},
   })
 
+export const reqDeleteAccount = (confirm: string) =>
+  request<void>('/deleteAccount', {
+    method: 'POST',
+    body: {confirm},
+  })
+
 export const reqSendConfirmCode = () =>
   request<void>('/sendConfirmCode', {
     method: 'POST',

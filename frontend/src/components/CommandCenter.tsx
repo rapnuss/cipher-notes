@@ -8,6 +8,7 @@ import {
   toggleImprint,
   openDeleteServerNotesDialog,
   openChangeEmailDialog,
+  openDeleteAccountDialog,
 } from '../state/user'
 import {selectAnyDialogOpen, useSelector} from '../state/store'
 import {useMantineColorScheme} from '@mantine/core'
@@ -123,6 +124,12 @@ export const CommandCenter = () => {
       id: 'sync',
       label: 'Manual server sync',
       onClick: openSyncDialogAndSync,
+      disabled: !loggedIn,
+    },
+    {
+      id: 'deleteAccount',
+      label: 'Delete Account',
+      onClick: openDeleteAccountDialog,
       disabled: !loggedIn,
     },
   ]

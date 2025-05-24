@@ -8,6 +8,7 @@ import {
   isUnauthorizedRes,
   reqSendChangeEmailCodes,
   reqChangeEmail,
+  reqDeleteAccount,
 } from '../services/backend'
 import {loadUser, storeUser} from '../services/localStorage'
 import {getState, setState, subscribe} from './store'
@@ -39,6 +40,12 @@ export type UserState = {
     keyTokenPair: string
     qrMode: 'hide' | 'show' | 'scan'
   }
+  deleteAccountDialog: {
+    open: boolean
+    code: string
+    codeLoading: boolean
+    deleteLoading: boolean
+  }
   deleteServerNotesDialog: {
     open: boolean
     code: string
@@ -63,6 +70,7 @@ export const userInit: UserState = {
   loginDialog: {open: false, email: '', code: '', loading: false, status: 'email'},
   encryptionKeyDialog: {open: false, keyTokenPair: '', qrMode: 'hide'},
   deleteServerNotesDialog: {open: false, code: '', codeLoading: false, deleteLoading: false},
+  deleteAccountDialog: {open: false, code: '', codeLoading: false, deleteLoading: false},
   imprintOpen: false,
   changeEmailDialog: {
     open: false,
@@ -388,6 +396,85 @@ export const deleteServerNotesAndGenerateNewKey = async () => {
     title: 'Success',
     message: 'Server notes deleted and new crypto key generated',
   })
+}
+
+export const openDeleteAccountDialog = async () => {
+  const state = getState()
+  const loggedIn = state.user.user.loggedIn
+  if (!loggedIn) return
+
+  setState((state) => {
+    state.user.deleteAccountDialog = {open: true, code: '', codeLoading: true, deleteLoading: false}
+  })
+
+  const res = await reqSendConfirmCode()
+
+  setState((state) => {
+    state.user.deleteAccountDialog.codeLoading = false
+    if (isUnauthorizedRes(res)) {
+      state.user.user.loggedIn = false
+    }
+  })
+  if (!res.success) {
+    notifications.show({
+      title: 'Failed to send confirmation code',
+      message: res.error,
+      color: 'red',
+    })
+  } else {
+    notifications.show({
+      title: 'Confirmation code sent',
+      message: 'Check your email for the confirmation code',
+    })
+  }
+}
+export const closeDeleteAccountDialog = () =>
+  setState((state) => {
+    if (state.user.deleteAccountDialog.deleteLoading || state.user.deleteAccountDialog.codeLoading)
+      return
+    state.user.deleteAccountDialog.open = false
+  })
+export const deleteAccountCodeChanged = (code: string) =>
+  setState((state) => {
+    state.user.deleteAccountDialog.code = code
+  })
+export const deleteAccount = async () => {
+  const state = getState()
+  const {code, deleteLoading} = state.user.deleteAccountDialog
+  const loggedIn = state.user.user.loggedIn
+  if (!code || deleteLoading || !loggedIn) return
+
+  setState((state) => {
+    state.user.deleteAccountDialog.deleteLoading = true
+  })
+
+  const res = await reqDeleteAccount(code)
+
+  setState((state) => {
+    state.user.deleteAccountDialog.deleteLoading = false
+  })
+
+  if (!res.success) {
+    notifications.show({
+      title: 'Failed to delete account',
+      message: res.error,
+      color: 'red',
+    })
+  } else {
+    notifications.show({
+      title: 'Account deleted',
+      message: 'Your account has been deleted',
+    })
+    setState((state) => {
+      state.user.deleteAccountDialog.open = false
+      state.user.user = {loggedIn: false, email: '', keyTokenPair: null, lastSyncedTo: 0}
+    })
+
+    await db.notes.toCollection().modify((note) => {
+      note.state = 'dirty'
+    })
+    await db.note_base_versions.clear()
+  }
 }
 
 export const toggleImprint = () =>

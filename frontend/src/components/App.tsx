@@ -10,7 +10,7 @@ import {Main} from './Main.tsx'
 import {ConflictDialog} from './ConflictDialog.tsx'
 import {OpenNoteDialog} from './OpenNoteDialog.tsx'
 import {ImprintDialog} from './ImprintDialog.tsx'
-import {DeleteServerNotesDialog} from './DeleteServerNotesDialog'
+import {DeleteAccountDialog, DeleteServerNotesDialog} from './DeleteServerNotesDialog'
 import {SettingsDialog} from './SettingsDialog.tsx'
 import {KeepImportDialog} from './KeepImportDialog.tsx'
 import {debounce, delay} from '../util/misc.ts'
@@ -74,6 +74,7 @@ export const App = () => {
       <ConflictDialog />
       <EncryptionKeyDialog />
       <DeleteServerNotesDialog />
+      <DeleteAccountDialog />
       <ChangeEmailDialog />
       <ImprintDialog />
       <PWABadge />

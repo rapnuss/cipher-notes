@@ -6,7 +6,7 @@ import {
   registerEmailEndpoint,
 } from './endpoints/login'
 import {syncNotesEndpoint} from './endpoints/syncNotes'
-import {deleteNotesEndpoint} from './endpoints/deleteNotes'
+import {deleteAccountEndpoint, deleteNotesEndpoint} from './endpoints/deleteNotes'
 import {sendConfirmCodeEndpoint} from './endpoints/sendConfirmCode'
 import {logoutEndpoint} from './endpoints/logout'
 import {changeEmailEndpoint, sendChangeEmailCodesEndpoint} from './endpoints/changeEmail'
@@ -18,6 +18,7 @@ export const routing: Routing = {
   loginWithCode: loginWithCodeEndpoint,
   syncNotes: syncNotesEndpoint,
   deleteNotes: deleteNotesEndpoint,
+  deleteAccount: deleteAccountEndpoint,
   sendConfirmCode: sendConfirmCodeEndpoint,
   logout: logoutEndpoint,
   sendChangeEmailCodes: sendChangeEmailCodesEndpoint,
