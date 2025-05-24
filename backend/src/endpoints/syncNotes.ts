@@ -65,14 +65,6 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
       throw createHttpError(400, 'Invalid sync token')
     }
 
-    const [{sum: cipherTextLength = 0} = {}] = await db
-      .select({sum: sql<number>`sum(length(${notesTbl.cipher_text}))`})
-      .from(notesTbl)
-      .where(eq(notesTbl.user_id, user.id))
-    if (cipherTextLength > Number(env.NOTES_STORAGE_LIMIT)) {
-      throw createHttpError(400, 'notes storage limit exceeded')
-    }
-
     const res = await db.transaction(async (tx) => {
       const conflicts: IndeterminatePut[] = []
       const nonConflicts: Put[] = []
@@ -167,6 +159,14 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
         })
       )
       const maxPutAt = Math.max(...dbPuts.map((c) => c.serverside_updated_at))
+
+      const [{sum: cipherTextLength = 0} = {}] = await tx
+        .select({sum: sql<number>`sum(length(${notesTbl.cipher_text}))`})
+        .from(notesTbl)
+        .where(eq(notesTbl.user_id, user.id))
+      if (cipherTextLength > Number(env.NOTES_STORAGE_LIMIT)) {
+        throw createHttpError(400, 'notes storage limit exceeded')
+      }
 
       return {
         puts: putsSchema.parse(pullPuts),
