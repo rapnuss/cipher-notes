@@ -238,6 +238,7 @@ const TodoItem = ({
           if (
             visualIndex === 0 &&
             target.selectionStart === 0 &&
+            target.selectionEnd === 0 &&
             (e.key === 'Backspace' || e.key === 'ArrowUp')
           ) {
             e.preventDefault()

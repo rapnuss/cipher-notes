@@ -21,7 +21,8 @@ export const XTextarea = ({value, onChange, onUndo, onRedo, onUp, placeholder}: 
         if (
           e.currentTarget instanceof HTMLTextAreaElement &&
           (e.key === 'Backspace' || e.key === 'ArrowUp') &&
-          e.currentTarget.selectionStart === 0
+          e.currentTarget.selectionStart === 0 &&
+          e.currentTarget.selectionEnd === 0
         ) {
           e.preventDefault()
           onUp()
