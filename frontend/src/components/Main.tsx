@@ -4,12 +4,12 @@ import {NotesGrid} from './NotesGrid'
 import {addNote} from '../state/notes'
 import {NotesSortSelect} from './NotesSortSelect'
 import {IconPlus} from './icons/IconPlus'
-import {IconCommand} from './icons/IconCommand'
 import {spotlight} from '@mantine/spotlight'
 import {StatusBar} from './StatusBar'
 import {toggleLabelSelector} from '../state/labels'
 import {IconLabel} from './icons/IconLabel'
 import {ActionIconWithText} from './ActionIconWithText'
+import {IconMenu2} from './icons/IconMenu2'
 
 export const Main = () => (
   <>
@@ -17,8 +17,8 @@ export const Main = () => (
       <SearchInput />
       <Flex gap='xs' flex='0 1 auto'>
         <NotesSortSelect />
-        <ActionIcon title='Open Command Center' size='lg' onClick={spotlight.open}>
-          <IconCommand />
+        <ActionIcon title='Menu' size='lg' onClick={spotlight.open}>
+          <IconMenu2 />
         </ActionIcon>
       </Flex>
     </Flex>

@@ -12,7 +12,7 @@ export const usersTbl = pgTable('users', {
   confirm_code: varchar({length: 6}),
   confirm_code_created_at: bigint({mode: 'number'}),
   confirm_code_tries_left: integer().default(0).notNull(),
-  // if new_email is set the, the login_code is user to verify the new email
+  // if new_email is set the, the login_code is used to verify the new email
   // and the confirm_code is used to verify the old email
   // together with confirm_code_created_at and confirm_code_tries_left.
   new_email: varchar({length: 255}),

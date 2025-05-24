@@ -1,6 +1,6 @@
 import {SVGProps} from 'react'
 
-export const IconCommand = (props: SVGProps<SVGSVGElement>) => (
+export const IconMenu2 = (props: SVGProps<SVGSVGElement>) => (
   <svg
     xmlns='http://www.w3.org/2000/svg'
     width='24'
@@ -14,6 +14,8 @@ export const IconCommand = (props: SVGProps<SVGSVGElement>) => (
     {...props}
   >
     <path stroke='none' d='M0 0h24v24H0z' fill='none' />
-    <path d='M7 9a2 2 0 1 1 2 -2v10a2 2 0 1 1 -2 -2h10a2 2 0 1 1 -2 2v-10a2 2 0 1 1 2 2h-10' />
+    <path d='M4 6l16 0' />
+    <path d='M4 12l16 0' />
+    <path d='M4 18l16 0' />
   </svg>
 )
