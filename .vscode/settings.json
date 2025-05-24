@@ -8,6 +8,7 @@
     "Abandonware",
     "atlaskit",
     "autosize",
+    "Betroffenenrechte",
     "bubblewrap",
     "CAROOT",
     "choco",
@@ -22,6 +23,7 @@
     "dashoffset",
     "dexie",
     "Dexie",
+    "DSGVO",
     "Ecosia",
     "esnext",
     "Eurogamer",
@@ -39,6 +41,7 @@
     "Metacritic",
     "Nußbaumer",
     "outdir",
+    "passwortloser",
     "postgres",
     "postgresql",
     "precache",
@@ -56,6 +59,7 @@
     "Swisscows",
     "tabler",
     "Usec",
+    "Wickenburggasse",
     "yudiel"
   ],
   "cSpell.ignorePaths": [

@@ -48,10 +48,37 @@ export const CommandCenter = () => {
       shortcut: 'alt+shift+l',
     },
     {
-      id: 'sync',
-      label: 'Manual server sync',
-      onClick: openSyncDialogAndSync,
-      disabled: !loggedIn,
+      id: 'register',
+      label: 'Register',
+      onClick: openRegisterDialog,
+      disabled: !!email,
+    },
+    {
+      id: 'login',
+      label: 'Login',
+      onClick: openLoginDialog,
+      disabled: loggedIn,
+      shortcut: 'alt+shift+l',
+    },
+    {
+      id: 'datenschutz',
+      label: 'Datenschutzerklärung',
+      onClick: () => window.open('/datenschutz.html', '_blank'),
+    },
+    {
+      id: 'agb',
+      label: 'Allgemeine Geschäftsbedingungen',
+      onClick: () => window.open('/agb.html', '_blank'),
+    },
+    {
+      id: 'encryptionKey',
+      label: 'Encryption-Key (Generate/Import/Export)',
+      onClick: openEncryptionKeyDialog,
+    },
+    {
+      id: 'imprint',
+      label: 'Imprint',
+      onClick: toggleImprint,
     },
     {
       id: 'exportNotes',
@@ -69,34 +96,10 @@ export const CommandCenter = () => {
       onClick: openKeepImportDialog,
     },
     {
-      id: 'register',
-      label: 'Register',
-      onClick: openRegisterDialog,
-      disabled: !!email,
-    },
-    {
-      id: 'login',
-      label: 'Login',
-      onClick: openLoginDialog,
-      disabled: loggedIn,
-      shortcut: 'alt+shift+l',
-    },
-    {
-      id: 'encryptionKey',
-      label: 'Encryption-Key (Generate/Import/Export)',
-      onClick: openEncryptionKeyDialog,
-    },
-    {
-      id: 'imprint',
-      label: 'Imprint',
-      onClick: toggleImprint,
-    },
-    {
       id: 'logout',
       label: 'Logout',
       onClick: logout,
       disabled: !loggedIn,
-      shortcut: 'alt+shift+o',
     },
     {
       id: 'settings',
@@ -115,6 +118,12 @@ export const CommandCenter = () => {
       label: 'Change Email',
       onClick: openChangeEmailDialog,
       disabled: !email,
+    },
+    {
+      id: 'sync',
+      label: 'Manual server sync',
+      onClick: openSyncDialogAndSync,
+      disabled: !loggedIn,
     },
   ]
 
