@@ -26,7 +26,7 @@ export type UserState = {
     keyTokenPair: {cryptoKey: string; syncToken: string} | null
   }
   connected: boolean
-  registerDialog: {open: boolean; email: string; loading: boolean}
+  registerDialog: {open: boolean; email: string; loading: boolean; agree: boolean}
   loginDialog: {
     open: boolean
     email: string
@@ -59,7 +59,7 @@ export type UserState = {
 export const userInit: UserState = {
   user: {email: '', loggedIn: false, lastSyncedTo: 0, keyTokenPair: null},
   connected: false,
-  registerDialog: {open: false, email: '', loading: false},
+  registerDialog: {open: false, email: '', loading: false, agree: false},
   loginDialog: {open: false, email: '', code: '', loading: false, status: 'email'},
   encryptionKeyDialog: {open: false, keyTokenPair: '', qrMode: 'hide'},
   deleteServerNotesDialog: {open: false, code: '', codeLoading: false, deleteLoading: false},
@@ -91,25 +91,31 @@ window.addEventListener('focus', () => {
   })
 })
 
-export const registerEmailChanged = (email: string) => {
+export const registerEmailChanged = (email: string) =>
   setState((state) => {
     state.user.registerDialog.email = email
   })
-}
-export const openRegisterDialog = () => {
+export const registerAgreeChanged = (agree: boolean) =>
   setState((state) => {
-    state.user.registerDialog = {open: true, email: state.user.user.email, loading: false}
+    state.user.registerDialog.agree = agree
   })
-}
-export const closeRegisterDialog = () => {
+export const openRegisterDialog = () =>
+  setState((state) => {
+    state.user.registerDialog = {
+      open: true,
+      email: state.user.user.email,
+      loading: false,
+      agree: false,
+    }
+  })
+export const closeRegisterDialog = () =>
   setState((state) => {
     state.user.registerDialog.open = false
   })
-}
 export const registerEmail = async (captchaToken: string) => {
   const state = getState()
-  const {email, loading} = state.user.registerDialog
-  if (!email || loading) return
+  const {email, loading, agree} = state.user.registerDialog
+  if (!email || loading || !agree) return
   setState((state) => {
     state.user.registerDialog.loading = true
   })

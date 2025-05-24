@@ -1,14 +1,18 @@
-import {Button, Checkbox, Modal, Stack, Text, TextInput} from '@mantine/core'
+import {Button, Checkbox, Modal, Stack, TextInput} from '@mantine/core'
 import {useSelector} from '../state/store'
-import {closeRegisterDialog, registerEmail, registerEmailChanged} from '../state/user'
+import {
+  closeRegisterDialog,
+  registerAgreeChanged,
+  registerEmail,
+  registerEmailChanged,
+} from '../state/user'
 import {useRef, useState} from 'react'
 import HCaptcha from '@hcaptcha/react-hcaptcha'
 import {hCaptchaSiteCode} from '../config'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 export const RegisterDialog = () => {
-  const {open, email, loading} = useSelector((state) => state.user.registerDialog)
-  const [agree, setAgree] = useState(false)
+  const {open, email, loading, agree} = useSelector((state) => state.user.registerDialog)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const hcaptchaRef = useRef<HCaptcha>(null)
   useCloseOnBack({
@@ -44,7 +48,7 @@ export const RegisterDialog = () => {
         <Checkbox
           label='Ich stimme den AGB und der Datenschutzerklärung zu'
           checked={agree}
-          onChange={(e) => setAgree(e.target.checked)}
+          onChange={(e) => registerAgreeChanged(e.target.checked)}
         />
         <HCaptcha ref={hcaptchaRef} sitekey={hCaptchaSiteCode} onVerify={setCaptchaToken} />
         <Button
