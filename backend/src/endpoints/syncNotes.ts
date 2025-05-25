@@ -57,8 +57,12 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
   }),
   handler: async ({
     input: {last_synced_to, puts: clientPuts, sync_token},
-    options: {user, session_id},
+    options: {user_id, session_id},
   }) => {
+    const [user] = await db.select().from(usersTbl).where(eq(usersTbl.id, user_id))
+    if (!user) {
+      throw createHttpError(500, 'User not found')
+    }
     if (!user.sync_token) {
       await db.update(usersTbl).set({sync_token}).where(eq(usersTbl.id, user.id))
     } else if (sync_token !== user.sync_token) {

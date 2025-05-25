@@ -9,6 +9,7 @@ import {
   reqSendChangeEmailCodes,
   reqChangeEmail,
   reqDeleteAccount,
+  reqRemoveAllSessions,
 } from '../services/backend'
 import {loadUser, storeUser} from '../services/localStorage'
 import {getState, setState, subscribe} from './store'
@@ -580,6 +581,10 @@ export const logout = async () => {
   setState((state) => {
     if (res.success || isUnauthorizedRes(res)) {
       state.user.user.loggedIn = false
+      notifications.show({
+        title: 'Logged out',
+        message: 'You have been logged out',
+      })
     } else {
       notifications.show({
         title: 'Logout Failed',
@@ -588,6 +593,33 @@ export const logout = async () => {
       })
     }
   })
+}
+
+export const removeAllSessions = async () => {
+  const state = getState()
+  const loggedIn = state.user.user.loggedIn
+  if (!loggedIn) return
+  const res = await reqRemoveAllSessions()
+  if (!res.success) {
+    notifications.show({
+      title: 'Failed to remove all sessions',
+      message: res.error,
+      color: 'red',
+    })
+    if (isUnauthorizedRes(res)) {
+      setState((state) => {
+        state.user.user.loggedIn = false
+      })
+    }
+  } else {
+    notifications.show({
+      title: 'All sessions removed',
+      message: 'You have been logged out from all devices',
+    })
+    setState((state) => {
+      state.user.user.loggedIn = false
+    })
+  }
 }
 
 // subscriptions

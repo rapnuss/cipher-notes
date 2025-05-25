@@ -9,6 +9,7 @@ import {
   openDeleteServerNotesDialog,
   openChangeEmailDialog,
   openDeleteAccountDialog,
+  removeAllSessions,
 } from '../state/user'
 import {selectAnyDialogOpen, useSelector} from '../state/store'
 import {useMantineColorScheme} from '@mantine/core'
@@ -21,6 +22,7 @@ import {Note} from '../business/models'
 import {exportNotes, openImportDialog, openKeepImportDialog} from '../state/import'
 import {toggleLabelSelector} from '../state/labels'
 import {delay} from '../util/misc'
+import {modals} from '@mantine/modals'
 
 export const CommandCenter = () => {
   const {toggleColorScheme} = useMantineColorScheme()
@@ -100,6 +102,22 @@ export const CommandCenter = () => {
       id: 'logout',
       label: 'Logout',
       onClick: logout,
+      disabled: !loggedIn,
+    },
+    {
+      id: 'logoutAllDevices',
+      label: 'Logout from all devices',
+      onClick: () => {
+        modals.openConfirmModal({
+          title: 'Logout from all devices',
+          children: 'Are you sure you want to logout from all devices?',
+          labels: {
+            confirm: 'Logout',
+            cancel: 'Cancel',
+          },
+          onConfirm: removeAllSessions,
+        })
+      },
       disabled: !loggedIn,
     },
     {

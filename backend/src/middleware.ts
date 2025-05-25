@@ -1,6 +1,6 @@
 import {Middleware} from 'express-zod-api'
 import {env} from './env'
-import {sessionsTbl, usersTbl} from './db/schema'
+import {sessionsTbl} from './db/schema'
 import {db} from './db'
 import {eq} from 'drizzle-orm'
 import createHttpError from 'http-errors'
@@ -29,10 +29,6 @@ export const authMiddleware = new Middleware({
     if (Date.now() - created_at > 1000 * 60 * Number(env.SESSION_TTL_MIN)) {
       throw createHttpError(401, 'Session expired')
     }
-    const [user] = await db.select().from(usersTbl).where(eq(usersTbl.id, session.user_id))
-    if (!user) {
-      throw createHttpError(401, 'User not found')
-    }
-    return {user, session_id}
+    return {user_id: session.user_id, session_id}
   },
 })

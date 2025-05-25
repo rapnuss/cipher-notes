@@ -12,3 +12,12 @@ export const logoutEndpoint = authEndpointsFactory.build({
     return {remove_session_cookie: true}
   },
 })
+
+export const removeAllSessionsEndpoint = authEndpointsFactory.build({
+  method: 'post',
+  output: z.object({remove_session_cookie: z.boolean()}),
+  handler: async ({options: {user_id}}) => {
+    await db.delete(sessionsTbl).where(eq(sessionsTbl.user_id, user_id))
+    return {remove_session_cookie: true}
+  },
+})

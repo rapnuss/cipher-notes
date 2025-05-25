@@ -11,7 +11,11 @@ export const deleteNotesEndpoint = authEndpointsFactory.build({
     confirm: z.string().length(6),
   }),
   output: z.object({}),
-  handler: async ({options: {user}, input: {confirm}}) => {
+  handler: async ({options: {user_id}, input: {confirm}}) => {
+    const [user] = await db.select().from(usersTbl).where(eq(usersTbl.id, user_id))
+    if (!user) {
+      throw createHttpError(500, 'User not found')
+    }
     if (!user.confirm_code) {
       throw createHttpError(400, 'Confirm code not set')
     }
@@ -57,7 +61,11 @@ export const deleteAccountEndpoint = authEndpointsFactory.build({
     confirm: z.string().length(6),
   }),
   output: z.object({}),
-  handler: async ({options: {user}, input: {confirm}}) => {
+  handler: async ({options: {user_id}, input: {confirm}}) => {
+    const [user] = await db.select().from(usersTbl).where(eq(usersTbl.id, user_id))
+    if (!user) {
+      throw createHttpError(500, 'User not found')
+    }
     if (!user.confirm_code) {
       throw createHttpError(400, 'Confirm code not set')
     }
