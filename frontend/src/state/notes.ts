@@ -30,6 +30,7 @@ import {notifications} from '@mantine/notifications'
 export type NotesState = {
   query: string
   openNote: OpenNote | null
+  labelDropdownOpen: boolean
   sort: {prop: NoteSortProp; desc: boolean}
   sync: {
     dialogOpen: boolean
@@ -41,6 +42,7 @@ export type NotesState = {
 export const notesInit: NotesState = {
   query: '',
   openNote: null,
+  labelDropdownOpen: false,
   sort: {prop: 'updated_at', desc: true},
   sync: {
     dialogOpen: false,
@@ -84,6 +86,10 @@ document.addEventListener('visibilitychange', async () => {
 export const noteQueryChanged = (query: string) =>
   setState((state) => {
     state.notes.query = query
+  })
+export const setLabelDropdownOpen = (open: boolean) =>
+  setState((state) => {
+    state.notes.labelDropdownOpen = open
   })
 export const noteOpened = async (id: string) => {
   const note = await db.notes.get(id)
@@ -138,6 +144,7 @@ export const noteClosed = async () => {
 
   setState((state) => {
     state.notes.openNote = null
+    state.notes.labelDropdownOpen = false
   })
 }
 export const addNote = async () => {

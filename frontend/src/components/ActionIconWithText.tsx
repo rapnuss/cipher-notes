@@ -8,11 +8,13 @@ export type ActionIconWithTextProps = {
   children: ReactNode
   disabled?: boolean
   style?: CSSProperties
+  id?: string
 }
 export const ActionIconWithText = forwardRef<HTMLButtonElement, ActionIconWithTextProps>(
-  ({children, title, text, disabled, style, onClick}, ref) => (
+  ({children, title, text, disabled, style, onClick, id}, ref) => (
     <ActionIcon
       ref={ref}
+      id={id}
       variant='default'
       size='xl'
       title={title}

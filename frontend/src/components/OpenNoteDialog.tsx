@@ -13,6 +13,7 @@ import {
   openNoteTitleChanged,
   moveTodo,
   moveTodoByOne,
+  setLabelDropdownOpen,
 } from '../state/notes'
 import {IconArrowBackUp} from './icons/IconArrowBackUp'
 import {IconArrowForwardUp} from './icons/IconArrowForwardUp'
@@ -44,6 +45,7 @@ const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null =>
 export const OpenNoteDialog = () => {
   const colorScheme = useMyColorScheme()
   const openNote = useSelector((state) => state.notes.openNote)
+  const labelDropdownOpen = useSelector((state) => state.notes.labelDropdownOpen)
   const labelsCache = useSelector((state) => state.labels.labelsCache)
   const openNoteLabel = useLiveQuery(
     () => db.notes.get(openNote?.id ?? '').then((n) => n?.labels?.[0]),
@@ -65,11 +67,15 @@ export const OpenNoteDialog = () => {
         'Escape',
         () => {
           const activeElement = document.activeElement
-          if (
+          if (labelDropdownOpen) {
+            // let the dropdown close itself
+          } else if (
             activeElement instanceof HTMLTextAreaElement &&
             activeElement.id === 'open-note-textarea'
           ) {
-            activeElement.blur()
+            Promise.resolve().then(() =>
+              document.getElementById('open-note-delete-button')?.focus()
+            )
           } else if (open) {
             noteClosed()
           }
@@ -163,6 +169,7 @@ export const OpenNoteDialog = () => {
         <ActionIconWithText
           title='Delete note'
           text='delete'
+          id='open-note-delete-button'
           onClick={() =>
             openConfirmModalWithBackHandler({
               id: 'delete-open-note',
@@ -176,7 +183,17 @@ export const OpenNoteDialog = () => {
           <IconTrash />
         </ActionIconWithText>
         <div style={{flex: '1 1 0'}} />
-        <Popover width='300px' position='top' withArrow shadow='md'>
+        <Popover
+          width='300px'
+          position='top'
+          withArrow
+          shadow='md'
+          trapFocus
+          closeOnEscape
+          closeOnClickOutside
+          onOpen={() => setLabelDropdownOpen(true)}
+          onClose={() => setTimeout(() => setLabelDropdownOpen(false), 0)}
+        >
           <Popover.Target>
             <ActionIconWithText title='Add label' text='label'>
               <IconLabel />
