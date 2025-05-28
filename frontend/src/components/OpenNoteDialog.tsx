@@ -32,6 +32,7 @@ import {useCloseOnBack} from '../helpers/useCloseOnBack'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import {ActionIconWithText} from './ActionIconWithText'
+import {useHotkeys} from '@mantine/hooks'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
@@ -58,13 +59,33 @@ export const OpenNoteDialog = () => {
   )
   const open = !!openNote
   useCloseOnBack({id: 'open-note-dialog', open, onClose: noteClosed})
+  useHotkeys(
+    [
+      [
+        'Escape',
+        () => {
+          const activeElement = document.activeElement
+          if (
+            activeElement instanceof HTMLTextAreaElement &&
+            activeElement.id === 'open-note-textarea'
+          ) {
+            activeElement.blur()
+          } else if (open) {
+            noteClosed()
+          }
+        },
+      ],
+    ],
+    [],
+    true
+  )
   return (
     <Drawer
       opened={open}
       position='top'
       size='100%'
       withCloseButton={false}
-      onClose={noteClosed}
+      onClose={() => {}}
       styles={{
         content: {
           height: 'var(--viewport-height, 100dvh)',
@@ -122,6 +143,7 @@ export const OpenNoteDialog = () => {
           onUndo={undo}
           onRedo={redo}
           onUp={focusTitleInput}
+          textareaId='open-note-textarea'
         />
       ) : openNote?.type === 'todo' ? (
         <TodoControl

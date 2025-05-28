@@ -7,8 +7,17 @@ export type XTextareaProps = {
   onRedo: () => void
   onUp: () => void
   placeholder?: string
+  textareaId?: string
 }
-export const XTextarea = ({value, onChange, onUndo, onRedo, onUp, placeholder}: XTextareaProps) => {
+export const XTextarea = ({
+  value,
+  onChange,
+  onUndo,
+  onRedo,
+  onUp,
+  placeholder,
+  textareaId,
+}: XTextareaProps) => {
   return (
     <Editor
       placeholder={placeholder}
@@ -17,6 +26,7 @@ export const XTextarea = ({value, onChange, onUndo, onRedo, onUp, placeholder}: 
       insertSpaces={true}
       value={value}
       onValueChange={onChange}
+      textareaId={textareaId}
       onKeyDown={(e) => {
         if (
           e.currentTarget instanceof HTMLTextAreaElement &&

@@ -196,10 +196,6 @@ const Editor = (props: Props) => {
       }
     }
 
-    if (e.key === 'Escape') {
-      e.currentTarget.blur()
-    }
-
     const {value, selectionStart, selectionEnd} = e.currentTarget
 
     const tabCharacter = (insertSpaces ? ' ' : '\t').repeat(tabSize)
@@ -405,6 +401,28 @@ const Editor = (props: Props) => {
 
   return (
     <div {...rest} style={{...styles.container, ...style}}>
+      <style scoped>
+        {`
+          .blur-tip {
+            font-family: var(--mantine-font-family);
+            font-size: 1rem;
+            position: absolute;
+            bottom: 0;
+            pointer-events: none;
+            opacity: 0;
+            right: 15px;
+            color: var(--mantine-color-dimmed);
+          }
+          textarea:focus + .blur-tip {
+            opacity: 1;
+          }
+          @media (pointer: coarse) {
+            textarea:focus + .blur-tip {
+              opacity: 0;
+            }
+          }
+        `}
+      </style>
       <textarea
         ref={inputRef}
         style={styles.textarea}
@@ -430,7 +448,11 @@ const Editor = (props: Props) => {
         autoComplete='off'
         autoCorrect='off'
         data-gramm={false}
+        aria-describedby={textareaId + '-esc'}
       />
+      <div id={textareaId + '-esc'} className='blur-tip'>
+        Esc to remove focus
+      </div>
     </div>
   )
 }
