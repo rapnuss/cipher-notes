@@ -411,10 +411,9 @@ const Editor = (props: Props) => {
             pointer-events: none;
             opacity: 0;
             right: 15px;
-            color: var(--mantine-color-dimmed);
           }
           textarea:focus + .blur-tip {
-            opacity: 1;
+            opacity: 0.5;
           }
           @media (pointer: coarse) {
             textarea:focus + .blur-tip {

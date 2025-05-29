@@ -91,7 +91,8 @@ export const OpenNoteDialog = () => {
       position='top'
       size='100%'
       withCloseButton={false}
-      onClose={() => {}}
+      closeOnEscape={false}
+      onClose={noteClosed}
       styles={{
         content: {
           height: 'var(--viewport-height, 100dvh)',
