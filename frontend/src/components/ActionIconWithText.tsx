@@ -9,12 +9,14 @@ export type ActionIconWithTextProps = {
   disabled?: boolean
   style?: CSSProperties
   id?: string
+  className?: string
 }
 export const ActionIconWithText = forwardRef<HTMLButtonElement, ActionIconWithTextProps>(
-  ({children, title, text, disabled, style, onClick, id}, ref) => (
+  ({children, title, text, disabled, style, onClick, id, className}, ref) => (
     <ActionIcon
       ref={ref}
       id={id}
+      className={className}
       variant='default'
       size='xl'
       title={title}

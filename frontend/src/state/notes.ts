@@ -30,7 +30,10 @@ import {notifications} from '@mantine/notifications'
 export type NotesState = {
   query: string
   openNote: OpenNote | null
-  labelDropdownOpen: boolean
+  noteDialog: {
+    labelDropdownOpen: boolean
+    moreMenuOpen: boolean
+  }
   sort: {prop: NoteSortProp; desc: boolean}
   sync: {
     dialogOpen: boolean
@@ -42,7 +45,10 @@ export type NotesState = {
 export const notesInit: NotesState = {
   query: '',
   openNote: null,
-  labelDropdownOpen: false,
+  noteDialog: {
+    labelDropdownOpen: false,
+    moreMenuOpen: false,
+  },
   sort: {prop: 'updated_at', desc: true},
   sync: {
     dialogOpen: false,
@@ -89,7 +95,11 @@ export const noteQueryChanged = (query: string) =>
   })
 export const setLabelDropdownOpen = (open: boolean) =>
   setState((state) => {
-    state.notes.labelDropdownOpen = open
+    state.notes.noteDialog.labelDropdownOpen = open
+  })
+export const setMoreMenuOpen = (open: boolean) =>
+  setState((state) => {
+    state.notes.noteDialog.moreMenuOpen = open
   })
 export const noteOpened = async (id: string) => {
   const note = await db.notes.get(id)
@@ -146,7 +156,10 @@ export const noteClosed = async () => {
 
   setState((state) => {
     state.notes.openNote = null
-    state.notes.labelDropdownOpen = false
+    state.notes.noteDialog = {
+      labelDropdownOpen: false,
+      moreMenuOpen: false,
+    }
   })
 }
 export const addNote = async () => {
@@ -486,6 +499,7 @@ export const deleteOpenNote = async () => {
   }
   setState((state) => {
     state.notes.openNote = null
+    state.notes.noteDialog = {labelDropdownOpen: false, moreMenuOpen: false}
   })
 }
 export const openSyncDialogAndSync = () => {

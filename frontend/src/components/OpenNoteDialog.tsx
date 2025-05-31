@@ -15,6 +15,7 @@ import {
   moveTodoByOne,
   setLabelDropdownOpen,
   openNoteArchivedToggled,
+  setMoreMenuOpen,
 } from '../state/notes'
 import {IconArrowBackUp} from './icons/IconArrowBackUp'
 import {IconArrowForwardUp} from './icons/IconArrowForwardUp'
@@ -48,7 +49,7 @@ const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null =>
 export const OpenNoteDialog = () => {
   const colorScheme = useMyColorScheme()
   const openNote = useSelector((state) => state.notes.openNote)
-  const labelDropdownOpen = useSelector((state) => state.notes.labelDropdownOpen)
+  const {labelDropdownOpen, moreMenuOpen} = useSelector((state) => state.notes.noteDialog)
   const labelsCache = useSelector((state) => state.labels.labelsCache)
   const openNoteLabel = useLiveQuery(
     () => db.notes.get(openNote?.id ?? '').then((n) => n?.labels?.[0]),
@@ -70,15 +71,26 @@ export const OpenNoteDialog = () => {
         'Escape',
         () => {
           const activeElement = document.activeElement
-          if (labelDropdownOpen) {
-            // let the dropdown close itself
+          if (moreMenuOpen) {
+            setMoreMenuOpen(false)
+            const button = document.querySelector('.open-note-more-menu')
+            if (button instanceof HTMLElement) {
+              button.focus()
+            }
+          } else if (labelDropdownOpen) {
+            setLabelDropdownOpen(false)
+            const button = document.querySelector('.open-note-label-button')
+            if (button instanceof HTMLElement) {
+              button.focus()
+            }
           } else if (
             activeElement instanceof HTMLTextAreaElement &&
             activeElement.id === 'open-note-textarea'
           ) {
-            Promise.resolve().then(() =>
-              document.getElementById('open-note-delete-button')?.focus()
-            )
+            const button = document.querySelector('.open-note-more-menu')
+            if (button instanceof HTMLElement) {
+              button.focus()
+            }
           } else if (open) {
             noteClosed()
           }
@@ -170,16 +182,31 @@ export const OpenNoteDialog = () => {
         />
       ) : null}
       <Flex gap='xs'>
-        <Menu shadow='md' width={200}>
+        <Menu
+          shadow='md'
+          width={200}
+          opened={moreMenuOpen}
+          onDismiss={() => {
+            setMoreMenuOpen(false)
+          }}
+          closeOnEscape={false}
+          closeOnClickOutside
+        >
           <Menu.Target>
-            <ActionIconWithText title='open menu' text='more'>
+            <ActionIconWithText
+              title='open menu'
+              text='more'
+              className='open-note-more-menu'
+              onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+            >
               <IconDots />
             </ActionIconWithText>
           </Menu.Target>
           <Menu.Dropdown>
             <Menu.Item
               leftSection={<IconTrash />}
-              onClick={() =>
+              onClick={() => {
+                setMoreMenuOpen(false)
                 openConfirmModalWithBackHandler({
                   id: 'delete-open-note',
                   title: 'Delete note?',
@@ -187,11 +214,17 @@ export const OpenNoteDialog = () => {
                   confirmProps: {color: 'red'},
                   onConfirm: deleteOpenNote,
                 })
-              }
+              }}
             >
               Delete note
             </Menu.Item>
-            <Menu.Item leftSection={<IconArchive />} onClick={openNoteArchivedToggled}>
+            <Menu.Item
+              leftSection={<IconArchive />}
+              onClick={() => {
+                setMoreMenuOpen(false)
+                openNoteArchivedToggled()
+              }}
+            >
               {openNote?.archived ? 'Unarchive note' : 'Archive note'}
             </Menu.Item>
           </Menu.Dropdown>
@@ -203,13 +236,20 @@ export const OpenNoteDialog = () => {
           withArrow
           shadow='md'
           trapFocus
-          closeOnEscape
+          closeOnEscape={false}
           closeOnClickOutside
-          onOpen={() => setLabelDropdownOpen(true)}
-          onClose={() => setTimeout(() => setLabelDropdownOpen(false), 0)}
+          opened={labelDropdownOpen}
+          onDismiss={() => {
+            setLabelDropdownOpen(false)
+          }}
         >
           <Popover.Target>
-            <ActionIconWithText title='Add label' text='label'>
+            <ActionIconWithText
+              className='open-note-label-button'
+              title='Add label'
+              text='label'
+              onClick={() => setLabelDropdownOpen(!labelDropdownOpen)}
+            >
               <IconLabel />
             </ActionIconWithText>
           </Popover.Target>
