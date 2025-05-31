@@ -21,6 +21,7 @@ export const importNotesSchema = z.array(
       updated_at: z.number().int().positive().optional(),
       todos: importTodosSchema.optional(),
       labels: z.array(z.string()).optional(),
+      archived: z.boolean().optional(),
     })
     .strip()
 )

@@ -1,5 +1,11 @@
 import {z} from 'zod'
 import {XOR} from '../util/type'
+import {UUID} from 'crypto'
+
+export type ActiveLabel = UUID | 'unlabeled' | 'all' | 'archived'
+
+export const activeLabelIsUuid = (activeLabel: ActiveLabel): activeLabel is UUID =>
+  activeLabel !== 'unlabeled' && activeLabel !== 'all' && activeLabel !== 'archived'
 
 export type NoteCommon = {
   id: string
@@ -10,6 +16,7 @@ export type NoteCommon = {
   state: 'dirty' | 'synced'
   deleted_at: number
   labels?: string[]
+  archived: 0 | 1
 }
 export type TextNote = NoteCommon & {type: 'note'; txt: string}
 export type TodoNote = NoteCommon & {type: 'todo'; todos: Todos}
@@ -42,6 +49,7 @@ export type TextOpenNote = {
   title: string
   txt: string
   updatedAt: number
+  archived: boolean
 }
 export type TodoOpenNote = {
   type: 'todo'
@@ -49,6 +57,7 @@ export type TodoOpenNote = {
   title: string
   todos: Todos
   updatedAt: number
+  archived: boolean
 }
 export type OpenNote = XOR<TextOpenNote, TodoOpenNote>
 
@@ -71,6 +80,7 @@ export const textPutTxtSchema = z.object({
   title: z.string(),
   txt: z.string(),
   labels: z.array(z.string().uuid()).optional(),
+  archived: z.boolean().optional(),
 })
 export type TextPutTxt = z.infer<typeof textPutTxtSchema>
 
@@ -78,6 +88,7 @@ export const todoPutTxtSchema = z.object({
   title: z.string(),
   todos: todosSchema,
   labels: z.array(z.string().uuid()).optional(),
+  archived: z.boolean().optional(),
 })
 export type TodoPutTxt = z.infer<typeof todoPutTxtSchema>
 

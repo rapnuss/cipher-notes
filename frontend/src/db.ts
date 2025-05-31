@@ -50,6 +50,19 @@ db.version(5).stores({
   labels: 'id, deleted_at, state',
 })
 
+db.version(6)
+  .stores({
+    notes: 'id, created_at, updated_at, version, state, deleted_at, type, archived',
+  })
+  .upgrade((tx) =>
+    tx
+      .table('notes')
+      .toCollection()
+      .modify((note) => {
+        note.archived = 0
+      })
+  )
+
 export const hasDirtyNotesObservable = liveQuery(() =>
   db.notes
     .where('state')

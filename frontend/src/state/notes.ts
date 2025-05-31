@@ -30,7 +30,10 @@ import {notifications} from '@mantine/notifications'
 export type NotesState = {
   query: string
   openNote: OpenNote | null
-  labelDropdownOpen: boolean
+  noteDialog: {
+    labelDropdownOpen: boolean
+    moreMenuOpen: boolean
+  }
   sort: {prop: NoteSortProp; desc: boolean}
   sync: {
     dialogOpen: boolean
@@ -42,7 +45,10 @@ export type NotesState = {
 export const notesInit: NotesState = {
   query: '',
   openNote: null,
-  labelDropdownOpen: false,
+  noteDialog: {
+    labelDropdownOpen: false,
+    moreMenuOpen: false,
+  },
   sort: {prop: 'updated_at', desc: true},
   sync: {
     dialogOpen: false,
@@ -89,7 +95,11 @@ export const noteQueryChanged = (query: string) =>
   })
 export const setLabelDropdownOpen = (open: boolean) =>
   setState((state) => {
-    state.notes.labelDropdownOpen = open
+    state.notes.noteDialog.labelDropdownOpen = open
+  })
+export const setMoreMenuOpen = (open: boolean) =>
+  setState((state) => {
+    state.notes.noteDialog.moreMenuOpen = open
   })
 export const noteOpened = async (id: string) => {
   const note = await db.notes.get(id)
@@ -102,6 +112,7 @@ export const noteOpened = async (id: string) => {
         todos: note.todos,
         title: note.title,
         updatedAt: note.updated_at,
+        archived: note.archived === 1,
       }
     } else {
       state.notes.openNote = {
@@ -110,6 +121,7 @@ export const noteOpened = async (id: string) => {
         txt: note.txt,
         title: note.title,
         updatedAt: note.updated_at,
+        archived: note.archived === 1,
       }
     }
   })
@@ -144,7 +156,10 @@ export const noteClosed = async () => {
 
   setState((state) => {
     state.notes.openNote = null
-    state.notes.labelDropdownOpen = false
+    state.notes.noteDialog = {
+      labelDropdownOpen: false,
+      moreMenuOpen: false,
+    }
   })
 }
 export const addNote = async () => {
@@ -162,11 +177,12 @@ export const addNote = async () => {
     type: 'note',
     title: '',
     labels: activeLabel ? [activeLabel] : undefined,
+    archived: 0,
   }
   await db.notes.add(note)
 
   setState((state) => {
-    state.notes.openNote = {type: 'note', id, txt: '', title: '', updatedAt: now}
+    state.notes.openNote = {type: 'note', id, txt: '', title: '', updatedAt: now, archived: false}
   })
 }
 export const openNoteTitleChanged = (title: string) =>
@@ -191,6 +207,7 @@ export const openNoteTypeToggled = () =>
         todos: textToTodos(state.notes.openNote.txt),
         title: state.notes.openNote.title,
         updatedAt: Date.now(),
+        archived: state.notes.openNote.archived,
       }
     } else {
       state.notes.openNote = {
@@ -199,8 +216,15 @@ export const openNoteTypeToggled = () =>
         txt: todosToText(state.notes.openNote.todos),
         title: state.notes.openNote.title,
         updatedAt: Date.now(),
+        archived: state.notes.openNote.archived,
       }
     }
+  })
+export const openNoteArchivedToggled = () =>
+  setState((state) => {
+    if (!state.notes.openNote) return
+    state.notes.openNote.archived = !state.notes.openNote.archived
+    state.notes.openNote.updatedAt = Date.now()
   })
 
 export const todoChecked = (id: string, checked: boolean) =>
@@ -475,6 +499,7 @@ export const deleteOpenNote = async () => {
   }
   setState((state) => {
     state.notes.openNote = null
+    state.notes.noteDialog = {labelDropdownOpen: false, moreMenuOpen: false}
   })
 }
 export const openSyncDialogAndSync = () => {
@@ -672,6 +697,7 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
               title: note.title,
               txt: note.txt,
               updatedAt: note.updated_at,
+              archived: note.archived === 1,
             }
           : {
               type: note.type,
@@ -679,6 +705,7 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
               title: note.title,
               todos: note.todos,
               updatedAt: note.updated_at,
+              archived: note.archived === 1,
             }
     })
   }
@@ -694,6 +721,7 @@ const storeOpenNote = nonConcurrent(async () => {
     note &&
     (note.title !== openNote.title ||
       note.type !== openNote.type ||
+      !!note.archived !== openNote.archived ||
       (note.type === 'note' && note.txt !== openNote.txt) ||
       (note.type === 'todo' && !deepEquals(note.todos, openNote.todos)))
   ) {
@@ -705,6 +733,7 @@ const storeOpenNote = nonConcurrent(async () => {
       updated_at: openNote.updatedAt,
       state: 'dirty',
       version: note.state === 'dirty' ? note.version : note.version + 1,
+      archived: openNote.archived ? 1 : 0,
     })
   }
 })

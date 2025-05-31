@@ -22,7 +22,7 @@ import {Note} from '../business/models'
 import {exportNotes, openImportDialog, openKeepImportDialog} from '../state/import'
 import {toggleLabelSelector} from '../state/labels'
 import {delay} from '../util/misc'
-import {modals} from '@mantine/modals'
+import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 
 export const CommandCenter = () => {
   const {toggleColorScheme} = useMantineColorScheme()
@@ -108,7 +108,8 @@ export const CommandCenter = () => {
       id: 'logoutAllDevices',
       label: 'Logout from all devices',
       onClick: () => {
-        modals.openConfirmModal({
+        openConfirmModalWithBackHandler({
+          id: 'logoutAllDevices',
           title: 'Logout from all devices',
           children: 'Are you sure you want to logout from all devices?',
           labels: {

@@ -25,6 +25,7 @@ export const openConfirmModalWithBackHandler = ({
     children,
     confirmProps,
     centered: true,
+    trapFocus: true,
     onClose: () => {
       cleanup()
       removeBrowserHistory(id)

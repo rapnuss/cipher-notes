@@ -69,6 +69,7 @@ export const putToNote = (put: Put): Note => {
     deleted_at: deleted_at ?? 0,
     state: 'synced',
     title: '',
+    archived: 0,
   }
   if (txt === null && type === 'note') {
     return {
@@ -83,9 +84,10 @@ export const putToNote = (put: Put): Note => {
       todos: [],
     }
   } else if (typeof txt === 'string' && type === 'note') {
-    const {title, txt, labels} = zodParseString(textPutTxtSchema, put.txt) ?? {
+    const {title, txt, labels, archived} = zodParseString(textPutTxtSchema, put.txt) ?? {
       title: '',
       txt: put.txt,
+      archived: false,
     }
     return {
       ...common,
@@ -93,13 +95,15 @@ export const putToNote = (put: Put): Note => {
       txt,
       title,
       labels,
+      archived: archived ? 1 : 0,
     }
   } else if (typeof txt === 'string' && type === 'todo') {
-    const {title, todos, labels} = zodParseString(todoPutTxtSchema, put.txt) ?? {
+    const {title, todos, labels, archived} = zodParseString(todoPutTxtSchema, put.txt) ?? {
       title: '',
       todos: put.txt
         ? [{done: false, txt: put.txt, id: crypto.randomUUID(), updated_at: Date.now()}]
         : [],
+      archived: false,
     }
     return {
       ...common,
@@ -107,6 +111,7 @@ export const putToNote = (put: Put): Note => {
       todos,
       title,
       labels,
+      archived: archived ? 1 : 0,
     }
   } else {
     throw new Error('put is not a note')
@@ -125,7 +130,12 @@ export const noteToPut = (n: Note): Put => {
       type: n.type,
     }
   } else if (n.type === 'todo') {
-    const txtObj: TodoPutTxt = {title: n.title, todos: n.todos, labels: n.labels}
+    const txtObj: TodoPutTxt = {
+      title: n.title,
+      todos: n.todos,
+      labels: n.labels,
+      archived: !!n.archived,
+    }
     return {
       id: n.id,
       created_at: n.created_at,
@@ -136,7 +146,12 @@ export const noteToPut = (n: Note): Put => {
       type: n.type,
     }
   } else if (n.type === 'note') {
-    const txtObj: TextPutTxt = {title: n.title, txt: n.txt, labels: n.labels}
+    const txtObj: TextPutTxt = {
+      title: n.title,
+      txt: n.txt,
+      labels: n.labels,
+      archived: !!n.archived,
+    }
     return {
       id: n.id,
       created_at: n.created_at,
@@ -278,6 +293,10 @@ export const mergeTodoConflict = (
     state: 'dirty',
     title:
       dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.title : serverConflict.title,
+    archived:
+      dirtyNote.updated_at > serverConflict.updated_at
+        ? dirtyNote.archived
+        : serverConflict.archived,
     todos,
   }
 }
@@ -306,6 +325,10 @@ export const mergeNoteConflict = (
     txt,
     title:
       dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.title : serverConflict.title,
+    archived:
+      dirtyNote.updated_at > serverConflict.updated_at
+        ? dirtyNote.archived
+        : serverConflict.archived,
     version: Math.max(dirtyNote.version, serverConflict.version) + 1,
     state: 'dirty',
     deleted_at: 0,

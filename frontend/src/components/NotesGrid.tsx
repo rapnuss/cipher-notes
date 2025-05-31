@@ -1,12 +1,12 @@
-import {Flex, Paper} from '@mantine/core'
+import {Divider, Flex, Paper} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {noteOpened} from '../state/notes'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
-import {byProp, compare, truncateWithEllipsis} from '../util/misc'
+import {bisectBy, byProp, compare, truncateWithEllipsis} from '../util/misc'
 import {IconSquare} from './icons/IconSquare'
 import {IconCheckbox} from './icons/IconCheckbox'
-import {Note} from '../business/models'
+import {activeLabelIsUuid, Note} from '../business/models'
 import {labelColor} from '../business/misc'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 
@@ -17,11 +17,16 @@ export const NotesGrid = () => {
   const notes = useLiveQuery(async () => {
     const queryLower = query.toLocaleLowerCase()
     const allNotes = await db.notes.where('deleted_at').equals(0).toArray()
-    return allNotes
+    const notes = allNotes
       .filter(
         (n) =>
-          (activeLabel !== false || !n.labels || n.labels.length === 0) &&
-          (typeof activeLabel !== 'string' || n.labels?.includes(activeLabel)) &&
+          (activeLabel === 'archived'
+            ? n.archived === 1
+            : activeLabel === 'all'
+            ? n.archived === 0
+            : true) &&
+          (activeLabel !== 'unlabeled' || !n.labels || n.labels.length === 0) &&
+          (!activeLabelIsUuid(activeLabel) || n.labels?.includes(activeLabel)) &&
           (!query ||
             n.title.toLocaleLowerCase().includes(queryLower) ||
             (n.type === 'note'
@@ -29,16 +34,14 @@ export const NotesGrid = () => {
               : n.todos.some((todo) => todo.txt.toLocaleLowerCase().includes(queryLower))))
       )
       .sort(byProp(sort.prop, sort.desc))
+    return bisectBy(notes ?? [], (n) => n.archived === 1)
   }, [query, sort, activeLabel])
+  const [archivedNotes = [], activeNotes = []] = notes ?? []
   return (
     <div
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-        gap: '1rem',
         padding: '1rem',
         overflowY: 'auto',
-        alignContent: 'start',
         height: '100%',
       }}
     >
@@ -48,9 +51,34 @@ export const NotesGrid = () => {
         }`}
         scoped
       />
-      {notes?.map((note) => (
-        <NotePreview key={note.id} note={note} />
-      ))}
+      <div
+        style={{
+          alignContent: 'start',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gap: '1rem',
+        }}
+      >
+        {activeNotes.map((note) => (
+          <NotePreview key={note.id} note={note} />
+        ))}
+      </div>
+      {archivedNotes.length > 0 && activeLabel !== 'archived' && (
+        <Divider my='md' label='Archived' styles={{label: {fontSize: '1rem'}}} size='md' />
+      )}
+      <div
+        style={{
+          alignContent: 'start',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+          gap: '1rem',
+        }}
+      >
+        {archivedNotes.map((note) => (
+          <NotePreview key={note.id} note={note} />
+        ))}
+      </div>
+      <div style={{height: '3.5rem'}} />
     </div>
   )
 }
@@ -73,6 +101,7 @@ const NotePreview = ({note}: {note: Note}) => {
         color: 'var(--mantine-color-text)',
         display: 'flex',
         flexDirection: 'column',
+        opacity: note.archived ? 0.5 : 1,
       }}
       shadow='sm'
       onClick={() => noteOpened(note.id)}

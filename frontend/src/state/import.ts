@@ -87,6 +87,7 @@ export const exportNotes = async () => {
     updated_at: n.updated_at,
     todos: n.todos,
     labels: n.labels?.map((l) => labelsCache[l]?.name).filter((l) => l !== undefined),
+    archived: n.archived === 1,
   }))
   downloadJson(notesToExport, 'notes.json')
 }
@@ -117,7 +118,7 @@ export const importNotes = async (): Promise<void> => {
       if (id === undefined) {
         id = crypto.randomUUID()
       }
-      const {txt, todos, title, labels} = importNote
+      const {txt, todos, title, labels, archived} = importNote
       if (todos === undefined && txt === undefined) {
         continue
       }
@@ -140,6 +141,7 @@ export const importNotes = async (): Promise<void> => {
             ? existingNote.version
             : existingNote.version + 1,
           deleted_at: 0,
+          archived: archived ? 1 : 0,
           todos: todos?.map((t) => ({
             ...t,
             id: t.id ?? crypto.randomUUID(),
@@ -223,6 +225,7 @@ export const keepImportNotes = async (): Promise<void> => {
         state: 'dirty',
         version: 1,
         labels: importNote.labels?.map((l) => nameToId[l.name]!),
+        archived: importNote.isArchived ? 1 : 0,
       }
       if ('textContent' in importNote) {
         const note: Note = {

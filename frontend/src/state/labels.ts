@@ -1,5 +1,5 @@
 import {createSelector} from 'reselect'
-import {Hue, Label} from '../business/models'
+import {ActiveLabel, Hue, Label} from '../business/models'
 import {db, labelsObservable} from '../db'
 import {RootState, setState, subscribe} from './store'
 import {byProp} from '../util/misc'
@@ -7,7 +7,7 @@ import {loadActiveLabelId, storeActiveLabelId} from '../services/localStorage'
 
 export type LabelsState = {
   labelSelectorOpen: boolean
-  activeLabel: string | null | false
+  activeLabel: ActiveLabel
   labelsCache: Record<string, Label>
   dialog: {
     open: boolean
@@ -18,7 +18,7 @@ export type LabelsState = {
 }
 export const labelsInit: LabelsState = {
   labelSelectorOpen: false,
-  activeLabel: null,
+  activeLabel: 'all',
   labelsCache: {},
   dialog: {
     open: false,
@@ -41,7 +41,7 @@ labelsObservable.subscribe((labels) => {
       (!(state.labels.activeLabel in state.labels.labelsCache) ||
         state.labels.labelsCache[state.labels.activeLabel]!.deleted_at > 0)
     ) {
-      state.labels.activeLabel = null
+      state.labels.activeLabel = 'all'
     }
   })
 })
@@ -51,7 +51,7 @@ export const toggleLabelSelector = () => {
     state.labels.labelSelectorOpen = !state.labels.labelSelectorOpen
   })
 }
-export const labelSelected = (id: string | false | null) => {
+export const labelSelected = (id: ActiveLabel) => {
   setState((state) => {
     state.labels.activeLabel = id
   })
