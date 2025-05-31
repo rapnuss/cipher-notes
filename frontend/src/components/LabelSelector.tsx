@@ -18,6 +18,7 @@ import {useCloseOnBack} from '../helpers/useCloseOnBack'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import {ActionIconWithText} from './ActionIconWithText'
+import {UUID} from 'crypto'
 
 export const LabelSelector = () => {
   const {activeLabel, labelSelectorOpen} = useSelector((state) => state.labels)
@@ -63,12 +64,12 @@ export const LabelSelector = () => {
       <Stack gap='xs'>
         <Box
           ta='left'
-          bd={activeLabel === null ? '2px solid var(--mantine-color-bright)' : 'none'}
+          bd={activeLabel === 'all' ? '2px solid var(--mantine-color-bright)' : 'none'}
           p='xs'
           style={{borderRadius: 'var(--mantine-radius-md)', outlineOffset: '2px'}}
           bg={colorScheme === 'dark' ? darkColorsGradient : lightColorsGradient}
           onClick={() => {
-            labelSelected(null)
+            labelSelected('all')
             toggleLabelSelector()
           }}
           component='button'
@@ -79,11 +80,11 @@ export const LabelSelector = () => {
         <Paper
           shadow='md'
           ta='left'
-          bd={activeLabel === false ? '2px solid var(--mantine-color-bright)' : 'none'}
+          bd={activeLabel === 'unlabeled' ? '2px solid var(--mantine-color-bright)' : 'none'}
           p='xs'
           style={{borderRadius: 'var(--mantine-radius-md)', outlineOffset: '2px'}}
           onClick={() => {
-            labelSelected(false)
+            labelSelected('unlabeled')
             toggleLabelSelector()
           }}
           bg='var(--mantine-color-body)'
@@ -91,6 +92,21 @@ export const LabelSelector = () => {
           title='Show unlabeled notes'
         >
           Unlabeled
+        </Paper>
+        <Paper
+          shadow='md'
+          ta='left'
+          bd={activeLabel === 'archived' ? '2px solid var(--mantine-color-bright)' : 'none'}
+          p='xs'
+          onClick={() => {
+            labelSelected('archived')
+            toggleLabelSelector()
+          }}
+          bg='var(--mantine-color-body)'
+          component='button'
+          title='Show archived notes'
+        >
+          Archived
         </Paper>
       </Stack>
       <Flex justify='space-between' pt='md'>
@@ -120,7 +136,7 @@ const LabelSelectorItem = ({active, darkMode, ...label}: LabelSelectorItemProps)
     <UnstyledButton
       flex={1}
       onClick={() => {
-        labelSelected(label.id)
+        labelSelected(label.id as UUID)
         toggleLabelSelector()
       }}
       title={`Select label ${label.name}`}

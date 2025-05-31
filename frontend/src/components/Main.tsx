@@ -25,7 +25,7 @@ export const Main = () => (
     <div style={{flex: '1 1 auto', overflow: 'hidden', position: 'relative'}}>
       <ActionIconWithText
         onClick={toggleLabelSelector}
-        style={{position: 'absolute', bottom: '1.25rem', left: '1.25rem'}}
+        style={{position: 'absolute', bottom: '1.25rem', left: '1.25rem', zIndex: 1}}
         title='Open Label Selector'
         text='labels'
       >
@@ -33,7 +33,7 @@ export const Main = () => (
       </ActionIconWithText>
       <ActionIconWithText
         onClick={addNote}
-        style={{position: 'absolute', bottom: '1.25rem', right: '1.25rem'}}
+        style={{position: 'absolute', bottom: '1.25rem', right: '1.25rem', zIndex: 1}}
         title='Create new note'
         text='new'
       >

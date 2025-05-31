@@ -15,10 +15,12 @@ export const SearchInput = () => {
       onChange={(e) => noteQueryChanged(e.target.value)}
       placeholder={
         'Search ' +
-        (activeLabel === null
+        (activeLabel === 'all'
           ? 'all notes'
-          : activeLabel === false
+          : activeLabel === 'unlabeled'
           ? 'unlabeled'
+          : activeLabel === 'archived'
+          ? 'archived'
           : labels[activeLabel]?.name)
       }
       rightSection={

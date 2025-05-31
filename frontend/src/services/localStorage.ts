@@ -1,3 +1,4 @@
+import {ActiveLabel} from '../business/models'
 import {NotesState} from '../state/notes'
 import {SettingsState} from '../state/settings'
 import {UserState} from '../state/user'
@@ -54,8 +55,15 @@ export const storeActiveLabelId = (labelId: string | false | null): Promise<void
     localStorage.setItem('activeLabelId', JSON.stringify(labelId))
   })
 
-export const loadActiveLabelId = (): Promise<string | false | null> =>
+export const loadActiveLabelId = (): Promise<ActiveLabel> =>
   Promise.resolve().then(() => {
     const labelIdStr = localStorage.getItem('activeLabelId')
-    return labelIdStr ? JSON.parse(labelIdStr) : null
+    const legacyActiveLabel = labelIdStr ? JSON.parse(labelIdStr) : 'all'
+    const activeLabel: ActiveLabel =
+      legacyActiveLabel === null
+        ? 'all'
+        : legacyActiveLabel === false
+        ? 'unlabeled'
+        : legacyActiveLabel
+    return activeLabel
   })

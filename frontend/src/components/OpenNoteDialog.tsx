@@ -1,4 +1,4 @@
-import {Drawer, Flex, Popover} from '@mantine/core'
+import {Drawer, Flex, Menu, Popover} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {
   noteClosed,
@@ -14,6 +14,7 @@ import {
   moveTodo,
   moveTodoByOne,
   setLabelDropdownOpen,
+  openNoteArchivedToggled,
 } from '../state/notes'
 import {IconArrowBackUp} from './icons/IconArrowBackUp'
 import {IconArrowForwardUp} from './icons/IconArrowForwardUp'
@@ -34,6 +35,8 @@ import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import {ActionIconWithText} from './ActionIconWithText'
 import {useHotkeys} from '@mantine/hooks'
+import {IconDots} from './icons/IconDots'
+import {IconArchive} from './icons/IconArchive'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
@@ -167,22 +170,32 @@ export const OpenNoteDialog = () => {
         />
       ) : null}
       <Flex gap='xs'>
-        <ActionIconWithText
-          title='Delete note'
-          text='delete'
-          id='open-note-delete-button'
-          onClick={() =>
-            openConfirmModalWithBackHandler({
-              id: 'delete-open-note',
-              title: 'Delete note?',
-              labels: {confirm: 'Delete', cancel: 'Cancel'},
-              confirmProps: {color: 'red'},
-              onConfirm: deleteOpenNote,
-            })
-          }
-        >
-          <IconTrash />
-        </ActionIconWithText>
+        <Menu shadow='md' width={200}>
+          <Menu.Target>
+            <ActionIconWithText title='open menu' text='more'>
+              <IconDots />
+            </ActionIconWithText>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item
+              leftSection={<IconTrash />}
+              onClick={() =>
+                openConfirmModalWithBackHandler({
+                  id: 'delete-open-note',
+                  title: 'Delete note?',
+                  labels: {confirm: 'Delete', cancel: 'Cancel'},
+                  confirmProps: {color: 'red'},
+                  onConfirm: deleteOpenNote,
+                })
+              }
+            >
+              Delete note
+            </Menu.Item>
+            <Menu.Item leftSection={<IconArchive />} onClick={openNoteArchivedToggled}>
+              {openNote?.archived ? 'Unarchive note' : 'Archive note'}
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
         <div style={{flex: '1 1 0'}} />
         <Popover
           width='300px'
