@@ -1,0 +1,15 @@
+diff --git a/node_modules/@mantine/hooks/esm/use-hotkeys/parse-hotkey.mjs b/node_modules/@mantine/hooks/esm/use-hotkeys/parse-hotkey.mjs
+index c58eded..1c5458d 100644
+--- a/node_modules/@mantine/hooks/esm/use-hotkeys/parse-hotkey.mjs
++++ b/node_modules/@mantine/hooks/esm/use-hotkeys/parse-hotkey.mjs
+@@ -5,8 +5,8 @@ const keyNameMap = {
+   ArrowRight: "arrowright",
+   ArrowUp: "arrowup",
+   ArrowDown: "arrowdown",
+-  Escape: "esc",
+-  Esc: "esc",
++  Escape: "escape",
++  Esc: "escape",
+   Enter: "enter",
+   Tab: "tab",
+   Backspace: "backspace",

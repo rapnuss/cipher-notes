@@ -11,7 +11,9 @@
     "preview": "vite preview --mode https --host",
     "test": "vitest",
     "test:run": "vitest --run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postinstall": "patch-package",
+    "patch-package": "patch-package"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.7.0",
@@ -34,7 +36,7 @@
     "react-dom": "^19.1.0",
     "reselect": "^5.1.1",
     "socket.io-client": "^4.8.1",
-    "zod": "^3.25.42",
+    "zod": "^3.25.45",
     "zustand": "^5.0.5"
   },
   "devDependencies": {
@@ -52,10 +54,12 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.2.0",
+    "patch-package": "^8.0.0",
     "postcss": "^8.5.4",
     "postcss-preset-mantine": "^1.17.0",
     "postcss-simple-vars": "^7.0.1",
-    "typescript": "^5.8.2",
+    "postinstall-postinstall": "^2.1.0",
+    "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vite-plugin-pwa": "^1.0.0",
     "vitest": "^3.1.4",
