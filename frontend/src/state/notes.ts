@@ -482,6 +482,33 @@ export const sortDirectionChanged = () =>
   setState((state) => {
     state.notes.sort.desc = !state.notes.sort.desc
   })
+export const deleteNote = async (id: string) => {
+  const note = await db.notes.get(id)
+  if (!note || note.deleted_at !== 0) return
+  if (note.version === 1 && note.state === 'dirty') {
+    await db.notes.delete(id)
+  } else {
+    await db.notes.update(id, {
+      deleted_at: Date.now(),
+      txt: '',
+      todos: [],
+      state: 'dirty',
+      version: note.state === 'dirty' ? note.version : note.version + 1,
+    })
+  }
+}
+export const setNoteArchived = (id: string, archived: boolean) =>
+  db.notes
+    .where('id')
+    .equals(id)
+    .modify((note) => {
+      note.archived = archived ? 1 : 0
+      note.updated_at = Date.now()
+      if (note.state === 'synced') {
+        note.state = 'dirty'
+        note.version = note.version + 1
+      }
+    })
 export const deleteOpenNote = async () => {
   const state = getState()
   if (!state.notes.openNote) return
@@ -493,6 +520,7 @@ export const deleteOpenNote = async () => {
     await db.notes.update(state.notes.openNote.id, {
       deleted_at: Date.now(),
       txt: '',
+      todos: [],
       state: 'dirty',
       version: note.state === 'dirty' ? note.version : note.version + 1,
     })

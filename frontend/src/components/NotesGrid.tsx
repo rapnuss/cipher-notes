@@ -1,6 +1,6 @@
-import {Divider, Flex, Paper} from '@mantine/core'
+import {Divider, Flex, Menu, Paper, UnstyledButton} from '@mantine/core'
 import {useSelector} from '../state/store'
-import {noteOpened} from '../state/notes'
+import {deleteNote, noteOpened, setNoteArchived} from '../state/notes'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
 import {bisectBy, byProp, compare, truncateWithEllipsis} from '../util/misc'
@@ -9,6 +9,8 @@ import {IconCheckbox} from './icons/IconCheckbox'
 import {activeLabelIsUuid, Note} from '../business/models'
 import {labelColor} from '../business/misc'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
+import {IconDots} from './icons/IconDots'
+import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 
 export const NotesGrid = () => {
   const query = useSelector((state) => state.notes.query)
@@ -89,48 +91,81 @@ const NotePreview = ({note}: {note: Note}) => {
   const label = note.labels?.[0] ? labelsCache[note.labels[0]] : null
   return (
     <Paper
-      component='button'
       title={`Open note ${note.title}`}
       style={{
-        padding: '1rem',
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-word',
-        cursor: 'pointer',
-        border: 'none',
-        textAlign: 'left',
-        color: 'var(--mantine-color-text)',
         display: 'flex',
         flexDirection: 'column',
+        color: 'var(--mantine-color-text)',
         opacity: note.archived ? 0.5 : 1,
       }}
       shadow='sm'
-      onClick={() => noteOpened(note.id)}
-      role='button'
       bg={labelColor(label?.hue ?? null, colorScheme === 'dark')}
     >
-      <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>{note.title}</div>
-      {note.type === 'note'
-        ? truncateWithEllipsis(note.txt)
-        : note.todos
-            .map((t, i) => [t.done, i, t] as const)
-            .sort(compare)
-            .slice(0, 5)
-            .map(([, i, todo]) => (
-              <Flex
-                align='center'
-                gap='xs'
-                ml={todo.parent ? '1rem' : 0}
-                style={{textDecoration: todo.done ? 'line-through' : 'none'}}
-                key={i}
-              >
-                {todo.done ? (
-                  <IconCheckbox style={{flex: '0 0 auto'}} />
-                ) : (
-                  <IconSquare style={{flex: '0 0 auto'}} />
-                )}
-                {truncateWithEllipsis(todo.txt, 1, 50)}
-              </Flex>
-            ))}
+      <UnstyledButton
+        style={{
+          flex: '1 1 auto',
+          padding: '1rem',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          cursor: 'pointer',
+          border: 'none',
+          textAlign: 'left',
+          color: 'inherit',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+        onClick={() => noteOpened(note.id)}
+      >
+        <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>{note.title}</div>
+        {note.type === 'note'
+          ? truncateWithEllipsis(note.txt)
+          : note.todos
+              .map((t, i) => [t.done, i, t] as const)
+              .sort(compare)
+              .slice(0, 5)
+              .map(([, i, todo]) => (
+                <Flex
+                  align='center'
+                  gap='xs'
+                  ml={todo.parent ? '1rem' : 0}
+                  style={{textDecoration: todo.done ? 'line-through' : 'none'}}
+                  key={i}
+                >
+                  {todo.done ? (
+                    <IconCheckbox style={{flex: '0 0 auto'}} />
+                  ) : (
+                    <IconSquare style={{flex: '0 0 auto'}} />
+                  )}
+                  {truncateWithEllipsis(todo.txt, 1, 50)}
+                </Flex>
+              ))}
+      </UnstyledButton>
+      <Flex justify='flex-end'>
+        <Menu shadow='md'>
+          <Menu.Target>
+            <UnstyledButton pr='.5rem'>
+              <IconDots />
+            </UnstyledButton>
+          </Menu.Target>
+          <Menu.Dropdown>
+            <Menu.Item onClick={() => setNoteArchived(note.id, !note.archived)}>
+              {note.archived ? 'Unarchive' : 'Archive'}
+            </Menu.Item>
+            <Menu.Item
+              onClick={() =>
+                openConfirmModalWithBackHandler({
+                  id: 'delete-note-from-grid',
+                  title: 'Delete note',
+                  onConfirm: () => deleteNote(note.id),
+                  labels: {confirm: 'Delete', cancel: 'Cancel'},
+                })
+              }
+            >
+              Delete
+            </Menu.Item>
+          </Menu.Dropdown>
+        </Menu>
+      </Flex>
     </Paper>
   )
 }

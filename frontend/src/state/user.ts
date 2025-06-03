@@ -299,10 +299,13 @@ export const saveEncryptionKey = async (keyTokenPair: string) => {
     setState((state) => {
       state.user.user.lastSyncedTo = 0
     })
-    db.transaction('rw', ['notes', 'note_base_versions'], async (tx) => {
+    await db.transaction('rw', ['notes', 'note_base_versions', 'labels'], async (tx) => {
       await tx.note_base_versions.clear()
       await tx.notes.toCollection().modify((note) => {
         note.state = 'dirty'
+      })
+      await tx.labels.toCollection().modify((label) => {
+        label.state = 'dirty'
       })
     })
   }
@@ -394,11 +397,15 @@ export const deleteServerNotesAndGenerateNewKey = async () => {
     return
   }
 
-  const deletedNotes = await db.notes.where('deleted_at').notEqual(0).toArray()
-  await db.notes.bulkDelete(deletedNotes.map((note) => note.id))
-
-  const keys = await db.notes.toCollection().primaryKeys()
-  await db.notes.bulkUpdate(keys.map((key) => ({key, changes: {state: 'dirty'}})))
+  await db.transaction('rw', ['notes', 'note_base_versions', 'labels'], async (tx) => {
+    await tx.note_base_versions.clear()
+    await tx.notes.toCollection().modify((note) => {
+      note.state = 'dirty'
+    })
+    await tx.labels.toCollection().modify((label) => {
+      label.state = 'dirty'
+    })
+  })
 
   const cryptoKey = await generateKey()
   setState((state) => {
