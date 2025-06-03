@@ -72,7 +72,9 @@ export const EncryptionKeyDialog = () => {
         <QRScanner
           style={{width: '100%', height: 'auto'}}
           onScan={(text) => {
+            if (qrMode !== 'scan') return
             if (isValidKeyTokenPair(text)) {
+              qrModeChanged('hide')
               saveEncryptionKey(text)
               closeEncryptionKeyDialog()
             }
