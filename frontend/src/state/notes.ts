@@ -1,4 +1,11 @@
-import {Note, NoteHistoryItem, OpenNote, NoteSortProp, Todo} from '../business/models'
+import {
+  Note,
+  NoteHistoryItem,
+  OpenNote,
+  NoteSortProp,
+  Todo,
+  activeLabelIsUuid,
+} from '../business/models'
 import {getState, setState, subscribe} from './store'
 import {bisectBy, debounce, deepEquals, moveWithinListViaDnD, nonConcurrent} from '../util/misc'
 import {isUnauthorizedRes, reqSyncNotes} from '../services/backend'
@@ -176,7 +183,7 @@ export const addNote = async () => {
     deleted_at: 0,
     type: 'note',
     title: '',
-    labels: activeLabel ? [activeLabel] : undefined,
+    labels: activeLabelIsUuid(activeLabel) ? [activeLabel] : undefined,
     archived: 0,
   }
   await db.notes.add(note)
