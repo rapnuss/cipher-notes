@@ -40,6 +40,7 @@ export type UserState = {
     open: boolean
     keyTokenPair: string
     qrMode: 'hide' | 'show' | 'scan'
+    mode: 'export/generate' | 'update'
   }
   deleteAccountDialog: {
     open: boolean
@@ -69,7 +70,7 @@ export const userInit: UserState = {
   connected: false,
   registerDialog: {open: false, email: '', loading: false, agree: false},
   loginDialog: {open: false, email: '', code: '', loading: false, status: 'email'},
-  encryptionKeyDialog: {open: false, keyTokenPair: '', qrMode: 'hide'},
+  encryptionKeyDialog: {open: false, keyTokenPair: '', qrMode: 'hide', mode: 'export/generate'},
   deleteServerNotesDialog: {open: false, code: '', codeLoading: false, deleteLoading: false},
   deleteAccountDialog: {open: false, code: '', codeLoading: false, deleteLoading: false},
   imprintOpen: false,
@@ -248,19 +249,21 @@ export const socketConnectionChanged = (connected: boolean) => {
   })
 }
 
-export const openEncryptionKeyDialog = async () => {
+export const openEncryptionKeyDialog = async (mode: 'export/generate' | 'update') => {
   const state = getState()
   let keyTokenPair = state.user.user.keyTokenPair
   setState((state) => {
     state.user.encryptionKeyDialog = {
       open: true,
-      keyTokenPair: keyTokenPair
-        ? `${keyTokenPair.cryptoKey}:${keyTokenPair.syncToken}:${calcChecksum(
-            keyTokenPair.cryptoKey,
-            keyTokenPair.syncToken
-          )}`
-        : '',
+      keyTokenPair:
+        keyTokenPair && mode === 'export/generate'
+          ? `${keyTokenPair.cryptoKey}:${keyTokenPair.syncToken}:${calcChecksum(
+              keyTokenPair.cryptoKey,
+              keyTokenPair.syncToken
+            )}`
+          : '',
       qrMode: 'hide',
+      mode,
     }
   })
 }
@@ -289,9 +292,20 @@ export const keyTokenPairChanged = (keyTokenPair: string) => {
 }
 export const saveEncryptionKey = async (keyTokenPair: string) => {
   const state = getState()
-  if (!isValidKeyTokenPair(keyTokenPair) || state.user.user.lastSyncedTo !== 0) return
+  if (!isValidKeyTokenPair(keyTokenPair)) return
   const [cryptoKey, syncToken] = keyTokenPair.split(':')
   if (!cryptoKey || !syncToken) return
+  if (state.user.user.keyTokenPair) {
+    setState((state) => {
+      state.user.user.lastSyncedTo = 0
+    })
+    db.transaction('rw', ['notes', 'note_base_versions'], async (tx) => {
+      await tx.note_base_versions.clear()
+      await tx.notes.toCollection().modify((note) => {
+        note.state = 'dirty'
+      })
+    })
+  }
   setState((state) => {
     state.user.user.keyTokenPair = {cryptoKey, syncToken}
     state.user.encryptionKeyDialog.open = false

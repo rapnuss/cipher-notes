@@ -27,6 +27,7 @@ import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 export const CommandCenter = () => {
   const {toggleColorScheme} = useMantineColorScheme()
   const loggedIn = useSelector((state) => state.user.user.loggedIn)
+  const hasKeyTokenPair = useSelector((state) => !!state.user.user.keyTokenPair)
   const email = useSelector((state) => state.user.user.email)
   const anyDialogOpen = useSelector(selectAnyDialogOpen)
   const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
@@ -75,8 +76,15 @@ export const CommandCenter = () => {
     },
     {
       id: 'encryptionKey',
-      label: 'Encryption-Key (Generate/Import/Export)',
-      onClick: openEncryptionKeyDialog,
+      label: `${hasKeyTokenPair ? 'Export' : 'New'} Encryption-Key`,
+      onClick: () => openEncryptionKeyDialog('export/generate'),
+      disabled: !loggedIn,
+    },
+    {
+      id: 'updateEncryptionKey',
+      label: 'Update Encryption-Key',
+      onClick: () => openEncryptionKeyDialog('update'),
+      disabled: !loggedIn || !hasKeyTokenPair,
     },
     {
       id: 'imprint',
@@ -129,7 +137,7 @@ export const CommandCenter = () => {
     },
     {
       id: 'deleteServerNotes',
-      label: 'Delete Server Notes and generate new crypto key',
+      label: 'Delete server notes and generate new Encryption-Key',
       onClick: openDeleteServerNotesDialog,
       disabled: !loggedIn,
     },
@@ -141,7 +149,7 @@ export const CommandCenter = () => {
     },
     {
       id: 'sync',
-      label: 'Manual server sync',
+      label: 'Manual server sync (and view sync error)',
       onClick: openSyncDialogAndSync,
       disabled: !loggedIn,
     },

@@ -16,7 +16,8 @@ import {IconCopy} from './icons/IconCopy'
 
 export const EncryptionKeyDialog = () => {
   const lastSyncedTo = useSelector((state) => state.user.user.lastSyncedTo)
-  const {open, keyTokenPair, qrMode} = useSelector((state) => state.user.encryptionKeyDialog)
+  const {open, keyTokenPair, qrMode, mode} = useSelector((state) => state.user.encryptionKeyDialog)
+  const hasStoredKeyTokenPair = useSelector((state) => !!state.user.user.keyTokenPair)
   const valid = isValidKeyTokenPair(keyTokenPair)
   useCloseOnBack({
     id: 'encryption-key-dialog',
@@ -32,7 +33,7 @@ export const EncryptionKeyDialog = () => {
           value={keyTokenPair}
           onChange={(e) => keyTokenPairChanged(e.target.value)}
           error={!valid ? 'Invalid key token pair' : undefined}
-          readOnly={lastSyncedTo !== 0}
+          readOnly={lastSyncedTo !== 0 && mode !== 'update'}
         />
         <ActionIconWithText
           title='Copy to Clipboard'
@@ -43,22 +44,22 @@ export const EncryptionKeyDialog = () => {
         </ActionIconWithText>
       </Flex>
       <Group my='md'>
-        {lastSyncedTo === 0 && (
+        {mode === 'export/generate' && lastSyncedTo === 0 && (
           <Button onClick={generateKeyTokenPairString}>Generate new key</Button>
         )}
-        {valid && (
+        {valid && hasStoredKeyTokenPair && mode === 'export/generate' && (
           <Button onClick={() => qrModeChanged(qrMode === 'show' ? 'hide' : 'show')}>
             {qrMode === 'show' ? 'Hide QR' : 'Show QR'}
           </Button>
         )}
-        {lastSyncedTo === 0 && (
+        {(lastSyncedTo === 0 || mode === 'update') && (
           <Button onClick={() => qrModeChanged(qrMode === 'scan' ? 'hide' : 'scan')}>
             {qrMode === 'scan' ? 'Stop scan' : 'Scan QR'}
           </Button>
         )}
-        {lastSyncedTo === 0 && valid && (
+        {(lastSyncedTo === 0 || mode === 'update') && valid && (
           <Button onClick={() => saveEncryptionKey(keyTokenPair)} disabled={!valid}>
-            Save new key
+            {mode === 'update' ? 'Update key' : 'Save new key'}
           </Button>
         )}
       </Group>
@@ -68,7 +69,7 @@ export const EncryptionKeyDialog = () => {
           value={keyTokenPair}
         />
       )}
-      {qrMode === 'scan' && lastSyncedTo === 0 && (
+      {qrMode === 'scan' && (
         <QRScanner
           style={{width: '100%', height: 'auto'}}
           onScan={(text) => {
