@@ -91,7 +91,6 @@ const NotePreview = ({note}: {note: Note}) => {
   const label = note.labels?.[0] ? labelsCache[note.labels[0]] : null
   return (
     <Paper
-      title={`Open note ${note.title}`}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -143,7 +142,7 @@ const NotePreview = ({note}: {note: Note}) => {
       <Flex justify='flex-end'>
         <Menu shadow='md'>
           <Menu.Target>
-            <UnstyledButton pr='.5rem'>
+            <UnstyledButton px='.5rem' display='flex' title='note options'>
               <IconDots />
             </UnstyledButton>
           </Menu.Target>
