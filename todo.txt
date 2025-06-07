@@ -49,10 +49,10 @@ DONE:
     it's possible to indent a todo under itself which disappears the todo
     prevent indent above the first todo
   how to merge conflicts with moved todos and sub todos -> set updated_at when parent is changed
-FIRST:
-  handle esc on more menu
-  handle esc on delete dialog
   delete and archive on overview
+    handle esc on more menu
+    handle esc on delete dialog
+FIRST:
 TODO:
 LATER:
 MAYBE:

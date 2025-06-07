@@ -53,7 +53,7 @@ export const reqSendLoginCode = (email: string) =>
   request<void>('/sendLoginCode', {method: 'POST', body: {email}})
 
 export const reqLoginWithCode = (email: string, code: string) =>
-  request<void>('/loginWithCode', {
+  request<{jwt: string}>('/loginWithCode', {
     method: 'POST',
     body: {email, login_code: code},
   })

@@ -19,6 +19,8 @@ import {db} from '../db'
 import socket from '../socket'
 import {notifications} from '@mantine/notifications'
 import {syncNotes} from './notes'
+import {Feature} from '../business/models'
+import {parseSubscriptionToken} from '../business/misc'
 
 export type UserState = {
   user: {
@@ -26,7 +28,9 @@ export type UserState = {
     loggedIn: boolean
     lastSyncedTo: number
     keyTokenPair: {cryptoKey: string; syncToken: string} | null
+    jwt?: string
   }
+  features: Feature[]
   connected: boolean
   registerDialog: {open: boolean; email: string; loading: boolean; agree: boolean}
   loginDialog: {
@@ -67,6 +71,7 @@ export type UserState = {
 
 export const userInit: UserState = {
   user: {email: '', loggedIn: false, lastSyncedTo: 0, keyTokenPair: null},
+  features: [],
   connected: false,
   registerDialog: {open: false, email: '', loading: false, agree: false},
   loginDialog: {open: false, email: '', code: '', loading: false, status: 'email'},
@@ -87,8 +92,10 @@ export const userInit: UserState = {
 // init
 loadUser().then(async (user) => {
   if (user) {
+    const features = user.jwt ? await parseSubscriptionToken(user.jwt) : []
     setState((state) => {
       state.user.user = user
+      state.user.features = features
     })
   }
   if (user?.loggedIn && !socket.connected) {
@@ -220,6 +227,7 @@ export const loginWithCode = async () => {
     state.user.loginDialog.loading = true
   })
   const res = await reqLoginWithCode(email, code)
+  const features = res.success ? await parseSubscriptionToken(res.data.jwt) : []
   setState((state) => {
     state.user.loginDialog.loading = false
     if (!res.success) {
@@ -231,6 +239,8 @@ export const loginWithCode = async () => {
     } else {
       state.user.user.loggedIn = true
       state.user.user.email = email
+      state.user.user.jwt = res.data.jwt
+      state.user.features = features
       notifications.show({
         title: 'Success',
         message: 'You are logged in',

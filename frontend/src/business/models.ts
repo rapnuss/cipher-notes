@@ -100,3 +100,13 @@ export const labelPutTxtSchema = z.object({
     .refine((hue): hue is Hue => hueOptions.includes(hue as Hue)),
 })
 export type LabelPutTxt = z.infer<typeof labelPutTxtSchema>
+
+export const features = ['password_protected_notes', 'reminders'] as const
+export type Feature = (typeof features)[number]
+
+export const jwtPayloadSchema = z.object({
+  sub: z.string(),
+  features: z.array(z.enum(features)),
+})
+
+export type MyJwtPayload = z.infer<typeof jwtPayloadSchema>

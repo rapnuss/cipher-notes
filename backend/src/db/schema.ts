@@ -1,5 +1,9 @@
 import {pgTable, varchar, text, integer, unique, bigint, pgEnum} from 'drizzle-orm/pg-core'
 
+export const subscriptionTypeEnum = pgEnum('subscription_type', ['free', 'plus', 'pro'])
+
+export type SubscriptionType = (typeof subscriptionTypeEnum.enumValues)[number]
+
 export const usersTbl = pgTable('users', {
   id: integer().generatedAlwaysAsIdentity().primaryKey(),
   email: varchar({length: 255}).unique().notNull(),
@@ -16,6 +20,7 @@ export const usersTbl = pgTable('users', {
   // and the confirm_code is used to verify the old email
   // together with confirm_code_created_at and confirm_code_tries_left.
   new_email: varchar({length: 255}),
+  subscription: subscriptionTypeEnum('subscription').default('free').notNull(),
 })
 
 export const sessionsTbl = pgTable('sessions', {

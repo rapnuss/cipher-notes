@@ -1,8 +1,11 @@
+import {verifyJwt} from '../services/jwt'
 import {threeWayMerge, threeWayMergeArrays} from '../util/merge'
 import {deepEquals} from '../util/misc'
 import {zodParseString} from '../util/zod'
 import {
+  Feature,
   Hue,
+  jwtPayloadSchema,
   Label,
   labelPutTxtSchema,
   Note,
@@ -431,5 +434,15 @@ export const deriveTodosData = (todos: Todo[]) => {
     visualOrderUndone,
     visualOrderDone,
     parentToChildIds,
+  }
+}
+
+export const parseSubscriptionToken = async (token: string): Promise<Feature[]> => {
+  try {
+    const payload = await verifyJwt(token)
+    const myPayload = jwtPayloadSchema.parse(payload)
+    return myPayload.features
+  } catch {
+    return []
   }
 }

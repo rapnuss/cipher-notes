@@ -3,7 +3,7 @@ import {z} from 'zod'
 import {db} from '../db/index'
 import {sessionsTbl, usersTbl} from '../db/schema'
 import {eq} from 'drizzle-orm'
-import {generateLoginCode, generateSession} from '../business/misc'
+import {generateLoginCode, generateSession, signSubscriptionToken} from '../business/misc'
 import {sendLoginCode} from '../services/mail'
 import createHttpError from 'http-errors'
 import {verify} from 'hcaptcha'
@@ -73,7 +73,7 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
     email: z.string().email(),
     login_code: z.string().length(6),
   }),
-  output: z.object({access_token: z.string(), session_id: z.number()}),
+  output: z.object({access_token: z.string(), session_id: z.number(), jwt: z.string()}),
   handler: async ({input}) => {
     const [user] = await db.select().from(usersTbl).where(eq(usersTbl.email, input.email))
     if (!user) {
@@ -100,6 +100,12 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
       throw createHttpError(400, 'Invalid login code')
     }
 
+    const jwtPromise = signSubscriptionToken(
+      user.id,
+      user.subscription,
+      Date.now() + 1000 * 60 * 60 * 24 * 31
+    )
+
     return await db.transaction(async (tx) => {
       await tx
         .update(usersTbl)
@@ -122,7 +128,7 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
           access_token_salt: salt,
         })
         .returning({session_id: sessionsTbl.id})
-      return {access_token: accessToken, session_id: session_id!}
+      return {access_token: accessToken, session_id: session_id!, jwt: await jwtPromise}
     })
   },
 })

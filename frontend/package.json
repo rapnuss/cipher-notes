@@ -28,6 +28,7 @@
     "dexie": "^4.0.11",
     "dexie-react-hooks": "^1.1.7",
     "immer": "^10.1.1",
+    "jose": "^6.0.11",
     "jszip": "^3.10.1",
     "node-diff3": "^3.1.2",
     "qr-scanner": "^1.4.2",
