@@ -10,4 +10,5 @@ FROM base AS app
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/jwt-private.pem ./jwt-private.pem
 ENTRYPOINT [ "bun", "start" ]

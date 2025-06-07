@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: notes_backend
     ports:
-      - '5200:5100'
+      - '5100:5100'
     env_file:
       - backend/.env
     depends_on:
