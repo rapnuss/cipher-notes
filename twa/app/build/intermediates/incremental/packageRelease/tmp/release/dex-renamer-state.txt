@@ -1,4 +1,0 @@
-#Sat Apr 26 16:43:40 CEST 2025
-base.0=C\:\\projects\\rap\\cipher-notes\\twa\\app\\build\\intermediates\\dex\\release\\minifyReleaseWithR8\\classes.dex
-renamed.0=classes.dex
-path.0=classes.dex
