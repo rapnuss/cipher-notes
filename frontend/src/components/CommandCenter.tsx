@@ -184,7 +184,11 @@ export const CommandCenter = () => {
   const noteActions = notes.map((n) => ({
     id: n.id,
     label: n.title,
-    onClick: () => noteOpened(n.id),
+    onClick: async () => {
+      spotlight.close()
+      await delay(100)
+      noteOpened(n.id)
+    },
   }))
 
   useEffect(() => {
