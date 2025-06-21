@@ -64,7 +64,7 @@ export default defineConfig(({mode}) => {
           name: 'ciphernotes',
           short_name: 'ciphernotes',
           description:
-            'A local-first note-taking app with end-to-end encryption for your private thoughts and data.',
+            'A end-to-end encrypted note taking alternative to Google Keep. Offline and cloud synchronized.',
           theme_color: '#1864ab',
           background_color: '#000000',
           icons: [
