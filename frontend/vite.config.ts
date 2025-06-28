@@ -50,6 +50,7 @@ export default defineConfig(({mode}) => {
       }),
       VitePWA({
         strategies: 'injectManifest',
+        includeAssets: ['robots.txt', 'sitemap.xml'],
         srcDir: 'src',
         filename: 'sw.ts',
         registerType: 'autoUpdate',
@@ -164,7 +165,7 @@ export default defineConfig(({mode}) => {
         },
 
         injectManifest: {
-          globPatterns: ['**/*.{js,css,html,svg,png,ico,txt}'],
+          globPatterns: ['**/*.{js,css,html,svg,png,ico,txt,xml}'],
         },
 
         devOptions: {
