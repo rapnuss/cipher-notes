@@ -4,7 +4,7 @@ import sg from '@sendgrid/mail'
 
 sg.setApiKey(env.SENDGRID_API_KEY)
 
-const impressum = `Raphael Nußbaumer
+const impressum = `Raphael Nußbaumer BSc
 Address: Sohlstraße 3, 6845 Hohenems, Austria
 Email: raphaeln@outlook.com`
 

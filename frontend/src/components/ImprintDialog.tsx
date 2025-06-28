@@ -17,7 +17,7 @@ export const ImprintDialog = () => {
       <Text>
         Owner of this Web-App:
         <br />
-        Name: Raphael Nußbaumer
+        Name: Raphael Nußbaumer BSc
         <br />
         Address: Sohlstraße 3, 6845 Hohenems, Austria
         <br />
