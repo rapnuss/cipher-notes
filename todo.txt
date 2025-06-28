@@ -67,7 +67,12 @@ TODO:
       serve thumbnails via service worker
     serve files via service worker
     ui
-      display
+      display preview
+      open files
+        image
+        audio
+        video
+        pdf
       manage
         delete
         label
@@ -75,7 +80,9 @@ TODO:
     sync
       metadata
       upload files
+        encrypt blobs
       download files
+        decrypt blobs
       rename
       delete
     store metadata server

@@ -11,6 +11,7 @@ import {labelColor} from '../business/misc'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {IconDots} from './icons/IconDots'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
+import {deleteFile, fileOpened, setFileArchived} from '../state/files'
 
 export const NotesGrid = () => {
   const query = useSelector((state) => state.notes.query)
@@ -116,7 +117,7 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
           display: 'flex',
           flexDirection: 'column',
         }}
-        onClick={() => noteOpened(note.id)}
+        onClick={() => (note.type === 'file' ? fileOpened(note.id) : noteOpened(note.id))}
       >
         <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>{note.title}</div>
         {note.type === 'note'
@@ -152,7 +153,13 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
             </UnstyledButton>
           </Menu.Target>
           <Menu.Dropdown>
-            <Menu.Item onClick={() => setNoteArchived(note.id, !note.archived)}>
+            <Menu.Item
+              onClick={() =>
+                note.type === 'file'
+                  ? setFileArchived(note.id, !note.archived)
+                  : setNoteArchived(note.id, !note.archived)
+              }
+            >
               {note.archived ? 'Unarchive' : 'Archive'}
             </Menu.Item>
             <Menu.Item
@@ -160,7 +167,8 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
                 openConfirmModalWithBackHandler({
                   id: 'delete-note-from-grid',
                   title: 'Delete note',
-                  onConfirm: () => deleteNote(note.id),
+                  onConfirm: () =>
+                    note.type === 'file' ? deleteFile(note.id) : deleteNote(note.id),
                   labels: {confirm: 'Delete', cancel: 'Cancel'},
                 })
               }
