@@ -23,7 +23,7 @@ export type TodoNote = NoteCommon & {type: 'todo'; todos: Todos}
 
 export type Note = XOR<TextNote, TodoNote>
 
-export type DbFile = {
+export type FileMeta = {
   id: string
   created_at: number
   deleted_at: number
@@ -31,7 +31,12 @@ export type DbFile = {
   name: string
   ext: string
   mime: string
-  blob: Blob | null
+  labels: string[]
+  archived: 0 | 1
+}
+export type FileBlob = {
+  id: string
+  blob: Blob
 }
 
 export const noteSortProps = ['created_at', 'updated_at'] satisfies (keyof Note)[]

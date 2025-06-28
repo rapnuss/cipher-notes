@@ -285,3 +285,10 @@ export const findIndex = <T>(arr: T[], pred: (x: T) => boolean): number | null =
   const index = arr.findIndex(pred)
   return index === -1 ? null : index
 }
+
+export const splitFilename = (filename: string): [string, string] => {
+  const i = filename.lastIndexOf('.')
+  const name = i === -1 ? filename : filename.slice(0, i)
+  const ext = i === -1 ? '' : filename.slice(i + 1)
+  return [name, ext]
+}

@@ -2,7 +2,7 @@ import {ActionIcon} from '@mantine/core'
 import {CSSProperties, forwardRef, ReactNode} from 'react'
 
 export type ActionIconWithTextProps = {
-  text: string
+  text: ReactNode
   title?: string
   onClick?: () => void
   children: ReactNode
@@ -18,7 +18,7 @@ export const ActionIconWithText = forwardRef<HTMLButtonElement, ActionIconWithTe
       id={id}
       className={className}
       variant='default'
-      size='xl'
+      size='input-md'
       title={title}
       disabled={disabled}
       style={style}

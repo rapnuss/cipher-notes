@@ -54,6 +54,7 @@ DONE:
     handle esc on delete dialog
 FIRST:
 TODO:
+  use symbols for special active labels
 LATER:
 MAYBE:
   notes grid paging
