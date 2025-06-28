@@ -1,10 +1,11 @@
 import Dexie, {EntityTable, liveQuery} from 'dexie'
-import {Label, Note} from './business/models'
+import {DbFile, Label, Note} from './business/models'
 
 export const db = new Dexie('DexieDB') as Dexie & {
   notes: EntityTable<Note, 'id'>
   note_base_versions: EntityTable<Note, 'id'>
   labels: EntityTable<Label, 'id'>
+  files: EntityTable<DbFile, 'id'>
 }
 
 db.version(1).stores({
@@ -62,6 +63,11 @@ db.version(6)
         note.archived = 0
       })
   )
+
+// TODO: add files table
+// db.version(7).stores({
+//   files: 'id, created_at, deleted_at, state, name, ext, mime',
+// })
 
 export const hasDirtyNotesObservable = liveQuery(() =>
   db.notes

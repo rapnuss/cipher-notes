@@ -17,7 +17,7 @@ export const Main = () => (
       <SearchInput />
       <Flex gap='xs' flex='0 1 auto'>
         <NotesSortSelect />
-        <ActionIcon title='Menu' size='lg' onClick={spotlight.open}>
+        <ActionIcon title='Menu' size='input-sm' onClick={spotlight.open}>
           <IconMenu2 />
         </ActionIcon>
       </Flex>
