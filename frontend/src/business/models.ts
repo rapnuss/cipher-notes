@@ -25,16 +25,24 @@ export type Note = XOR<TextNote, TodoNote>
 
 export type FileMeta = {
   id: string
+  type: 'file'
   created_at: number
+  updated_at: number
   deleted_at: number
-  state: 'local' | 'synced' | 'remote'
-  name: string
+  version: number
+  state: 'dirty' | 'synced'
+  blobState: 'local' | 'synced' | 'remote'
+  title: string
   ext: string
   mime: string
   labels: string[]
   archived: 0 | 1
 }
 export type FileBlob = {
+  id: string
+  blob: Blob
+}
+export type FileThumb = {
   id: string
   blob: Blob
 }

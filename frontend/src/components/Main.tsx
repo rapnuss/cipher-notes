@@ -15,6 +15,8 @@ import {useFileDialog} from '@mantine/hooks'
 import {activeLabelIsUuid, FileBlob, FileMeta} from '../business/models'
 import {splitFilename} from '../util/misc'
 import {useSelector} from '../state/store'
+import {db} from '../db'
+import {setFilesImporting} from '../state/files'
 
 export const Main = () => (
   <>
@@ -54,15 +56,27 @@ export const Main = () => (
             <UploadMenuItem />
           </Menu.Dropdown>
         </Menu>
-        <ActionIconWithText onClick={addNote} title='Create new note' text='new'>
-          <IconPlus />
-        </ActionIconWithText>
+        <AddIconButton />
       </ActionIcon.Group>
       <NotesGrid />
     </div>
     <StatusBar />
   </>
 )
+
+const AddIconButton = () => {
+  const filesImporting = useSelector((state) => state.files.importing)
+  return (
+    <ActionIconWithText
+      onClick={addNote}
+      title='Create new note'
+      text='new'
+      loading={filesImporting}
+    >
+      <IconPlus />
+    </ActionIconWithText>
+  )
+}
 
 const UploadMenuItem = () => {
   const activeLabel = useSelector((state) => state.labels.activeLabel)
@@ -71,27 +85,40 @@ const UploadMenuItem = () => {
     resetOnOpen: true,
     onChange: async (files) => {
       if (!files) return
-      for (const file of files) {
-        const [name, ext] = splitFilename(file.name)
-        const meta: FileMeta = {
-          created_at: Date.now(),
-          deleted_at: 0,
-          ext,
-          id: crypto.randomUUID(),
-          name,
-          state: 'local',
-          mime: file.type,
-          labels: activeLabelIsUuid(activeLabel) ? [activeLabel] : [],
-          archived: 0,
+      try {
+        setFilesImporting(true)
+        for (const file of files) {
+          const [name, ext] = splitFilename(file.name)
+          const id = crypto.randomUUID()
+          const now = Date.now()
+          const meta: FileMeta = {
+            type: 'file',
+            created_at: now,
+            updated_at: now,
+            deleted_at: 0,
+            ext,
+            id,
+            title: name,
+            state: 'dirty',
+            version: 1,
+            blobState: 'local',
+            mime: file.type,
+            labels: activeLabelIsUuid(activeLabel) ? [activeLabel] : [],
+            archived: 0,
+          }
+          const blob: FileBlob = {
+            id,
+            blob: file,
+          }
+          await db.transaction('rw', db.files_meta, db.files_blob, async (tx) => {
+            await tx.files_meta.add(meta)
+            await tx.files_blob.add(blob)
+          })
         }
-        const blob: FileBlob = {
-          id: crypto.randomUUID(),
-          blob: file,
-        }
-        console.log(meta)
-        console.log(blob)
+      } finally {
+        setFilesImporting(false)
       }
     },
   })
-  return <Menu.Item onClick={open}>Upload Image or PDF</Menu.Item>
+  return <Menu.Item onClick={open}>Import Files</Menu.Item>
 }

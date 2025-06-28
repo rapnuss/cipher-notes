@@ -6,7 +6,7 @@ import {db} from '../db'
 import {bisectBy, byProp, compare, truncateWithEllipsis} from '../util/misc'
 import {IconSquare} from './icons/IconSquare'
 import {IconCheckbox} from './icons/IconCheckbox'
-import {activeLabelIsUuid, Note} from '../business/models'
+import {activeLabelIsUuid, FileMeta, Note} from '../business/models'
 import {labelColor} from '../business/misc'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {IconDots} from './icons/IconDots'
@@ -19,7 +19,8 @@ export const NotesGrid = () => {
   const notes = useLiveQuery(async () => {
     const queryLower = query.toLocaleLowerCase()
     const allNotes = await db.notes.where('deleted_at').equals(0).toArray()
-    const notes = allNotes
+    const allFiles = await db.files_meta.where('deleted_at').equals(0).toArray()
+    const notes = [...allNotes, ...allFiles]
       .filter(
         (n) =>
           (activeLabel === 'archived'
@@ -33,7 +34,9 @@ export const NotesGrid = () => {
             n.title.toLocaleLowerCase().includes(queryLower) ||
             (n.type === 'note'
               ? n.txt.toLocaleLowerCase().includes(queryLower)
-              : n.todos.some((todo) => todo.txt.toLocaleLowerCase().includes(queryLower))))
+              : n.type === 'todo'
+              ? n.todos.some((todo) => todo.txt.toLocaleLowerCase().includes(queryLower))
+              : false))
       )
       .sort(byProp(sort.prop, sort.desc))
     return bisectBy(notes ?? [], (n) => n.archived === 1)
@@ -85,7 +88,7 @@ export const NotesGrid = () => {
   )
 }
 
-const NotePreview = ({note}: {note: Note}) => {
+const NotePreview = ({note}: {note: Note | FileMeta}) => {
   const colorScheme = useMyColorScheme()
   const labelsCache = useSelector((state) => state.labels.labelsCache)
   const label = note.labels?.[0] ? labelsCache[note.labels[0]] : null
@@ -118,7 +121,8 @@ const NotePreview = ({note}: {note: Note}) => {
         <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>{note.title}</div>
         {note.type === 'note'
           ? truncateWithEllipsis(note.txt)
-          : note.todos
+          : note.type === 'todo'
+          ? note.todos
               .map((t, i) => [t.done, i, t] as const)
               .sort(compare)
               .slice(0, 5)
@@ -137,7 +141,8 @@ const NotePreview = ({note}: {note: Note}) => {
                   )}
                   {truncateWithEllipsis(todo.txt, 1, 50)}
                 </Flex>
-              ))}
+              ))
+          : null}
       </UnstyledButton>
       <Flex justify='flex-end'>
         <Menu shadow='md'>
