@@ -66,7 +66,6 @@ db.version(6)
       })
   )
 
-// TODO: add files table
 db.version(7).stores({
   files_meta: 'id, created_at, updated_at, deleted_at, state, name, ext, mime, archived',
   files_blob: 'id',
@@ -85,6 +84,14 @@ export const labelsObservable = liveQuery(() => db.labels.where('deleted_at').eq
 
 export const hasDirtyLabelsObservable = liveQuery(() =>
   db.labels
+    .where('state')
+    .equals('dirty')
+    .first()
+    .then((n) => n !== undefined)
+)
+
+export const hasDirtyFilesMetaObservable = liveQuery(() =>
+  db.files_meta
     .where('state')
     .equals('dirty')
     .first()

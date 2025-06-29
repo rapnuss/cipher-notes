@@ -1,5 +1,6 @@
 import {db} from '../db'
-import {setState} from './store'
+import {debounce, nonConcurrent} from '../util/misc'
+import {getState, setState, subscribe} from './store'
 
 export type FilesState = {
   importing: boolean
@@ -8,6 +9,8 @@ export type FilesState = {
     title: string
     updated_at: number
     version: number
+    state: 'dirty' | 'synced'
+    archived: 0 | 1
   } | null
 }
 export const filesInit = {
@@ -31,6 +34,29 @@ export const setFileArchived = (id: string, archived: boolean) =>
         file.version++
       }
     })
+
+export const setOpenFileArchived = (archived: boolean) =>
+  setState((state) => {
+    const {openFile} = state.files
+    if (!openFile) {
+      return
+    }
+    openFile.archived = archived ? 1 : 0
+    openFile.updated_at = Date.now()
+    if (openFile.state === 'synced') {
+      openFile.state = 'dirty'
+      openFile.version++
+    }
+  })
+
+export const deleteOpenFile = async () => {
+  const openFile = getState().files.openFile
+  if (!openFile) return
+  setState((state) => {
+    state.files.openFile = null
+  })
+  await deleteFile(openFile.id)
+}
 
 export const deleteFile = async (id: string) => {
   const file = await db.files_meta.get(id)
@@ -61,11 +87,59 @@ export const fileOpened = async (id: string) => {
       title: file.title,
       updated_at: file.updated_at,
       version: file.version,
+      state: file.state,
+      archived: file.archived,
     }
   })
 }
 
-export const fileClosed = () =>
+export const fileClosed = async () => {
+  const openFile = getState().files.openFile
+  if (!openFile) return
+
+  await storeOpenFile()
+
   setState((state) => {
     state.files.openFile = null
   })
+}
+
+export const openFileTitleChanged = (value: string) =>
+  setState((state) => {
+    if (!state.files.openFile) {
+      return
+    }
+    const openFile = state.files.openFile
+    openFile.title = value
+    openFile.updated_at = Date.now()
+    if (openFile.state === 'synced') {
+      openFile.version++
+      openFile.state = 'dirty'
+    }
+  })
+
+const storeOpenFile = nonConcurrent(async () => {
+  const openFile = getState().files.openFile
+  if (!openFile) return
+
+  const file = await db.files_meta.get(openFile.id)
+  if (!file || file.deleted_at !== 0) return
+
+  if (file.title !== openFile.title || file.archived !== openFile.archived) {
+    await db.files_meta.update(openFile.id, {
+      title: openFile.title,
+      archived: openFile.archived ? 1 : 0,
+      updated_at: openFile.updated_at,
+      state: openFile.state,
+      version: openFile.version,
+    })
+  }
+})
+
+export const registerFilesSubscriptions = () => {
+  const storeDebounced = debounce(storeOpenFile, 1000)
+  subscribe(
+    (state) => state.files.openFile,
+    (curr, prev) => curr && prev && storeDebounced()
+  )
+}
