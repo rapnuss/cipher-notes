@@ -19,6 +19,8 @@ import {
 } from './models'
 import {Put} from './notesEncryption'
 
+export const monospaceFontFamily = "Monaco, 'Cascadia Code', Consolas, monospace"
+
 export const textToTodos = (text: string): Todos => {
   const todos = text
     .split('\n')

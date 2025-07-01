@@ -7,6 +7,7 @@ import {ImageViewer} from './ImageViewer'
 import {Hue} from '../business/models'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {labelColor} from '../business/misc'
+import {TextViewer} from './TextViewer'
 
 export const OpenFileDialog = () => {
   const colorScheme = useMyColorScheme()
@@ -21,6 +22,7 @@ export const OpenFileDialog = () => {
   if (!file) return null
   const openNoteLabel = file.labels?.[0]
   const hue: Hue = openNoteLabel ? labelsCache[openNoteLabel]?.hue ?? null : null
+  const src = `/files/${file.id}`
   return (
     <Drawer
       opened={open}
@@ -29,7 +31,6 @@ export const OpenFileDialog = () => {
       position='top'
       size='100%'
       styles={{
-        inner: {},
         content: {
           height: 'var(--viewport-height, 100dvh)',
           display: 'flex',
@@ -46,7 +47,24 @@ export const OpenFileDialog = () => {
         },
       }}
     >
-      {file.mime.startsWith('image/') && <ImageViewer src={`/files/${file.id}`} alt={file.title} />}
+      {file.mime.startsWith('image/') && <ImageViewer src={src} alt={file.title} />}
+      {file.mime === 'application/pdf' && (
+        <iframe
+          style={{flex: '1 1 0', border: 'none'}}
+          key={file.id}
+          src={src}
+          title={file.title}
+        />
+      )}
+      {file.mime.startsWith('video/') && (
+        <video style={{flex: '1 1 0', border: 'none'}} src={src} controls />
+      )}
+      {file.mime.startsWith('audio/') && (
+        <audio style={{flex: '1 1 0', border: 'none'}} src={src} controls />
+      )}
+      {(file.mime.startsWith('text/') || file.mime === 'application/json') && (
+        <TextViewer src={src} />
+      )}
     </Drawer>
   )
 }
