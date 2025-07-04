@@ -5,18 +5,34 @@ import {useSelector} from '../state/store'
 import {db} from '../db'
 import {IconSearch} from './icons/IconSearch'
 import {IconX} from './icons/IconX'
-import {toggleNoteLabel, selectCachedLabels, setNoteMainLabel, applyNewLabel} from '../state/labels'
+import {
+  toggleNoteLabel,
+  selectCachedLabels,
+  setNoteMainLabel,
+  applyNewLabel,
+  setFileMainLabel,
+  toggleFileLabel,
+} from '../state/labels'
 import {IconCrown} from './icons/IconCrown'
 import {IconPlus} from './icons/IconPlus'
 
 export type LabelDropdownContentProps = {
-  noteId: string
+  noteId?: string
+  fileId?: string
 }
-export const LabelDropdownContent = ({noteId}: LabelDropdownContentProps) => {
+export const LabelDropdownContent = ({noteId, fileId}: LabelDropdownContentProps) => {
   const [search, setSearch] = useState('')
   const labels = useSelector(selectCachedLabels)
   const checkedLabels: string[] =
-    useLiveQuery(() => db.notes.get(noteId).then((note) => note?.labels ?? []), [noteId]) ?? []
+    useLiveQuery(
+      () =>
+        noteId
+          ? db.notes.get(noteId).then((note) => note?.labels ?? [])
+          : fileId
+          ? db.files_meta.get(fileId).then((file) => file?.labels ?? [])
+          : [],
+      [noteId, fileId]
+    ) ?? []
   return (
     <>
       <Group align='end' gap='xs'>
@@ -42,7 +58,11 @@ export const LabelDropdownContent = ({noteId}: LabelDropdownContentProps) => {
           size='lg'
           disabled={search.length === 0}
           onClick={() => {
-            applyNewLabel(noteId, search)
+            if (noteId) {
+              applyNewLabel(noteId, search, 'note')
+            } else if (fileId) {
+              applyNewLabel(fileId, search, 'file')
+            }
             setSearch('')
           }}
           mb='1px'
@@ -93,7 +113,13 @@ export const LabelDropdownContent = ({noteId}: LabelDropdownContentProps) => {
                       size='md'
                       variant='outline'
                       color='gray'
-                      onClick={() => setNoteMainLabel(noteId, label.id)}
+                      onClick={() =>
+                        noteId
+                          ? setNoteMainLabel(noteId, label.id)
+                          : fileId
+                          ? setFileMainLabel(fileId, label.id)
+                          : undefined
+                      }
                       title='Set as main label (effects color)'
                     >
                       <IconCrown />
@@ -102,7 +128,13 @@ export const LabelDropdownContent = ({noteId}: LabelDropdownContentProps) => {
                 </>
               }
               checked={checkedLabels.includes(label.id)}
-              onChange={() => toggleNoteLabel(noteId, label.id)}
+              onChange={() =>
+                noteId
+                  ? toggleNoteLabel(noteId, label.id)
+                  : fileId
+                  ? toggleFileLabel(fileId, label.id)
+                  : undefined
+              }
               size='md'
             />
           ))}

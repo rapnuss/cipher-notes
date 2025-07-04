@@ -53,8 +53,10 @@ DONE:
     handle esc on more menu
     handle esc on delete dialog
 FIRST:
+  open file dialog
+    esc handler
+    display extension in title bar
 TODO:
-  use symbols for special active labels
   files
     store files client
       dexie setup

@@ -145,6 +145,10 @@ export const indexBy = <T, K extends string>(arr: T[], keyFn: (item: T) => K) =>
 export const downloadJson = (data: JsonRoot, filename = 'data.json') => {
   const jsonStr = JSON.stringify(data, null, 2)
   const blob = new Blob([jsonStr], {type: 'application/json'})
+  downloadBlob(blob, filename)
+}
+
+export const downloadBlob = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob)
 
   const a = document.createElement('a')

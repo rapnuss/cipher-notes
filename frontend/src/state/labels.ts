@@ -106,9 +106,17 @@ export const createLabel = async (name: string, hue: Hue = null): Promise<Label>
   return label
 }
 
-export const applyNewLabel = async (noteId: string, labelName: string) => {
+export const applyNewLabel = async (
+  itemId: string,
+  labelName: string,
+  itemType: 'note' | 'file'
+) => {
   const label = await createLabel(labelName)
-  toggleNoteLabel(noteId, label.id)
+  if (itemType === 'note') {
+    toggleNoteLabel(itemId, label.id)
+  } else {
+    toggleFileLabel(itemId, label.id)
+  }
 }
 
 export const updateLabel = (id: string, props: {name?: string; hue?: Hue}) => {
@@ -174,6 +182,21 @@ export const toggleNoteLabel = (noteId: string, labelId: string) =>
       note.updated_at = Date.now()
     })
 
+export const toggleFileLabel = (fileId: string, labelId: string) =>
+  db.files_meta
+    .where('id')
+    .equals(fileId)
+    .modify((file) => {
+      file.labels = (file.labels ?? []).includes(labelId)
+        ? file.labels?.filter((l) => l !== labelId)
+        : (file.labels ?? []).concat(labelId)
+      if (file.state === 'synced') {
+        file.state = 'dirty'
+        file.version = file.version + 1
+      }
+      file.updated_at = Date.now()
+    })
+
 export const setNoteMainLabel = (noteId: string, labelId: string) =>
   db.notes
     .where('id')
@@ -185,6 +208,19 @@ export const setNoteMainLabel = (noteId: string, labelId: string) =>
         note.version = note.version + 1
       }
       note.updated_at = Date.now()
+    })
+
+export const setFileMainLabel = (fileId: string, labelId: string) =>
+  db.files_meta
+    .where('id')
+    .equals(fileId)
+    .modify((file) => {
+      file.labels = [labelId, ...(file.labels ?? []).filter((l) => l !== labelId)]
+      if (file.state === 'synced') {
+        file.state = 'dirty'
+        file.version = file.version + 1
+      }
+      file.updated_at = Date.now()
     })
 
 export const selectCachedLabels = createSelector(

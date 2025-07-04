@@ -12,11 +12,36 @@ export type FilesState = {
     state: 'dirty' | 'synced'
     archived: 0 | 1
   } | null
+  fileDialog: {
+    labelDropdownOpen: boolean
+    moreMenuOpen: boolean
+  }
 }
 export const filesInit = {
   importing: false,
   openFile: null,
+  fileDialog: {
+    labelDropdownOpen: false,
+    moreMenuOpen: false,
+  },
 }
+
+export const setLabelDropdownOpen = (open: boolean) =>
+  setState((state) => {
+    state.files.fileDialog.labelDropdownOpen = open
+  })
+
+export const setMoreMenuOpen = (open: boolean) =>
+  setState((state) => {
+    state.files.fileDialog.moreMenuOpen = open
+  })
+
+export const openFileArchivedToggled = () =>
+  setState((state) => {
+    if (!state.files.openFile) return
+    state.files.openFile.archived = state.files.openFile.archived ? 0 : 1
+    state.files.openFile.updated_at = Date.now()
+  })
 
 export const setFilesImporting = (importing: boolean) =>
   setState((state) => {
@@ -101,6 +126,10 @@ export const fileClosed = async () => {
 
   setState((state) => {
     state.files.openFile = null
+    state.files.fileDialog = {
+      labelDropdownOpen: false,
+      moreMenuOpen: false,
+    }
   })
 }
 

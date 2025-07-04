@@ -4,6 +4,7 @@ import {deepEquals} from '../util/misc'
 import {zodParseString} from '../util/zod'
 import {
   Feature,
+  FileMeta,
   Hue,
   jwtPayloadSchema,
   Label,
@@ -448,3 +449,6 @@ export const parseSubscriptionToken = async (token: string): Promise<Feature[]> 
     return []
   }
 }
+
+export const getFilename = ({title, ext}: Pick<FileMeta, 'title' | 'ext'>): string =>
+  ext ? `${title}.${ext}` : title

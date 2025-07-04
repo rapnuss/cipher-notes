@@ -7,7 +7,7 @@ import {bisectBy, byProp, compare, truncateWithEllipsis} from '../util/misc'
 import {IconSquare} from './icons/IconSquare'
 import {IconCheckbox} from './icons/IconCheckbox'
 import {activeLabelIsUuid, FileMeta, Note} from '../business/models'
-import {labelColor} from '../business/misc'
+import {getFilename, labelColor} from '../business/misc'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {IconDots} from './icons/IconDots'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
@@ -119,7 +119,9 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
         }}
         onClick={() => (note.type === 'file' ? fileOpened(note.id) : noteOpened(note.id))}
       >
-        <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>{note.title}</div>
+        <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>
+          {note.type === 'file' ? getFilename(note) : note.title}
+        </div>
         {note.type === 'note'
           ? truncateWithEllipsis(note.txt)
           : note.type === 'todo'

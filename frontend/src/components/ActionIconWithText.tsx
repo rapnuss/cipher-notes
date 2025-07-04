@@ -46,3 +46,44 @@ export const ActionIconWithText = forwardRef<HTMLButtonElement, ActionIconWithTe
     </ActionIcon>
   )
 )
+
+export type ActionIconLinkProps = {
+  href: string
+  filename?: string
+  title?: string
+  text?: string
+  children?: ReactNode
+  target?: '_blank' | '_self' | '_parent' | '_top'
+}
+export const ActionIconLink = forwardRef<HTMLAnchorElement, ActionIconLinkProps>(
+  ({children, title, text, href, filename, target}, ref) => (
+    <ActionIcon
+      component='a'
+      href={href}
+      download={filename}
+      ref={ref}
+      variant='default'
+      size='input-md'
+      title={title}
+      target={target}
+      styles={{
+        icon: {
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+      }}
+    >
+      {children}
+      <div
+        style={{
+          fontSize: '0.75rem',
+          color: 'var(--mantine-color-dimmed)',
+        }}
+      >
+        {text}
+      </div>
+    </ActionIcon>
+  )
+)
