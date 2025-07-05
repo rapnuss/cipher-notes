@@ -148,7 +148,11 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
               </Flex>
             ))
         ) : note.type === 'file' && note.has_thumb ? (
-          <img alt={getFilename(note)} src={`/thumbnails/${note.id}`} />
+          <img
+            alt={getFilename(note)}
+            src={`/thumbnails/${note.id}`}
+            style={{maxHeight: 200, objectFit: 'contain'}}
+          />
         ) : note.type === 'file' ? (
           <div
             style={{

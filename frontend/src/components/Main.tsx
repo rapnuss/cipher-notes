@@ -17,6 +17,7 @@ import {useSelector} from '../state/store'
 import {db} from '../db'
 import {setFilesImporting} from '../state/files'
 import {IconPhoto} from './icons/IconPhoto'
+import {comlink} from '../comlink'
 
 export const Main = () => (
   <>
@@ -91,6 +92,7 @@ const ImportActionIcon = () => {
             await tx.files_blob.add(blob)
           })
         }
+        await comlink.generateThumbnails().catch(console.error)
       } finally {
         setFilesImporting(false)
       }
