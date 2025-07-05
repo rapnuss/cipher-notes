@@ -106,6 +106,7 @@ export const OpenFileDialog = () => {
         <input
           style={{
             flex: '1 1 0',
+            minWidth: '0',
             border: 'none',
             fontSize: '1.5rem',
             fontWeight: 'bold',
@@ -114,14 +115,22 @@ export const OpenFileDialog = () => {
           }}
           autoComplete='off'
           placeholder='Title'
+          name='title'
           type='text'
           value={openFile?.title ?? ''}
           onChange={(e) => openFileTitleChanged(e.target.value)}
         />
         {file.ext && (
-          <span style={{flex: '0 0 auto', fontSize: '1.5rem', opacity: 0.5, fontWeight: 'bold'}}>
+          <div
+            style={{
+              flex: '0 0 auto',
+              fontSize: '1.5rem',
+              opacity: 0.5,
+              fontWeight: 'bold',
+            }}
+          >
             .{file.ext}
-          </span>
+          </div>
         )}
       </Flex>
       {file.mime.startsWith('image/') ? (
@@ -147,7 +156,12 @@ export const OpenFileDialog = () => {
         </div>
       )}
       <Flex gap='xs'>
-        <Menu closeOnEscape={false} opened={moreMenuOpen}>
+        <Menu
+          closeOnEscape={false}
+          opened={moreMenuOpen}
+          onDismiss={() => setMoreMenuOpen(false)}
+          closeOnClickOutside
+        >
           <Menu.Target>
             <ActionIconWithText
               title='open menu'

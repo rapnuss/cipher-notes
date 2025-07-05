@@ -117,6 +117,7 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
           color: 'inherit',
           display: 'flex',
           flexDirection: 'column',
+          alignItems: 'stretch',
         }}
         onClick={() => (note.type === 'file' ? fileOpened(note.id) : noteOpened(note.id))}
       >
@@ -148,7 +149,12 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
             ))
         ) : note.type === 'file' ? (
           <div
-            style={{display: 'flex', justifyContent: 'center', alignItems: 'center', flex: '1 1 0'}}
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              flex: '1 1 0',
+            }}
           >
             <FileIconWithExtension ext={note.ext} size={100} />
           </div>
