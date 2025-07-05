@@ -80,6 +80,7 @@ const ImportActionIcon = () => {
             mime: file.type,
             labels: activeLabelIsUuid(activeLabel) ? [activeLabel] : [],
             archived: 0,
+            has_thumb: 0,
           }
           const blob: FileBlob = {
             id,

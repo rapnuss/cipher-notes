@@ -147,6 +147,8 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
                 {truncateWithEllipsis(todo.txt, 1, 50)}
               </Flex>
             ))
+        ) : note.type === 'file' && note.has_thumb ? (
+          <img alt={getFilename(note)} src={`/thumbnails/${note.id}`} />
         ) : note.type === 'file' ? (
           <div
             style={{

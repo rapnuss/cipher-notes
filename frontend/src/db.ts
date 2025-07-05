@@ -67,7 +67,7 @@ db.version(6)
   )
 
 db.version(7).stores({
-  files_meta: 'id, created_at, updated_at, deleted_at, state, name, ext, mime, archived',
+  files_meta: 'id, created_at, updated_at, deleted_at, state, name, ext, mime, archived, has_thumb',
   files_blob: 'id',
   files_thumb: 'id',
 })

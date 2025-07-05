@@ -28,6 +28,21 @@ registerRoute(
   }
 )
 
+registerRoute(
+  ({url, request}) =>
+    request.method === 'GET' &&
+    url.origin === self.location.origin &&
+    url.pathname.startsWith('/thumbnails/'),
+  async ({url}) => {
+    const id = url.pathname.replace(/^\/thumbnails\//, '')
+    const thumb = await db.files_thumb.get(id)
+    if (thumb) {
+      return new Response(thumb.blob, {headers: {'Content-Type': thumb.blob.type}})
+    }
+    return new Response('Not found', {status: 404})
+  }
+)
+
 registerRoute(({url}) => url.pathname.startsWith('/api'), new NetworkOnly())
 
 let allowlist: RegExp[] | undefined

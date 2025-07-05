@@ -37,6 +37,7 @@ export type FileMeta = {
   mime: string
   labels: string[]
   archived: 0 | 1
+  has_thumb: 0 | 1
 }
 export type FileBlob = {
   id: string
