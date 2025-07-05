@@ -26,6 +26,10 @@ import {LabelDropdownContent} from './LabelDropdownContent'
 import {IconDownload} from './icons/IconDownload'
 import {downloadBlob} from '../util/misc'
 import {notifications} from '@mantine/notifications'
+import {useCloseOnBack} from '../helpers/useCloseOnBack'
+import {useEffect} from 'react'
+import {useHotkeys} from '@mantine/hooks'
+import {FileIconWithExtension} from './FileIconWithExtension'
 
 export const OpenFileDialog = () => {
   const colorScheme = useMyColorScheme()
@@ -37,17 +41,48 @@ export const OpenFileDialog = () => {
     () => (openFile ? db.files_meta.get(openFile.id) : undefined),
     [openFile?.id]
   )
-  // TODO: close on file delete or missing
+  useCloseOnBack({id: 'open-file-dialog', open, onClose: fileClosed})
+  useEffect(() => {
+    if (!file) {
+      fileClosed()
+    }
+  }, [file])
+  useHotkeys(
+    [
+      [
+        'Escape',
+        () => {
+          if (moreMenuOpen) {
+            setMoreMenuOpen(false)
+            const button = document.querySelector('.open-file-more-menu')
+            if (button instanceof HTMLElement) {
+              button.focus()
+            }
+          } else if (labelDropdownOpen) {
+            setLabelDropdownOpen(false)
+            const button = document.querySelector('.open-file-label-button')
+            if (button instanceof HTMLElement) {
+              button.focus()
+            }
+          } else if (open) {
+            fileClosed()
+          }
+        },
+      ],
+    ],
+    [],
+    true
+  )
   if (!file) return null
   const openNoteLabel = file.labels?.[0]
   const hue: Hue = openNoteLabel ? labelsCache[openNoteLabel]?.hue ?? null : null
   const src = `/files/${file.id}`
-  // TODO: handle esc key to close label dropdown and more menu and close drawer
   return (
     <Drawer
       opened={open}
       onClose={fileClosed}
       withCloseButton={false}
+      closeOnEscape={false}
       position='top'
       size='100%'
       styles={{
@@ -67,21 +102,28 @@ export const OpenFileDialog = () => {
         },
       }}
     >
-      <input
-        id='open-note-title'
-        style={{
-          border: 'none',
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          outline: 'none',
-          background: 'transparent',
-        }}
-        autoComplete='off'
-        placeholder='Title'
-        type='text'
-        value={openFile?.title ?? ''}
-        onChange={(e) => openFileTitleChanged(e.target.value)}
-      />
+      <Flex align='center' gap='xs'>
+        <input
+          style={{
+            flex: '1 1 0',
+            border: 'none',
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            outline: 'none',
+            background: 'transparent',
+          }}
+          autoComplete='off'
+          placeholder='Title'
+          type='text'
+          value={openFile?.title ?? ''}
+          onChange={(e) => openFileTitleChanged(e.target.value)}
+        />
+        {file.ext && (
+          <span style={{flex: '0 0 auto', fontSize: '1.5rem', opacity: 0.5, fontWeight: 'bold'}}>
+            .{file.ext}
+          </span>
+        )}
+      </Flex>
       {file.mime.startsWith('image/') ? (
         <ImageViewer src={src} alt={file.title} />
       ) : file.mime === 'application/pdf' ? (
@@ -98,15 +140,19 @@ export const OpenFileDialog = () => {
       ) : file.mime.startsWith('text/') || file.mime === 'application/json' ? (
         <TextViewer src={src} />
       ) : (
-        <div style={{flex: '1 1 0'}} />
+        <div
+          style={{flex: '1 1 0', display: 'flex', justifyContent: 'center', alignItems: 'center'}}
+        >
+          <FileIconWithExtension ext={file.ext} />
+        </div>
       )}
       <Flex gap='xs'>
-        <Menu>
+        <Menu closeOnEscape={false} opened={moreMenuOpen}>
           <Menu.Target>
             <ActionIconWithText
               title='open menu'
               text='more'
-              className='open-note-more-menu'
+              className='open-file-more-menu'
               onClick={() => setMoreMenuOpen(!moreMenuOpen)}
             >
               <IconDots />
@@ -155,7 +201,7 @@ export const OpenFileDialog = () => {
         >
           <Popover.Target>
             <ActionIconWithText
-              className='open-note-label-button'
+              className='open-file-label-button'
               title='Add label'
               text='label'
               onClick={() => setLabelDropdownOpen(!labelDropdownOpen)}

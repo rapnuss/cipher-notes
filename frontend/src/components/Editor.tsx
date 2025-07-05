@@ -345,6 +345,8 @@ const Editor = (props: Props) => {
           selectionEnd: selectionEnd + 2,
         })
       }
+    } else if (e.key === 'Alt') {
+      e.preventDefault()
     } else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && e.altKey) {
       e.preventDefault()
       const startLine = getLines(value, selectionStart).length - 1

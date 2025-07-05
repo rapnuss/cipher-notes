@@ -12,6 +12,7 @@ import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {IconDots} from './icons/IconDots'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import {deleteFile, fileOpened, setFileArchived} from '../state/files'
+import {FileIconWithExtension} from './FileIconWithExtension'
 
 export const NotesGrid = () => {
   const query = useSelector((state) => state.notes.query)
@@ -107,7 +108,7 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
       <UnstyledButton
         style={{
           flex: '1 1 auto',
-          padding: '1rem',
+          padding: '1rem 1rem 0 1rem',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
           cursor: 'pointer',
@@ -122,30 +123,36 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
         <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>
           {note.type === 'file' ? getFilename(note) : note.title}
         </div>
-        {note.type === 'note'
-          ? truncateWithEllipsis(note.txt)
-          : note.type === 'todo'
-          ? note.todos
-              .map((t, i) => [t.done, i, t] as const)
-              .sort(compare)
-              .slice(0, 5)
-              .map(([, i, todo]) => (
-                <Flex
-                  align='center'
-                  gap='xs'
-                  ml={todo.parent ? '1rem' : 0}
-                  style={{textDecoration: todo.done ? 'line-through' : 'none'}}
-                  key={i}
-                >
-                  {todo.done ? (
-                    <IconCheckbox style={{flex: '0 0 auto'}} />
-                  ) : (
-                    <IconSquare style={{flex: '0 0 auto'}} />
-                  )}
-                  {truncateWithEllipsis(todo.txt, 1, 50)}
-                </Flex>
-              ))
-          : null}
+        {note.type === 'note' ? (
+          truncateWithEllipsis(note.txt)
+        ) : note.type === 'todo' ? (
+          note.todos
+            .map((t, i) => [t.done, i, t] as const)
+            .sort(compare)
+            .slice(0, 5)
+            .map(([, i, todo]) => (
+              <Flex
+                align='center'
+                gap='xs'
+                ml={todo.parent ? '1rem' : 0}
+                style={{textDecoration: todo.done ? 'line-through' : 'none'}}
+                key={i}
+              >
+                {todo.done ? (
+                  <IconCheckbox style={{flex: '0 0 auto'}} />
+                ) : (
+                  <IconSquare style={{flex: '0 0 auto'}} />
+                )}
+                {truncateWithEllipsis(todo.txt, 1, 50)}
+              </Flex>
+            ))
+        ) : note.type === 'file' ? (
+          <div
+            style={{display: 'flex', justifyContent: 'center', alignItems: 'center', flex: '1 1 0'}}
+          >
+            <FileIconWithExtension ext={note.ext} size={100} />
+          </div>
+        ) : null}
       </UnstyledButton>
       <Flex justify='flex-end'>
         <Menu shadow='md'>

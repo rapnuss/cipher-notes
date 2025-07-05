@@ -53,9 +53,6 @@ DONE:
     handle esc on more menu
     handle esc on delete dialog
 FIRST:
-  open file dialog
-    esc handler
-    display extension in title bar
 TODO:
   files
     store files client
