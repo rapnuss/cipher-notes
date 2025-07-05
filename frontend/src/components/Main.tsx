@@ -1,4 +1,4 @@
-import {ActionIcon, Flex, Menu} from '@mantine/core'
+import {ActionIcon, Flex} from '@mantine/core'
 import {SearchInput} from './SearchInput'
 import {NotesGrid} from './NotesGrid'
 import {addNote} from '../state/notes'
@@ -10,13 +10,13 @@ import {toggleLabelSelector} from '../state/labels'
 import {IconLabel} from './icons/IconLabel'
 import {ActionIconWithText} from './ActionIconWithText'
 import {IconMenu2} from './icons/IconMenu2'
-import {IconDotsVertical} from './icons/IconDotsVertical'
 import {useFileDialog} from '@mantine/hooks'
 import {activeLabelIsUuid, FileBlob, FileMeta} from '../business/models'
 import {splitFilename} from '../util/misc'
 import {useSelector} from '../state/store'
 import {db} from '../db'
 import {setFilesImporting} from '../state/files'
+import {IconPhoto} from './icons/IconPhoto'
 
 export const Main = () => (
   <>
@@ -42,43 +42,18 @@ export const Main = () => (
         orientation='horizontal'
         style={{position: 'absolute', bottom: '1.25rem', right: '1.25rem', zIndex: 1}}
       >
-        <Menu position='top'>
-          <Menu.Target>
-            <ActionIcon
-              variant='default'
-              size='input-md'
-              style={{width: '1.5rem', minWidth: '1.5rem'}}
-            >
-              <IconDotsVertical />
-            </ActionIcon>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <UploadMenuItem />
-          </Menu.Dropdown>
-        </Menu>
-        <AddIconButton />
+        <ImportActionIcon />
+        <ActionIconWithText onClick={addNote} title='Create new note' text='new'>
+          <IconPlus />
+        </ActionIconWithText>
       </ActionIcon.Group>
       <NotesGrid />
     </div>
     <StatusBar />
   </>
 )
-
-const AddIconButton = () => {
+const ImportActionIcon = () => {
   const filesImporting = useSelector((state) => state.files.importing)
-  return (
-    <ActionIconWithText
-      onClick={addNote}
-      title='Create new note'
-      text='new'
-      loading={filesImporting}
-    >
-      <IconPlus />
-    </ActionIconWithText>
-  )
-}
-
-const UploadMenuItem = () => {
   const activeLabel = useSelector((state) => state.labels.activeLabel)
   const {open} = useFileDialog({
     multiple: true,
@@ -120,5 +95,9 @@ const UploadMenuItem = () => {
       }
     },
   })
-  return <Menu.Item onClick={open}>Import Files</Menu.Item>
+  return (
+    <ActionIconWithText onClick={open} title='Import Files' text='import' loading={filesImporting}>
+      <IconPhoto />
+    </ActionIconWithText>
+  )
 }
