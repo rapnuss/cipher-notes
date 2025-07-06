@@ -145,7 +145,16 @@ export const OpenFileDialog = () => {
       ) : file.mime.startsWith('video/') ? (
         <video style={{flex: '1 1 0', minHeight: 0}} src={src} controls />
       ) : file.mime.startsWith('audio/') ? (
-        <audio style={{flex: '1 1 0'}} src={src} controls />
+        <div
+          style={{
+            flex: '1 1 0',
+            display: 'flex',
+            justifyContent: 'center',
+            flexDirection: 'column',
+          }}
+        >
+          <audio style={{flex: '0 0 auto'}} src={src} controls />
+        </div>
       ) : file.mime.startsWith('text/') || file.mime === 'application/json' ? (
         <TextViewer src={src} />
       ) : (
