@@ -18,6 +18,7 @@ export const openConfirmModalWithBackHandler = ({
   confirmProps,
 }: OpenConfirmModalProps) => {
   let cleanup: () => void
+  let closed = false
   const modalId = modals.openConfirmModal({
     title,
     onConfirm,
@@ -27,6 +28,10 @@ export const openConfirmModalWithBackHandler = ({
     centered: true,
     trapFocus: true,
     onClose: () => {
+      if (closed) {
+        return
+      }
+      closed = true
       cleanup()
       removeBrowserHistory(id)
     },
