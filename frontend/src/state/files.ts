@@ -1,5 +1,7 @@
+import {ActiveLabel, activeLabelIsUuid, FileBlob, FileMeta} from '../business/models'
+import {comlink} from '../comlink'
 import {db} from '../db'
-import {debounce, nonConcurrent} from '../util/misc'
+import {debounce, nonConcurrent, splitFilename} from '../util/misc'
 import {getState, setState, subscribe} from './store'
 
 export type FilesState = {
@@ -146,6 +148,44 @@ export const openFileTitleChanged = (value: string) =>
       openFile.state = 'dirty'
     }
   })
+
+export const importFiles = async (files: FileList, activeLabel: ActiveLabel) => {
+  try {
+    setFilesImporting(true)
+    for (const file of files) {
+      const [name, ext] = splitFilename(file.name)
+      const id = crypto.randomUUID()
+      const now = Date.now()
+      const meta: FileMeta = {
+        type: 'file',
+        created_at: now,
+        updated_at: now,
+        deleted_at: 0,
+        ext,
+        id,
+        title: name,
+        state: 'dirty',
+        version: 1,
+        blobState: 'local',
+        mime: file.type,
+        labels: activeLabelIsUuid(activeLabel) ? [activeLabel] : [],
+        archived: 0,
+        has_thumb: 0,
+      }
+      const blob: FileBlob = {
+        id,
+        blob: file,
+      }
+      await db.transaction('rw', db.files_meta, db.files_blob, async (tx) => {
+        await tx.files_meta.add(meta)
+        await tx.files_blob.add(blob)
+      })
+    }
+    await comlink.generateThumbnails().catch(console.error)
+  } finally {
+    setFilesImporting(false)
+  }
+}
 
 const storeOpenFile = nonConcurrent(async () => {
   const openFile = getState().files.openFile

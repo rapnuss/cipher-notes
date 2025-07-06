@@ -11,13 +11,9 @@ import {IconLabel} from './icons/IconLabel'
 import {ActionIconWithText} from './ActionIconWithText'
 import {IconMenu2} from './icons/IconMenu2'
 import {useFileDialog} from '@mantine/hooks'
-import {activeLabelIsUuid, FileBlob, FileMeta} from '../business/models'
-import {splitFilename} from '../util/misc'
 import {useSelector} from '../state/store'
-import {db} from '../db'
-import {setFilesImporting} from '../state/files'
+import {importFiles} from '../state/files'
 import {IconPhoto} from './icons/IconPhoto'
-import {comlink} from '../comlink'
 
 export const Main = () => (
   <>
@@ -61,45 +57,11 @@ const ImportActionIcon = () => {
     resetOnOpen: true,
     onChange: async (files) => {
       if (!files) return
-      try {
-        setFilesImporting(true)
-        for (const file of files) {
-          const [name, ext] = splitFilename(file.name)
-          const id = crypto.randomUUID()
-          const now = Date.now()
-          const meta: FileMeta = {
-            type: 'file',
-            created_at: now,
-            updated_at: now,
-            deleted_at: 0,
-            ext,
-            id,
-            title: name,
-            state: 'dirty',
-            version: 1,
-            blobState: 'local',
-            mime: file.type,
-            labels: activeLabelIsUuid(activeLabel) ? [activeLabel] : [],
-            archived: 0,
-            has_thumb: 0,
-          }
-          const blob: FileBlob = {
-            id,
-            blob: file,
-          }
-          await db.transaction('rw', db.files_meta, db.files_blob, async (tx) => {
-            await tx.files_meta.add(meta)
-            await tx.files_blob.add(blob)
-          })
-        }
-        await comlink.generateThumbnails().catch(console.error)
-      } finally {
-        setFilesImporting(false)
-      }
+      await importFiles(files, activeLabel)
     },
   })
   return (
-    <ActionIconWithText onClick={open} title='Import Files' text='import' loading={filesImporting}>
+    <ActionIconWithText onClick={open} title='Add Files' text='add' loading={filesImporting}>
       <IconPhoto />
     </ActionIconWithText>
   )
