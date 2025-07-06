@@ -1,5 +1,9 @@
+import {ActionIcon} from '@mantine/core'
 import React, {CSSProperties} from 'react'
 import {TransformWrapper, TransformComponent} from 'react-zoom-pan-pinch'
+import {IconPlus} from './icons/IconPlus'
+import {IconMinus} from './icons/IconMinus'
+import {IconZoomReset} from './icons/IconZoomReset'
 
 type ImageViewerProps = {
   src: string
@@ -52,15 +56,15 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
                 zIndex: 10,
               }}
             >
-              <button onClick={() => zoomIn()} aria-label='Zoom in'>
-                ＋
-              </button>
-              <button onClick={() => zoomOut()} aria-label='Zoom out'>
-                －
-              </button>
-              <button onClick={() => resetTransform()} aria-label='Reset'>
-                ⟳
-              </button>
+              <ActionIcon onClick={() => zoomIn()} title='Zoom in' variant='default'>
+                <IconPlus />
+              </ActionIcon>
+              <ActionIcon onClick={() => zoomOut()} title='Zoom out' variant='default'>
+                <IconMinus />
+              </ActionIcon>
+              <ActionIcon onClick={() => resetTransform()} title='Reset zoom' variant='default'>
+                <IconZoomReset />
+              </ActionIcon>
             </div>
           )}
 
@@ -74,7 +78,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
               style={{
                 width: '100%',
                 height: '100%',
-                objectFit: 'contain', // fit whole image into container
+                objectFit: 'contain',
                 display: 'block',
                 userSelect: 'none',
                 touchAction: 'none',
