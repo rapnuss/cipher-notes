@@ -1,4 +1,4 @@
-import {JsonRoot} from './type'
+import {JsonAny, JsonRoot} from './type'
 
 export const compare = (a: any, b: any) => {
   if (Array.isArray(a) && Array.isArray(b)) {
@@ -295,4 +295,18 @@ export const splitFilename = (filename: string): [string, string] => {
   const name = i === -1 ? filename : filename.slice(0, i)
   const ext = i === -1 ? '' : filename.slice(i + 1)
   return [name, ext]
+}
+
+export const takeJsonSize = <T extends JsonAny>(arr: T[], limit: number): T[] => {
+  let totalSize = 2
+  const res: T[] = []
+  for (const item of arr) {
+    const size = 1 + JSON.stringify(item).length
+    if (totalSize + size > limit) {
+      break
+    }
+    res.push(item)
+    totalSize += size
+  }
+  return res
 }

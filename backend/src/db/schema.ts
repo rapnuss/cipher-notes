@@ -1,4 +1,4 @@
-import {pgTable, varchar, text, integer, unique, bigint, pgEnum} from 'drizzle-orm/pg-core'
+import {pgTable, varchar, text, integer, unique, bigint, pgEnum, boolean} from 'drizzle-orm/pg-core'
 
 export const subscriptionTypeEnum = pgEnum('subscription_type', ['free', 'plus', 'pro'])
 
@@ -57,4 +57,28 @@ export const notesTbl = pgTable(
     clientside_deleted_at: bigint({mode: 'number'}),
   },
   (t) => [unique('user_client_id').on(t.user_id, t.clientside_id)]
+)
+
+export const filesMetaTbl = pgTable(
+  'files_meta',
+  {
+    id: integer().generatedAlwaysAsIdentity().primaryKey(),
+    user_id: integer()
+      .references(() => usersTbl.id)
+      .notNull(),
+    clientside_id: varchar({length: 36}).notNull(),
+    blob_stored: boolean().default(false).notNull(),
+    cipher_text: text(), // {title, ext, mime, labels, archived}
+    iv: varchar({length: 16}),
+    version: integer().default(1).notNull(),
+    serverside_created_at: bigint({mode: 'number'}).$default(Date.now).notNull(),
+    serverside_updated_at: bigint({mode: 'number'})
+      .$default(Date.now)
+      .$onUpdate(Date.now)
+      .notNull(),
+    clientside_created_at: bigint({mode: 'number'}).notNull(),
+    clientside_updated_at: bigint({mode: 'number'}).notNull(),
+    clientside_deleted_at: bigint({mode: 'number'}),
+  },
+  (t) => [unique('file_user_client_id').on(t.user_id, t.clientside_id)]
 )

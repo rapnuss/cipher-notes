@@ -53,6 +53,12 @@ DONE:
     handle esc on more menu
     handle esc on delete dialog
 FIRST:
+  one sync endpoint for files_meta and notes/labels
+    synch in chunks
+  upload endpoint
+    upload one fila at a time
+  download endpoint
+    one file at a time
 TODO:
   files
     store files client

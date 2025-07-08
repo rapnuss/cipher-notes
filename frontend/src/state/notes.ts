@@ -5,10 +5,18 @@ import {
   NoteSortProp,
   Todo,
   activeLabelIsUuid,
+  Label,
 } from '../business/models'
 import {getState, setState, subscribe} from './store'
-import {bisectBy, debounce, deepEquals, moveWithinListViaDnD, nonConcurrent} from '../util/misc'
-import {isUnauthorizedRes, reqSyncNotes} from '../services/backend'
+import {
+  bisectBy,
+  debounce,
+  deepEquals,
+  moveWithinListViaDnD,
+  nonConcurrent,
+  takeJsonSize,
+} from '../util/misc'
+import {EncPut, isUnauthorizedRes, reqSyncNotes} from '../services/backend'
 import {Put, decryptSyncData, encryptSyncData} from '../business/notesEncryption'
 import {db, hasDirtyLabelsObservable, hasDirtyNotesObservable} from '../db'
 import {
@@ -33,6 +41,7 @@ import {
 } from '../services/localStorage'
 import XSet from '../util/XSet'
 import {notifications} from '@mantine/notifications'
+import {UserState} from './user'
 
 export type NotesState = {
   query: string
@@ -551,6 +560,32 @@ export const closeSyncDialog = () =>
   })
 
 // effects
+const loadEncPuts = async (
+  keyTokenPair: NonNullable<UserState['user']['keyTokenPair']>,
+  bytesLimit: number
+): Promise<{encPuts: EncPut[]; dirtyNotes: Note[]; dirtyLabels: Label[]}> => {
+  const allDirtyNotes = await db.notes
+    .where('state')
+    .equals('dirty')
+    .and((n) => !notesIsEmpty(n))
+    .limit(1000)
+    .toArray()
+  const allDirtyLabels = await db.labels.where('state').equals('dirty').limit(1000).toArray()
+  const allClientPuts: Put[] = allDirtyLabels.map(labelToPut).concat(allDirtyNotes.map(noteToPut))
+  //const allDirtyFiles = await db.files_meta.where('state').equals('dirty').limit(1000).toArray()
+
+  const allEncClientSyncData = await encryptSyncData(
+    keyTokenPair.cryptoKey,
+    takeJsonSize(allClientPuts, bytesLimit)
+  )
+  const encPuts = takeJsonSize(allEncClientSyncData, bytesLimit)
+  return {
+    encPuts,
+    dirtyNotes: allDirtyNotes.filter((n) => encPuts.some((p) => p.id === n.id)),
+    dirtyLabels: allDirtyLabels.filter((l) => encPuts.some((p) => p.id === l.id)),
+  }
+}
+
 export const syncNotes = nonConcurrent(async () => {
   const state = getState()
   const lastSyncedTo = state.user.user.lastSyncedTo
@@ -563,16 +598,8 @@ export const syncNotes = nonConcurrent(async () => {
     state.notes.sync.syncing = true
   })
   try {
-    const dirtyNotes = await db.notes
-      .where('state')
-      .equals('dirty')
-      .and((n) => !notesIsEmpty(n))
-      .toArray()
-    const dirtyLabels = await db.labels.where('state').equals('dirty').toArray()
-    const clientPuts: Put[] = dirtyNotes.map(noteToPut).concat(dirtyLabels.map(labelToPut))
-    const encClientSyncData = await encryptSyncData(keyTokenPair.cryptoKey, clientPuts)
-
-    const res = await reqSyncNotes(lastSyncedTo, encClientSyncData, keyTokenPair.syncToken)
+    const {encPuts, dirtyNotes, dirtyLabels} = await loadEncPuts(keyTokenPair, 1024 * 1024)
+    const res = await reqSyncNotes(lastSyncedTo, encPuts, keyTokenPair.syncToken)
     if (!res.success) {
       setState((state) => {
         state.notes.sync.error = res.error

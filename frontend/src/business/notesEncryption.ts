@@ -2,8 +2,8 @@ import {z} from 'zod'
 import {
   base64ToBin,
   calculateChecksum,
-  decryptData,
-  encryptData,
+  decryptString,
+  encryptString,
   importKey,
 } from '../util/encryption'
 import {EncPut} from '../services/backend'
@@ -33,7 +33,7 @@ export const decryptSyncData = async (cryptoKey: string, puts: EncPut[]): Promis
   return await Promise.all(
     puts.map((p) =>
       p.deleted_at === null && p.cipher_text !== null && p.iv !== null
-        ? decryptData(key, p.cipher_text, p.iv).then((txt) => ({
+        ? decryptString(key, p.cipher_text, p.iv).then((txt) => ({
             ...p,
             txt,
           }))
@@ -47,7 +47,7 @@ export const encryptSyncData = async (cryptoKey: string, puts: Put[]): Promise<E
   return await Promise.all(
     puts.map(({txt, deleted_at, ...p}) =>
       txt !== null && deleted_at === null
-        ? encryptData(key, txt).then(({cipher_text, iv}) => ({
+        ? encryptString(key, txt).then(({cipher_text, iv}) => ({
             ...p,
             cipher_text,
             iv,
