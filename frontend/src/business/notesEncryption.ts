@@ -11,7 +11,7 @@ import {EncPut} from '../services/backend'
 export type Put =
   | {
       id: string
-      type: 'note' | 'todo' | 'label'
+      type: 'note' | 'todo' | 'label' | 'file'
       created_at: number
       updated_at: number
       txt: string
@@ -20,7 +20,7 @@ export type Put =
     }
   | {
       id: string
-      type: 'note' | 'todo' | 'label'
+      type: 'note' | 'todo' | 'label' | 'file'
       created_at: number
       updated_at: number
       txt: null

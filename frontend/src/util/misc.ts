@@ -258,6 +258,19 @@ export const bisectBy = <T>(arr: T[], pred: (x: T) => boolean): readonly [T[], T
   return [ts, fs]
 }
 
+export const partitionBy = <T, Key extends string>(
+  arr: T[],
+  keyFn: (x: T) => Key
+): Partial<Record<Key, T[]>> => {
+  const res: Partial<Record<Key, T[]>> = {}
+  for (const x of arr) {
+    const key = keyFn(x)
+    res[key] = res[key] ?? []
+    res[key].push(x)
+  }
+  return res
+}
+
 export const getColorScheme = () => {
   if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
     return 'dark'

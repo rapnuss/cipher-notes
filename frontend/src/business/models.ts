@@ -48,6 +48,35 @@ export type FileThumb = {
   blob: Blob
 }
 
+export const filePullDellKeys = Object.freeze([
+  'id',
+  'type',
+  'created_at',
+  'updated_at',
+  'version',
+  'deleted_at',
+]) satisfies Readonly<(keyof FileMeta)[]>
+export type FilePullDellKeys = (typeof filePullDellKeys)[number]
+export type FilePullDel = Pick<FileMeta, FilePullDellKeys>
+export type FilePullDef = Omit<FileMeta, 'deleted_at' | 'blobState' | 'has_thumb' | 'state'> & {
+  deleted_at: 0
+}
+export type FilePull = XOR<FilePullDel, FilePullDef>
+export type FilePullWithState = FilePull & {state: FileMeta['state']}
+
+// use record instead of array to make sure we don't forget any extra keys
+const filePullDefExtraKeysEnum: Record<FilePullDefExtraKeys, FilePullDefExtraKeys> = {
+  title: 'title',
+  ext: 'ext',
+  mime: 'mime',
+  labels: 'labels',
+  archived: 'archived',
+}
+type FilePullDefExtraKeys = Exclude<keyof FilePullDef, FilePullDellKeys>
+export const filePullDefExtraKeys: Readonly<FilePullDefExtraKeys[]> = Object.freeze(
+  Object.values(filePullDefExtraKeysEnum)
+)
+
 export const noteSortProps = ['created_at', 'updated_at'] satisfies (keyof Note)[]
 export const noteSortOptions = noteSortProps.map((prop) => ({
   value: prop,
@@ -125,6 +154,15 @@ export const labelPutTxtSchema = z.object({
     .refine((hue): hue is Hue => hueOptions.includes(hue as Hue)),
 })
 export type LabelPutTxt = z.infer<typeof labelPutTxtSchema>
+
+export const filePutTxtSchema = z.object({
+  title: z.string(),
+  ext: z.string(),
+  mime: z.string(),
+  labels: z.array(z.string().uuid()),
+  archived: z.boolean(),
+})
+export type FilePutTxt = z.infer<typeof filePutTxtSchema>
 
 export const features = ['password_protected_notes', 'reminders'] as const
 export type Feature = (typeof features)[number]
