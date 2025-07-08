@@ -100,6 +100,7 @@ export const deleteFile = async (id: string) => {
         version: file.state === 'dirty' ? file.version : file.version + 1,
       })
     }
+    // > "Promise that resolves successfully with an undefined result, no matter if a record was deleted or not."
     await tx.files_blob.delete(id)
     await tx.files_thumb.delete(id)
   })
@@ -181,7 +182,10 @@ export const importFiles = async (files: FileList, activeLabel: ActiveLabel) => 
         await tx.files_blob.add(blob)
       })
     }
-    await comlink.generateThumbnails().catch(console.error)
+    comlink
+      .generateThumbnails()
+      .then(() => console.log('thumbnails generated'))
+      .catch(console.error)
   } finally {
     setFilesImporting(false)
   }

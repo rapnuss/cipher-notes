@@ -13,7 +13,7 @@ export const StatusBar = () => {
   return (
     <Flex p='xs' justify='space-between' align='center' bg='rgba(0,0,0,.1)'>
       <Text size='xs'>
-        {email} {connected ? 'connected' : `logged ${loggedIn ? 'in' : 'out'}`}
+        {email} {connected ? 'connected' : loggedIn ? 'offline' : 'logged out'}
       </Text>
       {!!numDirtyNotes && !syncing && <Text size='xs'>{numDirtyNotes} unsynced notes</Text>}
       {syncing && <Loader style={{margin: '-10px 0'}} type='dots' />}
