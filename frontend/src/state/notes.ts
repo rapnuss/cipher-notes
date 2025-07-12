@@ -51,6 +51,7 @@ import {
 import XSet from '../util/XSet'
 import {notifications} from '@mantine/notifications'
 import {UserState} from './user'
+import {setOpenFile} from './files'
 
 export type NotesState = {
   query: string
@@ -689,105 +690,123 @@ export const syncNotes = nonConcurrent(async () => {
     const idToUploadedLabels = Object.fromEntries(dirtyLabels.map((l) => [l.id, l]))
     const idToUploadedFiles = Object.fromEntries(dirtyFiles.map((f) => [f.id, f]))
 
-    await db.transaction('rw', db.notes, db.note_base_versions, db.labels, async () => {
-      const existingLabelIds = new XSet<string>()
-      await db.labels
-        .where('id')
-        .anyOf(Object.keys(labelsToStore))
-        .modify((curr, ref) => {
-          existingLabelIds.add(curr.id)
-          const uploaded = idToUploadedLabels[curr.id]
-          const toStore = labelsToStore[curr.id]!
-          if (uploaded && curr.updated_at > uploaded.updated_at) {
-            curr.version = curr.version + 1
-            return
-          }
-          if (curr.version >= toStore.version && curr.updated_at !== toStore.updated_at) {
-            return
-          }
-          ref.value = toStore
-        })
-      const insertLabelIds = XSet.fromItr(Object.keys(labelsToStore))
-        .without(existingLabelIds)
-        .toArray()
-      await db.labels.bulkPut(insertLabelIds.map((id) => labelsToStore[id]!))
+    await db.transaction(
+      'rw',
+      db.notes,
+      db.note_base_versions,
+      db.labels,
+      db.files_meta,
+      async (tx) => {
+        const existingLabelIds = new XSet<string>()
+        await tx.labels
+          .where('id')
+          .anyOf(Object.keys(labelsToStore))
+          .modify((curr, ref) => {
+            existingLabelIds.add(curr.id)
+            const uploaded = idToUploadedLabels[curr.id]
+            const toStore = labelsToStore[curr.id]!
+            if (uploaded && curr.updated_at > uploaded.updated_at) {
+              curr.version = curr.version + 1
+              return
+            }
+            if (curr.version >= toStore.version && curr.updated_at !== toStore.updated_at) {
+              return
+            }
+            ref.value = toStore
+          })
+        const insertLabelIds = XSet.fromItr(Object.keys(labelsToStore))
+          .without(existingLabelIds)
+          .toArray()
+        await tx.labels.bulkPut(insertLabelIds.map((id) => labelsToStore[id]!))
 
-      const existingFileIds = new XSet<string>()
-      await db.files_meta
-        .where('id')
-        .anyOf(Object.keys(filesToStore))
-        .modify((curr) => {
-          existingFileIds.add(curr.id)
-          const uploaded = idToUploadedFiles[curr.id]
-          const toStore = filesToStore[curr.id]!
-          if (uploaded && curr.updated_at > uploaded.updated_at) {
-            curr.version = curr.version + 1
-            return
-          }
-          if (curr.version >= toStore.version && curr.updated_at !== toStore.updated_at) {
-            return
-          }
-          for (const key of filePullDellKeys) {
-            curr[key] = toStore[key] as never
-          }
-          if (toStore.deleted_at === 0 && toStore.title !== undefined) {
-            for (const key of filePullDefExtraKeys) {
+        const existingFileIds = new XSet<string>()
+        await tx.files_meta
+          .where('id')
+          .anyOf(Object.keys(filesToStore))
+          .modify((curr) => {
+            existingFileIds.add(curr.id)
+            const uploaded = idToUploadedFiles[curr.id]
+            const toStore = filesToStore[curr.id]!
+            if (uploaded && curr.updated_at > uploaded.updated_at) {
+              curr.version = curr.version + 1
+              return
+            }
+            if (curr.version >= toStore.version && curr.updated_at !== toStore.updated_at) {
+              return
+            }
+            for (const key of filePullDellKeys) {
               curr[key] = toStore[key] as never
             }
-          } else {
-            curr.title = ''
-            curr.labels = []
-          }
-          curr.state = toStore.state
-        })
-      const insertFileIds = XSet.fromItr(Object.keys(filesToStore))
-        .without(existingFileIds)
-        .toArray()
-      await db.files_meta.bulkPut(
-        insertFileIds
-          .map((id) => ({...filesToStore[id]!, has_thumb: 0, blobState: 'remote'} as const))
-          .filter((f) => f.title !== undefined)
-      )
+            if (toStore.deleted_at === 0 && toStore.title !== undefined) {
+              for (const key of filePullDefExtraKeys) {
+                curr[key] = toStore[key] as never
+              }
+            } else {
+              curr.title = ''
+              curr.labels = []
+            }
+            curr.state = toStore.state
+          })
+        const insertFileIds = XSet.fromItr(Object.keys(filesToStore))
+          .without(existingFileIds)
+          .toArray()
+        await tx.files_meta.bulkPut(
+          insertFileIds
+            .map((id) => ({...filesToStore[id]!, has_thumb: 0, blobState: 'remote'} as const))
+            .filter((f) => f.title !== undefined)
+        )
 
-      const baseVersions: Note[] = []
-      const existingNoteIds = new XSet<string>()
-      await db.notes
-        .where('id')
-        .anyOf(Object.keys(notesToStore))
-        .modify((curr, ref) => {
-          existingNoteIds.add(curr.id)
-          const uploaded = idToUploaded[curr.id]
-          const toStore = notesToStore[curr.id]!
-          if (uploaded && curr.updated_at > uploaded.updated_at) {
-            curr.version = curr.version + 1
-            return
-          }
-          if (curr.version >= toStore.version && curr.updated_at !== toStore.updated_at) {
-            return
-          }
-          ref.value = toStore
-          if (toStore.state === 'synced') baseVersions.push(toStore)
-        })
+        const baseVersions: Note[] = []
+        const existingNoteIds = new XSet<string>()
+        await tx.notes
+          .where('id')
+          .anyOf(Object.keys(notesToStore))
+          .modify((curr, ref) => {
+            existingNoteIds.add(curr.id)
+            const uploaded = idToUploaded[curr.id]
+            const toStore = notesToStore[curr.id]!
+            if (uploaded && curr.updated_at > uploaded.updated_at) {
+              curr.version = curr.version + 1
+              return
+            }
+            if (curr.version >= toStore.version && curr.updated_at !== toStore.updated_at) {
+              return
+            }
+            ref.value = toStore
+            if (toStore.state === 'synced') baseVersions.push(toStore)
+          })
 
-      const insertNoteIds = XSet.fromItr(Object.keys(notesToStore))
-        .without(existingNoteIds)
-        .toArray()
-      const insertNotes = insertNoteIds.map((id) => notesToStore[id]!)
-      await db.notes.bulkPut(insertNotes)
-      await db.note_base_versions.bulkPut(baseVersions.concat(insertNotes))
-    })
+        const insertNoteIds = XSet.fromItr(Object.keys(notesToStore))
+          .without(existingNoteIds)
+          .toArray()
+        const insertNotes = insertNoteIds.map((id) => notesToStore[id]!)
+        await tx.notes.bulkPut(insertNotes)
+        await tx.note_base_versions.bulkPut(baseVersions.concat(insertNotes))
+      }
+    )
 
     setOpenNote(notesToStore)
-    // TODO: setOpenFile
+    setOpenFile(filesToStore)
 
-    const syncedDeletes = await db.notes
-      .where('deleted_at')
-      .notEqual(0)
-      .and((n) => n.state === 'synced')
-      .toArray()
-    const syncedDeleteIds = syncedDeletes.map((d) => d.id)
-    await db.notes.bulkDelete(syncedDeleteIds)
-    await db.note_base_versions.bulkDelete(syncedDeleteIds)
+    await db.transaction('rw', db.notes, db.note_base_versions, async (tx) => {
+      const syncedDeleteIds = await tx.notes
+        .where('deleted_at')
+        .notEqual(0)
+        .and((n) => n.state === 'synced')
+        .primaryKeys()
+      await tx.notes.bulkDelete(syncedDeleteIds)
+      await tx.note_base_versions.bulkDelete(syncedDeleteIds)
+    })
+    await db.transaction('rw', db.files_meta, db.files_blob, db.files_thumb, async (tx) => {
+      const syncedDeleteIds = await tx.files_meta
+        .where('deleted_at')
+        .notEqual(0)
+        .and((f) => f.state === 'synced')
+        .primaryKeys()
+      await tx.files_meta.bulkDelete(syncedDeleteIds)
+      await tx.files_blob.bulkDelete(syncedDeleteIds)
+      await tx.files_thumb.bulkDelete(syncedDeleteIds)
+    })
 
     setState((state) => {
       state.conflicts.conflicts = noteConflicts

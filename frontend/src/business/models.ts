@@ -65,7 +65,7 @@ export type FilePull = XOR<FilePullDel, FilePullDef>
 export type FilePullWithState = FilePull & {state: FileMeta['state']}
 
 // use record instead of array to make sure we don't forget any extra keys
-const filePullDefExtraKeysEnum: Record<FilePullDefExtraKeys, FilePullDefExtraKeys> = {
+const filePullDefExtraKeysEnum: {[K in FilePullDefExtraKeys]: K} = {
   title: 'title',
   ext: 'ext',
   mime: 'mime',

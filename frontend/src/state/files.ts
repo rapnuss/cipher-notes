@@ -1,4 +1,10 @@
-import {ActiveLabel, activeLabelIsUuid, FileBlob, FileMeta} from '../business/models'
+import {
+  ActiveLabel,
+  activeLabelIsUuid,
+  FileBlob,
+  FileMeta,
+  FilePullWithState,
+} from '../business/models'
 import {comlink} from '../comlink'
 import {db} from '../db'
 import {debounce, nonConcurrent, splitFilename} from '../util/misc'
@@ -98,6 +104,8 @@ export const deleteFile = async (id: string) => {
         deleted_at: Date.now(),
         state: 'dirty',
         version: file.state === 'dirty' ? file.version : file.version + 1,
+        title: '',
+        labels: [],
       })
     }
     // > "Promise that resolves successfully with an undefined result, no matter if a record was deleted or not."
@@ -150,6 +158,37 @@ export const openFileTitleChanged = (value: string) =>
     }
   })
 
+export const setOpenFile = (syncedFiles: Record<string, FilePullWithState>) => {
+  const openFile = getState().files.openFile
+  if (!openFile) {
+    return
+  }
+  const file = syncedFiles[openFile.id]
+  if (!file) {
+    return
+  }
+  if (file.deleted_at !== 0 || file.title === undefined) {
+    return setState((state) => {
+      state.files.openFile = null
+    })
+  }
+  if (
+    file.version > openFile.version ||
+    (file.version === openFile.version && file.updated_at >= openFile.updated_at)
+  ) {
+    setState((state) => {
+      state.files.openFile = {
+        id: file.id,
+        title: file.title,
+        updated_at: file.updated_at,
+        version: file.version,
+        state: file.state,
+        archived: file.archived,
+      }
+    })
+  }
+}
+
 export const importFiles = async (files: FileList, activeLabel: ActiveLabel) => {
   try {
     setFilesImporting(true)
@@ -201,7 +240,7 @@ const storeOpenFile = nonConcurrent(async () => {
   if (file.title !== openFile.title || file.archived !== openFile.archived) {
     await db.files_meta.update(openFile.id, {
       title: openFile.title,
-      archived: openFile.archived ? 1 : 0,
+      archived: openFile.archived,
       updated_at: openFile.updated_at,
       state: openFile.state,
       version: openFile.version,
