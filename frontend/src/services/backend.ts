@@ -140,3 +140,15 @@ export const reqChangeEmail = ({
       new_email_code: newEmailCode,
     },
   })
+
+export const reqGetUploadUrls = (noteIds: string[]) =>
+  request<{urls: {note_id: string; url: string}[]}>('/getUploadUrls', {
+    method: 'POST',
+    body: {note_ids: noteIds},
+  })
+
+export const reqGetDownloadUrls = (noteIds: string[]) =>
+  request<{urls: {note_id: string; url: string}[]}>('/getDownloadUrls', {
+    method: 'POST',
+    body: {note_ids: noteIds},
+  })

@@ -9,7 +9,7 @@ import {Overwrite} from '../util/type'
 import {env} from '../env'
 import {userToSessionToSocket} from '../socket'
 
-const putTypeSchema = z.enum(['note', 'todo', 'label'])
+const putTypeSchema = z.enum(['note', 'todo', 'label', 'file'])
 const upsertSchema = z.object({
   id: z.string().uuid(),
   type: putTypeSchema,

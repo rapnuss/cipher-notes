@@ -28,6 +28,20 @@ services:
     restart: 'no'
     networks:
       - notes-network
+  minio:
+    image: minio/minio:latest
+    container_name: notes_minio
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      MINIO_ROOT_USER: minio-admin
+      MINIO_ROOT_PASSWORD: minio-admin
+    volumes:
+      - ~/.db_data/notes_minio:/data
+    networks:
+      - notes-network
+    command: server /data --console-address ":9001"
 
 networks:
   notes-network:
