@@ -1,4 +1,4 @@
-import {pgTable, varchar, text, integer, unique, bigint, pgEnum} from 'drizzle-orm/pg-core'
+import {pgTable, varchar, text, integer, unique, bigint, pgEnum, boolean} from 'drizzle-orm/pg-core'
 
 export const subscriptionTypeEnum = pgEnum('subscription_type', ['free', 'plus', 'pro'])
 
@@ -55,6 +55,10 @@ export const notesTbl = pgTable(
     clientside_created_at: bigint({mode: 'number'}).notNull(),
     clientside_updated_at: bigint({mode: 'number'}).notNull(),
     clientside_deleted_at: bigint({mode: 'number'}),
+
+    // file specific fields
+    size: integer().notNull().default(0),
+    upload_url_was_signed: boolean().notNull().default(false),
   },
   (t) => [unique('user_client_id').on(t.user_id, t.clientside_id)]
 )

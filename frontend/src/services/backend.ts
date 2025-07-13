@@ -58,17 +58,19 @@ export const reqLoginWithCode = (email: string, code: string) =>
     body: {email, login_code: code},
   })
 
+type EncUpsertPut = {
+  id: string
+  type: 'note' | 'todo' | 'label'
+  created_at: number
+  updated_at: number
+  cipher_text: string
+  iv: string
+  version: number
+  deleted_at: null
+}
 export type EncPut =
-  | {
-      id: string
-      type: 'note' | 'todo' | 'label' | 'file'
-      created_at: number
-      updated_at: number
-      cipher_text: string
-      iv: string
-      version: number
-      deleted_at: null
-    }
+  | EncUpsertPut
+  | Overwrite<EncUpsertPut, {type: 'file'; size: number}>
   | {
       id: string
       type: 'note' | 'todo' | 'label' | 'file'

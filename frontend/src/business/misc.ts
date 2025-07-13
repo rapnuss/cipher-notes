@@ -128,17 +128,17 @@ export const putToNote = (put: Put): Note => {
 }
 
 export const putToFile = (put: Put): FilePull => {
-  const {id, created_at, updated_at, version, deleted_at, type, txt} = put
-  if (type !== 'file') {
+  if (put.type !== 'file') {
     throw new Error('Put is not a file')
-  } else if (txt === null || deleted_at !== null) {
+  }
+  if (put.txt === null || put.deleted_at !== null) {
     return {
-      id,
+      id: put.id,
       type: 'file',
-      created_at,
-      updated_at,
-      version,
-      deleted_at,
+      created_at: put.created_at,
+      updated_at: put.updated_at,
+      version: put.version,
+      deleted_at: put.deleted_at,
     }
   }
   const parse = zodParseString(filePutTxtSchema, put.txt)
@@ -147,10 +147,10 @@ export const putToFile = (put: Put): FilePull => {
   }
   const {title, ext, mime, labels, archived} = parse
   return {
-    id,
-    created_at,
-    updated_at,
-    version,
+    id: put.id,
+    created_at: put.created_at,
+    updated_at: put.updated_at,
+    version: put.version,
     deleted_at: 0,
     archived: archived ? 1 : 0,
     type: 'file',
@@ -158,6 +158,7 @@ export const putToFile = (put: Put): FilePull => {
     ext,
     mime,
     labels,
+    size: put.size,
   }
 }
 
@@ -249,6 +250,7 @@ export const fileToPut = (f: FileMeta): Put => {
     version: f.version,
     deleted_at: null,
     type: 'file',
+    size: f.size,
   }
 }
 
@@ -426,6 +428,7 @@ export const fileMetaToPull = (file: FileMeta): FilePull => {
     labels,
     mime,
     title,
+    size,
   } = file
   if (deleted_at !== 0) {
     return {
@@ -449,6 +452,7 @@ export const fileMetaToPull = (file: FileMeta): FilePull => {
       mime,
       labels,
       title,
+      size,
     }
   }
 }

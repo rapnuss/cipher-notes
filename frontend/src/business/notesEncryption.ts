@@ -7,17 +7,20 @@ import {
   importKey,
 } from '../util/encryption'
 import {EncPut} from '../services/backend'
+import {Overwrite} from '../util/type'
 
+type UpsertPut = {
+  id: string
+  type: 'note' | 'todo' | 'label'
+  created_at: number
+  updated_at: number
+  txt: string
+  version: number
+  deleted_at: null
+}
 export type Put =
-  | {
-      id: string
-      type: 'note' | 'todo' | 'label' | 'file'
-      created_at: number
-      updated_at: number
-      txt: string
-      version: number
-      deleted_at: null
-    }
+  | UpsertPut
+  | Overwrite<UpsertPut, {type: 'file'; size: number}>
   | {
       id: string
       type: 'note' | 'todo' | 'label' | 'file'
@@ -45,15 +48,15 @@ export const decryptSyncData = async (cryptoKey: string, puts: EncPut[]): Promis
 export const encryptSyncData = async (cryptoKey: string, puts: Put[]): Promise<EncPut[]> => {
   const key = await importKey(cryptoKey)
   return await Promise.all(
-    puts.map(({txt, deleted_at, ...p}) =>
-      txt !== null && deleted_at === null
-        ? encryptString(key, txt).then(({cipher_text, iv}) => ({
+    puts.map((p) =>
+      p.txt === null || p.deleted_at !== null
+        ? {...p, cipher_text: null, iv: null}
+        : encryptString(key, p.txt).then(({cipher_text, iv}) => ({
             ...p,
             cipher_text,
             iv,
             deleted_at: null,
           }))
-        : {...p, cipher_text: null, iv: null, deleted_at}
     )
   )
 }

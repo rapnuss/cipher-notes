@@ -34,3 +34,7 @@ export type JsonArr = (JsonValue | JsonArr | JsonObj)[]
 export type JsonObj = {[key: string]: JsonValue | JsonArr | JsonObj}
 export type JsonRoot = JsonArr | JsonObj
 export type JsonAny = JsonValue | JsonArr | JsonObj
+
+export type Prettify<T> = {
+  [K in keyof T]: T[K]
+} & unknown

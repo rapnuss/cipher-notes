@@ -38,6 +38,7 @@ export type FileMeta = {
   labels: string[]
   archived: 0 | 1
   has_thumb: 0 | 1
+  size: number
 }
 export type FileBlob = {
   id: string
@@ -71,6 +72,7 @@ const filePullDefExtraKeysEnum: {[K in FilePullDefExtraKeys]: K} = {
   mime: 'mime',
   labels: 'labels',
   archived: 'archived',
+  size: 'size',
 }
 type FilePullDefExtraKeys = Exclude<keyof FilePullDef, FilePullDellKeys>
 export const filePullDefExtraKeys: Readonly<FilePullDefExtraKeys[]> = Object.freeze(

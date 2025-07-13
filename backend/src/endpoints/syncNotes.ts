@@ -9,8 +9,8 @@ import {Overwrite} from '../util/type'
 import {env} from '../env'
 import {userToSessionToSocket} from '../socket'
 
-const putTypeSchema = z.enum(['note', 'todo', 'label', 'file'])
-const upsertSchema = z.object({
+const putTypeSchema = z.enum(['note', 'todo', 'label'])
+const upsertCommonSchema = z.object({
   id: z.string().uuid(),
   type: putTypeSchema,
   created_at: z.number().int().positive(),
@@ -19,6 +19,10 @@ const upsertSchema = z.object({
   iv: z.string(),
   version: z.number().int().positive(),
   deleted_at: z.null(),
+})
+const upsertFileSchema = upsertCommonSchema.extend({
+  type: z.literal('file'),
+  size: z.number().int().positive(),
 })
 const deleteSchema = z.object({
   id: z.string().uuid(),
@@ -30,7 +34,7 @@ const deleteSchema = z.object({
   version: z.number().int().positive(),
   deleted_at: z.number().int().positive(),
 })
-const putSchema = z.union([upsertSchema, deleteSchema])
+const putSchema = z.union([upsertCommonSchema, upsertFileSchema, deleteSchema])
 const putsSchema = z.array(putSchema)
 type Put = z.infer<typeof putSchema>
 

@@ -211,6 +211,7 @@ export const importFiles = async (files: FileList, activeLabel: ActiveLabel) => 
         labels: activeLabelIsUuid(activeLabel) ? [activeLabel] : [],
         archived: 0,
         has_thumb: 0,
+        size: file.size,
       }
       const blob: FileBlob = {
         id,
