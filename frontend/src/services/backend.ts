@@ -143,14 +143,16 @@ export const reqChangeEmail = ({
     },
   })
 
-export const reqGetUploadUrls = (noteIds: string[]) =>
-  request<{urls: {note_id: string; url: string}[]}>('/getUploadUrls', {
+export type GetPresignedUrlsReq = {
+  upload_ids: string[]
+  download_ids: string[]
+}
+export type GetPresignedUrlsRes = {
+  upload_urls: {note_id: string; url: string; fields: Record<string, string>}[]
+  download_urls: {note_id: string; url: string}[]
+}
+export const reqGetPresignedUrls = (req: GetPresignedUrlsReq) =>
+  request<GetPresignedUrlsRes>('/getPresignedUrls', {
     method: 'POST',
-    body: {note_ids: noteIds},
-  })
-
-export const reqGetDownloadUrls = (noteIds: string[]) =>
-  request<{urls: {note_id: string; url: string}[]}>('/getDownloadUrls', {
-    method: 'POST',
-    body: {note_ids: noteIds},
+    body: req,
   })
