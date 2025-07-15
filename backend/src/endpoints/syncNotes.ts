@@ -44,6 +44,7 @@ type IndeterminatePut = Overwrite<
     cipher_text: string | null
     iv: string | null
     deleted_at: number | null
+    size: number | undefined
   }
 >
 
@@ -106,6 +107,10 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
             iv: existing.iv,
             version: existing.version,
             deleted_at: existing.clientside_deleted_at,
+            size:
+              existing.type === 'file' && existing.clientside_deleted_at !== null
+                ? existing.size
+                : undefined,
           })
         }
       }
@@ -123,6 +128,7 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
             clientside_created_at: c.created_at,
             clientside_updated_at: c.updated_at,
             version: 1,
+            size: c.type === 'file' ? c.size : 0,
           }))
         )
       }
@@ -164,6 +170,7 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
           iv: n.iv,
           version: n.version,
           deleted_at: n.clientside_deleted_at,
+          size: n.type === 'file' ? n.size : undefined,
         })
       )
       const maxPutAt = Math.max(...dbPuts.map((c) => c.serverside_updated_at))

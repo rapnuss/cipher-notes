@@ -31,7 +31,7 @@ export type FileMeta = {
   deleted_at: number
   version: number
   state: 'dirty' | 'synced'
-  blobState: 'local' | 'synced' | 'remote'
+  blob_state: 'local' | 'synced' | 'remote'
   title: string
   ext: string
   mime: string
@@ -59,7 +59,7 @@ export const filePullDellKeys = Object.freeze([
 ]) satisfies Readonly<(keyof FileMeta)[]>
 export type FilePullDellKeys = (typeof filePullDellKeys)[number]
 export type FilePullDel = Pick<FileMeta, FilePullDellKeys>
-export type FilePullDef = Omit<FileMeta, 'deleted_at' | 'blobState' | 'has_thumb' | 'state'> & {
+export type FilePullDef = Omit<FileMeta, 'deleted_at' | 'blob_state' | 'has_thumb' | 'state'> & {
   deleted_at: 0
 }
 export type FilePull = XOR<FilePullDel, FilePullDef>

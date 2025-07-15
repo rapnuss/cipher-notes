@@ -6,12 +6,13 @@ import {
   FilePullWithState,
 } from '../business/models'
 import {comlink} from '../comlink'
-import {db} from '../db'
+import {db, hasUnsyncedBlobsObservable} from '../db'
 import {debounce, nonConcurrent, splitFilename} from '../util/misc'
 import {getState, setState, subscribe} from './store'
 
 export type FilesState = {
   importing: boolean
+  upDownloading: boolean
   openFile: {
     id: string
     title: string
@@ -27,6 +28,7 @@ export type FilesState = {
 }
 export const filesInit = {
   importing: false,
+  upDownloading: false,
   openFile: null,
   fileDialog: {
     labelDropdownOpen: false,
@@ -206,7 +208,7 @@ export const importFiles = async (files: FileList, activeLabel: ActiveLabel) => 
         title: name,
         state: 'dirty',
         version: 1,
-        blobState: 'local',
+        blob_state: 'local',
         mime: file.type,
         labels: activeLabelIsUuid(activeLabel) ? [activeLabel] : [],
         archived: 0,
@@ -249,10 +251,33 @@ const storeOpenFile = nonConcurrent(async () => {
   }
 })
 
+export const upDownloadBlobsAndSetState = debounce(
+  nonConcurrent(async () => {
+    setState((state) => {
+      state.files.upDownloading = true
+    })
+    await comlink
+      .upDownloadBlobs()
+      .catch(console.error)
+      .finally(() => {
+        setState((state) => {
+          state.files.upDownloading = false
+        })
+      })
+  }),
+  1000
+)
+
 export const registerFilesSubscriptions = () => {
   const storeDebounced = debounce(storeOpenFile, 1000)
   subscribe(
     (state) => state.files.openFile,
     (curr, prev) => curr && prev && storeDebounced()
   )
+
+  hasUnsyncedBlobsObservable.subscribe((hasUnsyncedBlobs) => {
+    if (hasUnsyncedBlobs) {
+      upDownloadBlobsAndSetState()
+    }
+  })
 }

@@ -68,7 +68,7 @@ db.version(6)
 
 db.version(7).stores({
   files_meta:
-    'id, created_at, updated_at, deleted_at, state, name, ext, mime, archived, has_thumb, size',
+    'id, created_at, updated_at, deleted_at, state, name, ext, mime, archived, has_thumb, size, blob_state',
   files_blob: 'id',
   files_thumb: 'id',
 })
@@ -88,7 +88,7 @@ export const hasDirtyLabelsObservable = liveQuery(() =>
     .where('state')
     .equals('dirty')
     .first()
-    .then((n) => n !== undefined)
+    .then((l) => l !== undefined)
 )
 
 export const hasDirtyFilesMetaObservable = liveQuery(() =>
@@ -96,5 +96,14 @@ export const hasDirtyFilesMetaObservable = liveQuery(() =>
     .where('state')
     .equals('dirty')
     .first()
-    .then((n) => n !== undefined)
+    .then((f) => f !== undefined)
+)
+
+export const hasUnsyncedBlobsObservable = liveQuery(() =>
+  db.files_meta
+    .where('state')
+    .equals('synced')
+    .and((f) => f.blob_state !== 'synced')
+    .first()
+    .then((f) => f !== undefined)
 )

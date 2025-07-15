@@ -23,7 +23,12 @@ import {
 } from '../util/misc'
 import {EncPut, isUnauthorizedRes, reqSyncNotes} from '../services/backend'
 import {Put, decryptSyncData, encryptSyncData} from '../business/notesEncryption'
-import {db, hasDirtyLabelsObservable, hasDirtyNotesObservable} from '../db'
+import {
+  db,
+  hasDirtyFilesMetaObservable,
+  hasDirtyLabelsObservable,
+  hasDirtyNotesObservable,
+} from '../db'
 import {
   deriveTodosData,
   fileMetaToPull,
@@ -51,7 +56,7 @@ import {
 import XSet from '../util/XSet'
 import {notifications} from '@mantine/notifications'
 import {UserState} from './user'
-import {setOpenFile} from './files'
+import {setOpenFile, upDownloadBlobsAndSetState} from './files'
 
 export type NotesState = {
   query: string
@@ -752,7 +757,7 @@ export const syncNotes = nonConcurrent(async () => {
           .toArray()
         await tx.files_meta.bulkPut(
           insertFileIds
-            .map((id) => ({...filesToStore[id]!, has_thumb: 0, blobState: 'remote'} as const))
+            .map((id) => ({...filesToStore[id]!, has_thumb: 0, blob_state: 'remote'} as const))
             .filter((f) => f.title !== undefined)
         )
 
@@ -819,6 +824,7 @@ export const syncNotes = nonConcurrent(async () => {
         })
       }
     })
+    upDownloadBlobsAndSetState()
   } catch (e) {
     setState((state) => {
       const message = e instanceof Error ? e.message : 'Unknown error'
@@ -931,6 +937,11 @@ export const registerNotesSubscriptions = () => {
   })
   hasDirtyLabelsObservable.subscribe((hasDirtyLabels) => {
     if (hasDirtyLabels) {
+      syncNotesDebounced()
+    }
+  })
+  hasDirtyFilesMetaObservable.subscribe((hasDirtyFiles) => {
+    if (hasDirtyFiles) {
       syncNotesDebounced()
     }
   })

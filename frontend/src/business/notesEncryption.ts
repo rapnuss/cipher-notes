@@ -34,30 +34,37 @@ export type Put =
 export const decryptSyncData = async (cryptoKey: string, puts: EncPut[]): Promise<Put[]> => {
   const key = await importKey(cryptoKey)
   return await Promise.all(
-    puts.map((p) =>
-      p.deleted_at === null && p.cipher_text !== null && p.iv !== null
-        ? decryptString(key, p.cipher_text, p.iv).then((txt) => ({
-            ...p,
-            txt,
-          }))
-        : {...p, txt: null}
-    )
+    puts.map(async (p) => {
+      const res: Put & {cipher_text?: string | null; iv?: string | null} =
+        p.deleted_at === null && p.cipher_text !== null && p.iv !== null
+          ? await decryptString(key, p.cipher_text, p.iv).then((txt) => ({
+              ...p,
+              txt,
+            }))
+          : {...p, txt: null}
+      delete res.cipher_text
+      delete res.iv
+      return res
+    })
   )
 }
 
 export const encryptSyncData = async (cryptoKey: string, puts: Put[]): Promise<EncPut[]> => {
   const key = await importKey(cryptoKey)
   return await Promise.all(
-    puts.map((p) =>
-      p.txt === null || p.deleted_at !== null
-        ? {...p, cipher_text: null, iv: null}
-        : encryptString(key, p.txt).then(({cipher_text, iv}) => ({
-            ...p,
-            cipher_text,
-            iv,
-            deleted_at: null,
-          }))
-    )
+    puts.map(async (p) => {
+      const res: EncPut & {txt?: string | null} =
+        p.txt === null || p.deleted_at !== null
+          ? {...p, cipher_text: null, iv: null}
+          : await encryptString(key, p.txt).then(({cipher_text, iv}) => ({
+              ...p,
+              cipher_text,
+              iv,
+              deleted_at: null,
+            }))
+      delete res.txt
+      return res
+    })
   )
 }
 

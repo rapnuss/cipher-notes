@@ -53,12 +53,11 @@ DONE:
     handle esc on more menu
     handle esc on delete dialog
 FIRST:
-  one sync endpoint for files_meta and notes/labels
-    synch in chunks
-  upload endpoint
-    upload one fila at a time
-  download endpoint
-    one file at a time
+  encrypt blobs
+  fix: open file archived status is not synced immediately
+  delete blobs on server when file deleted locally
+  How to handle the case where a blob is marked synced but is missing in s3?
+    If I set the blob_state to local, but the blob exist, the upload will fail.
 TODO:
   files
     store files client

@@ -74,7 +74,7 @@ export const OpenFileDialog = () => {
     true
   )
   if (!file) return null
-  const openNoteLabel = file.labels?.[0]
+  const openNoteLabel = file.labels[0]
   const hue: Hue = openNoteLabel ? labelsCache[openNoteLabel]?.hue ?? null : null
   const src = `/files/${file.id}`
   return (
@@ -133,7 +133,13 @@ export const OpenFileDialog = () => {
           </div>
         )}
       </Flex>
-      {file.mime.startsWith('image/') ? (
+      {file.blob_state === 'remote' ? (
+        <div
+          style={{flex: '1 1 0', display: 'flex', justifyContent: 'center', alignItems: 'center'}}
+        >
+          File not downloaded
+        </div>
+      ) : file.mime.startsWith('image/') ? (
         <ImageViewer src={src} alt={file.title} />
       ) : file.mime === 'application/pdf' ? (
         <iframe
