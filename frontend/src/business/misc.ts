@@ -242,6 +242,17 @@ export const fileToPut = (f: FileMeta): Put => {
     labels: f.labels,
     archived: !!f.archived,
   }
+  if (f.deleted_at !== 0) {
+    return {
+      type: 'file',
+      deleted_at: f.deleted_at,
+      txt: null,
+      id: f.id,
+      created_at: f.created_at,
+      updated_at: f.updated_at,
+      version: f.version,
+    }
+  }
   return {
     id: f.id,
     created_at: f.created_at,

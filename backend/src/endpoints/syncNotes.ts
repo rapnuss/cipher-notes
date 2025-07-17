@@ -1,4 +1,4 @@
-import {and, eq, gt, inArray, notInArray, sql} from 'drizzle-orm'
+import {and, eq, gt, inArray, isNotNull, notInArray, sql} from 'drizzle-orm'
 import {db} from '../db'
 import {notesTbl, usersTbl} from '../db/schema'
 import {authEndpointsFactory} from '../endpointsFactory'
@@ -8,11 +8,12 @@ import {bisectBy} from '../util/misc'
 import {Overwrite} from '../util/type'
 import {env} from '../env'
 import {userToSessionToSocket} from '../socket'
+import {s3DeleteKeys} from '../services/s3'
 
-const putTypeSchema = z.enum(['note', 'todo', 'label'])
+const typesWithoutFile = ['note', 'todo', 'label'] as const
 const upsertCommonSchema = z.object({
   id: z.string().uuid(),
-  type: putTypeSchema,
+  type: z.enum(typesWithoutFile),
   created_at: z.number().int().positive(),
   updated_at: z.number().int().positive(),
   cipher_text: z.string(),
@@ -26,7 +27,7 @@ const upsertFileSchema = upsertCommonSchema.extend({
 })
 const deleteSchema = z.object({
   id: z.string().uuid(),
-  type: putTypeSchema,
+  type: z.enum([...typesWithoutFile, 'file']),
   created_at: z.number().int().positive(),
   updated_at: z.number().int().positive(),
   cipher_text: z.null(),
@@ -199,6 +200,12 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
         .forEach(([, socket]) => socket.emit('notesPushed', res.pushedIds))
     }
 
+    deleteBlobs(user_id)
+      .then((n) => {
+        if (n > 0) console.log(`deleted ${n} blobs`)
+      })
+      .catch(console.error)
+
     return res
   },
 })
@@ -210,3 +217,28 @@ const putIsEqualToDbNote = (put: Put, dbNote: typeof notesTbl.$inferSelect) =>
   put.updated_at === dbNote.clientside_updated_at &&
   put.version === dbNote.version &&
   put.deleted_at === dbNote.clientside_deleted_at
+
+const deleteBlobs = async (user_id: number): Promise<number> => {
+  const deletedFiles = await db
+    .select({id: notesTbl.id, clientside_id: notesTbl.clientside_id})
+    .from(notesTbl)
+    .where(
+      and(
+        eq(notesTbl.user_id, user_id),
+        eq(notesTbl.type, 'file'),
+        isNotNull(notesTbl.clientside_deleted_at),
+        notesTbl.upload_url_was_signed
+      )
+    )
+    .limit(1000)
+
+  if (deletedFiles.length === 0) return 0
+
+  const deletedKeys = await s3DeleteKeys(deletedFiles.map((f) => `${user_id}/${f.clientside_id}`))
+  const deletedIds = deletedKeys.map((k) => k.split('/')[1]).filter((k) => k !== undefined)
+  await db
+    .update(notesTbl)
+    .set({upload_url_was_signed: false})
+    .where(inArray(notesTbl.clientside_id, deletedIds))
+  return deletedIds.length
+}

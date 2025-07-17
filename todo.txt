@@ -52,10 +52,11 @@ DONE:
   delete and archive on overview
     handle esc on more menu
     handle esc on delete dialog
+  figure out duplicate files on the other client issue
+  delete blobs on server when file deleted locally
 FIRST:
   encrypt blobs
   fix: open file archived status is not synced immediately
-  delete blobs on server when file deleted locally
   How to handle the case where a blob is marked synced but is missing in s3?
     If I set the blob_state to local, but the blob exist, the upload will fail.
 TODO:
