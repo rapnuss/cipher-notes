@@ -81,8 +81,8 @@ export async function encryptBlob(key: CryptoKey, blob: Blob): Promise<Blob> {
 }
 
 export async function decryptBlob(
-  encryptedBlob: Blob,
   key: CryptoKey,
+  encryptedBlob: Blob,
   mime: string
 ): Promise<Blob> {
   const encryptedArrayBuffer = await encryptedBlob.arrayBuffer()
