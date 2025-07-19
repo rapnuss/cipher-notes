@@ -134,10 +134,21 @@ export const throttle = <Args extends any[]>(fn: (...args: Args) => unknown, tim
   }
 }
 
-export const indexBy = <T, K extends string>(arr: T[], keyFn: (item: T) => K) => {
-  const map = {} as Record<K, T>
+export const indexBy = <T, K extends string | number>(
+  arr: T[],
+  keyFn: (item: T) => K
+): Map<K, T> => {
+  const map = new Map<K, T>()
   for (const item of arr) {
-    map[keyFn(item)] = item
+    map.set(keyFn(item), item)
+  }
+  return map
+}
+
+export const indexByProp = <T, K extends keyof T>(arr: T[], key: K): Map<T[K], T> => {
+  const map = new Map<T[K], T>()
+  for (const item of arr) {
+    map.set(item[key], item)
   }
   return map
 }
@@ -315,6 +326,21 @@ export const takeJsonSize = <T extends JsonAny>(arr: T[], limit: number): T[] =>
   const res: T[] = []
   for (const item of arr) {
     const size = 1 + JSON.stringify(item).length
+    if (totalSize + size > limit) {
+      break
+    }
+    res.push(item)
+    totalSize += size
+  }
+  return res
+}
+
+export const takeSum = <T>(arr: T[], limit: number, getSize: (x: T) => number): T[] => {
+  if (arr.length === 0) return []
+  let totalSize = 0
+  const res: T[] = []
+  for (const item of arr) {
+    const size = getSize(item)
     if (totalSize + size > limit) {
       break
     }

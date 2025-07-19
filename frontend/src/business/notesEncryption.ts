@@ -7,11 +7,10 @@ import {
   importKey,
 } from '../util/encryption'
 import {EncPut} from '../services/backend'
-import {Overwrite} from '../util/type'
 
 type UpsertPut = {
   id: string
-  type: 'note' | 'todo' | 'label'
+  type: 'note' | 'todo' | 'label' | 'file'
   created_at: number
   updated_at: number
   txt: string
@@ -20,7 +19,6 @@ type UpsertPut = {
 }
 export type Put =
   | UpsertPut
-  | Overwrite<UpsertPut, {type: 'file'; size: number}>
   | {
       id: string
       type: 'note' | 'todo' | 'label' | 'file'

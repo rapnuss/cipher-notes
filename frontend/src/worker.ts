@@ -2,8 +2,9 @@
 
 import {db} from './db'
 import {GetPresignedUrlsReq, reqGetPresignedUrls} from './services/backend'
+import {decryptBlob, encryptBlob, importKey} from './util/encryption'
 import {canvasSupportedImageMimeTypes, generateThumbnail} from './util/images'
-import {nonConcurrent} from './util/misc'
+import {indexByProp, nonConcurrent, takeSum} from './util/misc'
 import XSet from './util/XSet'
 
 export const generateThumbnails = nonConcurrent(async (): Promise<void> => {
@@ -48,33 +49,68 @@ export const generateThumbnails = nonConcurrent(async (): Promise<void> => {
   }
 })
 
-export const upDownloadBlobs = async (): Promise<void> => {
-  const files = await db.files_meta.where('blob_state').notEqual('synced').toArray()
-  const req: GetPresignedUrlsReq = {
-    upload_ids: files.filter((f) => f.blob_state === 'local').map((f) => f.id),
-    download_ids: files.filter((f) => f.blob_state === 'remote').map((f) => f.id),
+export const upDownloadBlobs = async (cryptoKey: string): Promise<void> => {
+  const key = await importKey(cryptoKey)
+  while (true) {
+    const {selectedAll, hit_storage_limit} = await _upDownloadBlobs(key)
+    if (selectedAll || hit_storage_limit) {
+      break
+    }
   }
-  if (req.upload_ids.length === 0 && req.download_ids.length === 0) {
-    queueMicrotask(generateThumbnails)
-    return
+
+  queueMicrotask(generateThumbnails)
+}
+
+const _upDownloadBlobs = async (
+  cryptoKey: CryptoKey
+): Promise<{selectedAll: boolean; hit_storage_limit: boolean}> => {
+  const unsynced = await db.files_meta.where('blob_state').notEqual('synced').toArray()
+
+  const downloadIds = unsynced.filter((f) => f.blob_state === 'remote').map((f) => f.id)
+  const localFiles = unsynced.filter((f) => f.blob_state === 'local')
+  const preSelectedUploadIds = takeSum(localFiles, 100 * 1024 * 1024, (f) => f.size).map(
+    (f) => f.id
+  )
+
+  const uploadBlobs = await db.files_blob.where('id').anyOf(preSelectedUploadIds).toArray()
+  const encryptedUploadBlobs = await Promise.all(
+    uploadBlobs.map(async (b) => ({id: b.id, blob: await encryptBlob(cryptoKey, b.blob)}))
+  )
+  const encryptedUploadBlobsById = indexByProp(encryptedUploadBlobs, 'id')
+
+  const selectedEncryptedUploadBlobs = takeSum(
+    encryptedUploadBlobs,
+    100 * 1024 * 1024,
+    (b) => b.blob.size
+  )
+
+  const selectedAll = selectedEncryptedUploadBlobs.length === localFiles.length
+
+  const req: GetPresignedUrlsReq = {
+    uploads: selectedEncryptedUploadBlobs.map((b) => ({id: b.id, size: b.blob.size})),
+    download_ids: downloadIds,
+  }
+  if (req.uploads.length === 0 && req.download_ids.length === 0) {
+    return {selectedAll, hit_storage_limit: false}
   }
   const res = await reqGetPresignedUrls(req)
   if (!res.success) {
     throw new Error(`Failed to get presigned urls: ${res.error}`)
   }
-  const {upload_urls, download_urls} = res.data
+  const {upload_urls, download_urls, hit_storage_limit} = res.data
 
   for (const {note_id, url, fields} of upload_urls) {
-    const file = files.find((f) => f.id === note_id)
+    const file = unsynced.find((f) => f.id === note_id)
     if (!file) continue
 
     const formData = new FormData()
     for (const key in fields) {
       formData.append(key, fields[key]!)
     }
-    const fb = await db.files_blob.get(file.id)
-    if (!fb) continue
-    formData.append('file', fb.blob)
+
+    const blob = encryptedUploadBlobsById.get(file.id)?.blob
+    if (!blob) continue
+    formData.append('file', blob)
     const res = await fetch(url, {
       method: 'POST',
       body: formData,
@@ -86,18 +122,26 @@ export const upDownloadBlobs = async (): Promise<void> => {
   }
 
   for (const {note_id, url} of download_urls) {
-    const file = files.find((f) => f.id === note_id)
+    const file = unsynced.find((f) => f.id === note_id)
     if (!file) continue
 
     const res = await fetch(url)
     if (!res.ok) {
-      throw new Error(`Failed to download blob ${file.id}: ${res.statusText}`)
+      console.info(`Failed to download blob ${file.id}: ${res.status}`)
+      continue
     }
-    const blob = await res.blob()
+    let encBlob
+    try {
+      encBlob = await res.blob()
+    } catch (error) {
+      console.info('Failed to get Blob ' + error)
+      continue
+    }
+    const decryptedBlob = await decryptBlob(cryptoKey, encBlob, file.mime)
     await db.transaction('rw', db.files_meta, db.files_blob, async (tx) => {
       await tx.files_meta.update(file.id, {blob_state: 'synced'})
-      await tx.files_blob.put({id: file.id, blob})
+      await tx.files_blob.put({id: file.id, blob: decryptedBlob})
     })
   }
-  queueMicrotask(generateThumbnails)
+  return {selectedAll, hit_storage_limit}
 }

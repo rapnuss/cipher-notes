@@ -60,7 +60,7 @@ export const reqLoginWithCode = (email: string, code: string) =>
 
 type EncUpsertPut = {
   id: string
-  type: 'note' | 'todo' | 'label'
+  type: 'note' | 'todo' | 'label' | 'file'
   created_at: number
   updated_at: number
   cipher_text: string
@@ -70,7 +70,6 @@ type EncUpsertPut = {
 }
 export type EncPut =
   | EncUpsertPut
-  | Overwrite<EncUpsertPut, {type: 'file'; size: number}>
   | {
       id: string
       type: 'note' | 'todo' | 'label' | 'file'
@@ -144,12 +143,13 @@ export const reqChangeEmail = ({
   })
 
 export type GetPresignedUrlsReq = {
-  upload_ids: string[]
+  uploads: {id: string; size: number}[]
   download_ids: string[]
 }
 export type GetPresignedUrlsRes = {
   upload_urls: {note_id: string; url: string; fields: Record<string, string>}[]
   download_urls: {note_id: string; url: string}[]
+  hit_storage_limit: boolean
 }
 export const reqGetPresignedUrls = (req: GetPresignedUrlsReq) =>
   request<GetPresignedUrlsRes>('/getPresignedUrls', {

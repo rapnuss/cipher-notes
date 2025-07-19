@@ -1,4 +1,4 @@
-import {pgTable, varchar, text, integer, unique, bigint, pgEnum, boolean} from 'drizzle-orm/pg-core'
+import {pgTable, varchar, text, integer, unique, bigint, pgEnum} from 'drizzle-orm/pg-core'
 
 export const subscriptionTypeEnum = pgEnum('subscription_type', ['free', 'plus', 'pro'])
 
@@ -56,9 +56,10 @@ export const notesTbl = pgTable(
     clientside_updated_at: bigint({mode: 'number'}).notNull(),
     clientside_deleted_at: bigint({mode: 'number'}),
 
-    // file specific fields
-    size: integer().notNull().default(0),
-    upload_url_was_signed: boolean().notNull().default(false),
+    // for files only:
+    //  The size allowed to be posted to the presigned url, 0 if no presigned post url was generated.
+    //  Used to calculate s3 limit without knowing if the blob was actually uploaded.
+    committed_size: integer().notNull().default(0),
   },
   (t) => [unique('user_client_id').on(t.user_id, t.clientside_id)]
 )

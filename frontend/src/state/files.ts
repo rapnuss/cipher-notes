@@ -253,11 +253,15 @@ const storeOpenFile = nonConcurrent(async () => {
 
 export const upDownloadBlobsAndSetState = debounce(
   nonConcurrent(async () => {
+    const keyTokenPair = getState().user.user.keyTokenPair
+    if (!keyTokenPair) {
+      return
+    }
     setState((state) => {
       state.files.upDownloading = true
     })
     await comlink
-      .upDownloadBlobs()
+      .upDownloadBlobs(keyTokenPair.cryptoKey)
       .catch(console.error)
       .finally(() => {
         setState((state) => {

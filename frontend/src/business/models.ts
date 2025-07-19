@@ -163,6 +163,7 @@ export const filePutTxtSchema = z.object({
   mime: z.string(),
   labels: z.array(z.string().uuid()),
   archived: z.boolean(),
+  size: z.number().int().positive(),
 })
 export type FilePutTxt = z.infer<typeof filePutTxtSchema>
 

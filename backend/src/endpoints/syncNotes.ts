@@ -10,10 +10,10 @@ import {env} from '../env'
 import {userToSessionToSocket} from '../socket'
 import {s3DeleteKeys} from '../services/s3'
 
-const typesWithoutFile = ['note', 'todo', 'label'] as const
-const upsertCommonSchema = z.object({
+const types = ['note', 'todo', 'label', 'file'] as const
+const upsertSchema = z.object({
   id: z.string().uuid(),
-  type: z.enum(typesWithoutFile),
+  type: z.enum(types),
   created_at: z.number().int().positive(),
   updated_at: z.number().int().positive(),
   cipher_text: z.string(),
@@ -21,13 +21,9 @@ const upsertCommonSchema = z.object({
   version: z.number().int().positive(),
   deleted_at: z.null(),
 })
-const upsertFileSchema = upsertCommonSchema.extend({
-  type: z.literal('file'),
-  size: z.number().int().positive(),
-})
 const deleteSchema = z.object({
   id: z.string().uuid(),
-  type: z.enum([...typesWithoutFile, 'file']),
+  type: z.enum(types),
   created_at: z.number().int().positive(),
   updated_at: z.number().int().positive(),
   cipher_text: z.null(),
@@ -35,7 +31,7 @@ const deleteSchema = z.object({
   version: z.number().int().positive(),
   deleted_at: z.number().int().positive(),
 })
-const putSchema = z.union([upsertCommonSchema, upsertFileSchema, deleteSchema])
+const putSchema = z.union([upsertSchema, deleteSchema])
 const putsSchema = z.array(putSchema)
 type Put = z.infer<typeof putSchema>
 
@@ -45,7 +41,6 @@ type IndeterminatePut = Overwrite<
     cipher_text: string | null
     iv: string | null
     deleted_at: number | null
-    size: number | undefined
   }
 >
 
@@ -108,10 +103,6 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
             iv: existing.iv,
             version: existing.version,
             deleted_at: existing.clientside_deleted_at,
-            size:
-              existing.type === 'file' && existing.clientside_deleted_at !== null
-                ? existing.size
-                : undefined,
           })
         }
       }
@@ -129,7 +120,6 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
             clientside_created_at: c.created_at,
             clientside_updated_at: c.updated_at,
             version: 1,
-            size: c.type === 'file' ? c.size : 0,
           }))
         )
       }
@@ -171,7 +161,6 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
           iv: n.iv,
           version: n.version,
           deleted_at: n.clientside_deleted_at,
-          size: n.type === 'file' ? n.size : undefined,
         })
       )
       const maxPutAt = Math.max(...dbPuts.map((c) => c.serverside_updated_at))
@@ -227,7 +216,7 @@ const deleteBlobs = async (user_id: number): Promise<number> => {
         eq(notesTbl.user_id, user_id),
         eq(notesTbl.type, 'file'),
         isNotNull(notesTbl.clientside_deleted_at),
-        notesTbl.upload_url_was_signed
+        gt(notesTbl.committed_size, 0)
       )
     )
     .limit(1000)
@@ -238,7 +227,7 @@ const deleteBlobs = async (user_id: number): Promise<number> => {
   const deletedIds = deletedKeys.map((k) => k.split('/')[1]).filter((k) => k !== undefined)
   await db
     .update(notesTbl)
-    .set({upload_url_was_signed: false})
+    .set({committed_size: 0})
     .where(inArray(notesTbl.clientside_id, deletedIds))
   return deletedIds.length
 }

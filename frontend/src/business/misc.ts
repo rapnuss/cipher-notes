@@ -145,7 +145,7 @@ export const putToFile = (put: Put): FilePull => {
   if (!parse) {
     throw new Error('Invalid file put')
   }
-  const {title, ext, mime, labels, archived} = parse
+  const {title, ext, mime, labels, archived, size} = parse
   return {
     id: put.id,
     created_at: put.created_at,
@@ -158,7 +158,7 @@ export const putToFile = (put: Put): FilePull => {
     ext,
     mime,
     labels,
-    size: put.size,
+    size,
   }
 }
 
@@ -241,6 +241,7 @@ export const fileToPut = (f: FileMeta): Put => {
     mime: f.mime,
     labels: f.labels,
     archived: !!f.archived,
+    size: f.size,
   }
   if (f.deleted_at !== 0) {
     return {
@@ -261,7 +262,6 @@ export const fileToPut = (f: FileMeta): Put => {
     version: f.version,
     deleted_at: null,
     type: 'file',
-    size: f.size,
   }
 }
 
