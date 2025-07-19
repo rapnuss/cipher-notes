@@ -55,47 +55,16 @@ DONE:
   figure out duplicate files on the other client issue
   delete blobs on server when file deleted locally
 FIRST:
+TODO:
+  extensions with dot
   notify other clients when file was uploaded
     I can't, what can i do instead?
+      trigger download on open file with status remote and not currently downloading
   fix: open file archived status is not synced immediately
   How to handle the case where a blob is marked synced but is missing in s3?
     If I set the blob_state to local, but the blob exist, the upload will fail.
-TODO:
-  files
-    store files client
-      dexie setup
-      import
-      downloaded
-      deleted
-    store metadata client
-    thumbnails
-      calculate thumbnails
-      serve thumbnails via service worker
-    serve files via service worker
-    ui
-      display preview
-      open files
-        image
-        audio
-        video
-        pdf
-      manage
-        delete
-        label
-        archive
-    sync
-      metadata
-      upload files
-        encrypt blobs
-      download files
-        decrypt blobs
-      rename
-      delete
-    store metadata server
-      schema
-    store files server
-      s3
 LATER:
 MAYBE:
+  better pdf viewer on mobile?
   notes grid paging
   debounce notes search

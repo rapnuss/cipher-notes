@@ -11,7 +11,7 @@ import {
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
 import {ImageViewer} from './ImageViewer'
-import {Hue} from '../business/models'
+import {FileMeta, Hue} from '../business/models'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {getFilename, labelColor} from '../business/misc'
 import {TextViewer} from './TextViewer'
@@ -31,6 +31,8 @@ import {useEffect} from 'react'
 import {useHotkeys} from '@mantine/hooks'
 import {FileIconWithExtension} from './FileIconWithExtension'
 
+const fileNotFound = Symbol('file not found')
+
 export const OpenFileDialog = () => {
   const colorScheme = useMyColorScheme()
   const openFile = useSelector((state) => state.files.openFile)
@@ -38,12 +40,12 @@ export const OpenFileDialog = () => {
   const labelsCache = useSelector((state) => state.labels.labelsCache)
   const open = openFile !== null
   const file = useLiveQuery(
-    () => (openFile ? db.files_meta.get(openFile.id) : undefined),
+    async () => (openFile ? (await db.files_meta.get(openFile.id)) ?? fileNotFound : undefined),
     [openFile?.id]
   )
   useCloseOnBack({id: 'open-file-dialog', open, onClose: fileClosed})
   useEffect(() => {
-    if (!file) {
+    if (file === fileNotFound) {
       fileClosed()
     }
   }, [file])
@@ -73,7 +75,7 @@ export const OpenFileDialog = () => {
     [],
     true
   )
-  if (!file) return null
+  if (!file || file === fileNotFound) return null
   const openNoteLabel = file.labels[0]
   const hue: Hue = openNoteLabel ? labelsCache[openNoteLabel]?.hue ?? null : null
   const src = `/files/${file.id}`

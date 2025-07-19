@@ -10,10 +10,10 @@ import {env} from '../env'
 import {userToSessionToSocket} from '../socket'
 import {s3DeleteKeys} from '../services/s3'
 
-const types = ['note', 'todo', 'label', 'file'] as const
+const typeSchema = z.enum(['note', 'todo', 'label', 'file'])
 const upsertSchema = z.object({
   id: z.string().uuid(),
-  type: z.enum(types),
+  type: typeSchema,
   created_at: z.number().int().positive(),
   updated_at: z.number().int().positive(),
   cipher_text: z.string(),
@@ -23,7 +23,7 @@ const upsertSchema = z.object({
 })
 const deleteSchema = z.object({
   id: z.string().uuid(),
-  type: z.enum(types),
+  type: typeSchema,
   created_at: z.number().int().positive(),
   updated_at: z.number().int().positive(),
   cipher_text: z.null(),

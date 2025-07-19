@@ -91,7 +91,7 @@ const _upDownloadBlobs = async (
     download_ids: downloadIds,
   }
   if (req.uploads.length === 0 && req.download_ids.length === 0) {
-    return {selectedAll, hit_storage_limit: false}
+    return {selectedAll: true, hit_storage_limit: false}
   }
   const res = await reqGetPresignedUrls(req)
   if (!res.success) {
@@ -137,7 +137,9 @@ const _upDownloadBlobs = async (
       console.info('Failed to get Blob ' + error)
       continue
     }
-    const decryptedBlob = await decryptBlob(cryptoKey, encBlob, file.mime)
+    const decryptedBlob = await decryptBlob(cryptoKey, encBlob, file.mime).catch(
+      (e) => new Blob([`Decryption failed: ${e}`], {type: 'text/plain'})
+    )
     await db.transaction('rw', db.files_meta, db.files_blob, async (tx) => {
       await tx.files_meta.update(file.id, {blob_state: 'synced'})
       await tx.files_blob.put({id: file.id, blob: decryptedBlob})
