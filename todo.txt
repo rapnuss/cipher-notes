@@ -54,9 +54,9 @@ DONE:
     handle esc on delete dialog
   figure out duplicate files on the other client issue
   delete blobs on server when file deleted locally
+  extensions with dot
 FIRST:
 TODO:
-  extensions with dot
   notify other clients when file was uploaded
     I can't, what can i do instead?
       trigger download on open file with status remote and not currently downloading

@@ -316,9 +316,10 @@ export const findIndex = <T>(arr: T[], pred: (x: T) => boolean): number | null =
 
 export const splitFilename = (filename: string): [string, string] => {
   const i = filename.lastIndexOf('.')
-  const name = i === -1 ? filename : filename.slice(0, i)
-  const ext = i === -1 ? '' : filename.slice(i + 1)
-  return [name, ext]
+  if (i === -1) {
+    return [filename, '']
+  }
+  return [filename.slice(0, i), filename.slice(i)]
 }
 
 export const takeJsonSize = <T extends JsonAny>(arr: T[], limit: number): T[] => {

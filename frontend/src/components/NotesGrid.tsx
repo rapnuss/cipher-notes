@@ -38,7 +38,7 @@ export const NotesGrid = () => {
               ? n.txt.toLocaleLowerCase().includes(queryLower)
               : n.type === 'todo'
               ? n.todos.some((todo) => todo.txt.toLocaleLowerCase().includes(queryLower))
-              : false))
+              : n.type === 'file' && n.ext.toLocaleLowerCase().includes(queryLower)))
       )
       .sort(byProp(sort.prop, sort.desc))
     return bisectBy(notes ?? [], (n) => n.archived === 1)

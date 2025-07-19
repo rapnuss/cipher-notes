@@ -11,7 +11,7 @@ import {
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
 import {ImageViewer} from './ImageViewer'
-import {FileMeta, Hue} from '../business/models'
+import {Hue} from '../business/models'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {getFilename, labelColor} from '../business/misc'
 import {TextViewer} from './TextViewer'
@@ -131,7 +131,7 @@ export const OpenFileDialog = () => {
               fontWeight: 'bold',
             }}
           >
-            .{file.ext}
+            {file.ext}
           </div>
         )}
       </Flex>

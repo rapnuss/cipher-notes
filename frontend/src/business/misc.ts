@@ -589,4 +589,4 @@ export const parseSubscriptionToken = async (token: string): Promise<Feature[]> 
 }
 
 export const getFilename = ({title, ext}: Pick<FileMeta, 'title' | 'ext'>): string =>
-  ext ? `${title}.${ext}` : title
+  `${title}${ext}`
