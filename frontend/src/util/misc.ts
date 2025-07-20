@@ -350,3 +350,21 @@ export const takeSum = <T>(arr: T[], limit: number, getSize: (x: T) => number): 
   }
   return res
 }
+
+export function parseRangeHeader(
+  rangeHeader: string | null,
+  fileSize: number
+): {start: number; end: number} | null {
+  if (!rangeHeader) return null
+  const match = rangeHeader.match(/bytes=(\d+)-(\d*)/)
+  if (!match || !match[1]) return null
+
+  const start = parseInt(match[1], 10)
+  const end = match[2] ? parseInt(match[2], 10) : fileSize - 1
+
+  if (start >= fileSize || end >= fileSize || start > end) {
+    return null
+  }
+
+  return {start, end}
+}

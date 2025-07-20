@@ -4,6 +4,7 @@ import {clientsClaim} from 'workbox-core'
 import {NavigationRoute, registerRoute} from 'workbox-routing'
 import {NetworkOnly} from 'workbox-strategies'
 import {db} from './db'
+import {parseRangeHeader} from './util/misc'
 
 declare let self: ServiceWorkerGlobalScope
 
@@ -18,13 +19,32 @@ registerRoute(
     request.method === 'GET' &&
     url.origin === self.location.origin &&
     url.pathname.startsWith('/files/'),
-  async ({url}) => {
+  async ({url, request}) => {
     const id = url.pathname.replace(/^\/files\//, '')
     const file = await db.files_blob.get(id)
-    if (file && file.blob) {
-      return new Response(file.blob, {headers: {'Content-Type': file.blob.type}})
+    if (!file || !file.blob) {
+      return new Response('Not found', {status: 404})
     }
-    return new Response('Not found', {status: 404})
+    // support range requests for Safari
+    // TODO: cache the blobs in memory
+    const range = parseRangeHeader(request.headers.get('range'), file.blob.size)
+    if (range) {
+      const {start, end} = range
+      const chunk = file.blob.slice(start, end + 1)
+      const headers = new Headers({
+        'Content-Type': file.blob.type,
+        'Content-Range': `bytes ${start}-${end}/${file.blob.size}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': (end - start + 1).toString(),
+      })
+      return new Response(chunk, {status: 206, headers})
+    }
+    const headers = new Headers({
+      'Content-Type': file.blob.type,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': file.blob.size.toString(),
+    })
+    return new Response(file.blob, {headers})
   }
 )
 
