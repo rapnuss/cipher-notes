@@ -111,7 +111,7 @@ const getUploadUrls = async (
             ['content-length-range', note.committed_size, note.committed_size],
             ['eq', '$key', `${user_id}/${note.clientside_id}`],
           ],
-          Expires: 10 * 60,
+          Expires: 60,
         })
         return {
           note_id: note.clientside_id,
@@ -146,7 +146,7 @@ const getDownloadUrls = async (note_ids: string[], user_id: number) => {
           Bucket: env.S3_BUCKET,
           Key: `${user_id}/${note.clientside_id}`,
         }),
-        {expiresIn: 10 * 60}
+        {expiresIn: 60}
       )
       return {
         note_id: note.clientside_id,
