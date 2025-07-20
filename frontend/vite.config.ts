@@ -6,13 +6,15 @@ import {comlink} from 'vite-plugin-comlink'
 import fs from 'fs'
 import path from 'path'
 
+const isDev = process.env.NODE_ENV === 'development'
+
 // https://vitejs.dev/config/
 export default defineConfig({
   base: './',
   server: {
     https: {
-      key: fs.readFileSync(path.resolve(__dirname, 'key.pem')),
-      cert: fs.readFileSync(path.resolve(__dirname, 'cert.pem')),
+      key: isDev ? fs.readFileSync(path.resolve(__dirname, 'key.pem')) : undefined,
+      cert: isDev ? fs.readFileSync(path.resolve(__dirname, 'cert.pem')) : undefined,
     },
     proxy: {
       '/api': {
