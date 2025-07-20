@@ -14,39 +14,48 @@ precacheAndRoute(self.__WB_MANIFEST)
 // clean old assets
 cleanupOutdatedCaches()
 
-registerRoute(
-  ({url, request}) =>
-    request.method === 'GET' &&
-    url.origin === self.location.origin &&
-    url.pathname.startsWith('/files/'),
-  async ({url, request}) => {
-    const id = url.pathname.replace(/^\/files\//, '')
-    const file = await db.files_blob.get(id)
-    if (!file || !file.blob) {
-      return new Response('Not found', {status: 404})
-    }
-    // support range requests for Safari
-    // TODO: cache the blobs in memory
-    const range = parseRangeHeader(request.headers.get('range'), file.blob.size)
-    if (range) {
-      const {start, end} = range
-      const chunk = file.blob.slice(start, end + 1)
+{
+  let lastId: string | undefined = undefined
+  let lastBlob: Blob | undefined = undefined
+
+  registerRoute(
+    ({url, request}) =>
+      request.method === 'GET' &&
+      url.origin === self.location.origin &&
+      url.pathname.startsWith('/files/'),
+    async ({url, request}) => {
+      const id = url.pathname.replace(/^\/files\//, '')
+      if (!id) {
+        return new Response('Bad Request', {status: 400})
+      }
+      const blob = lastId === id ? lastBlob : (await db.files_blob.get(id))?.blob
+      if (!blob) {
+        return new Response('Not found', {status: 404})
+      }
+      lastId = id
+      lastBlob = blob
+      // support range requests for Safari
+      const range = parseRangeHeader(request.headers.get('range'), blob.size)
+      if (range) {
+        const {start, end} = range
+        const chunk = blob.slice(start, end + 1)
+        const headers = new Headers({
+          'Content-Type': blob.type,
+          'Content-Range': `bytes ${start}-${end}/${blob.size}`,
+          'Accept-Ranges': 'bytes',
+          'Content-Length': (end - start + 1).toString(),
+        })
+        return new Response(chunk, {status: 206, headers})
+      }
       const headers = new Headers({
-        'Content-Type': file.blob.type,
-        'Content-Range': `bytes ${start}-${end}/${file.blob.size}`,
+        'Content-Type': blob.type,
         'Accept-Ranges': 'bytes',
-        'Content-Length': (end - start + 1).toString(),
+        'Content-Length': blob.size.toString(),
       })
-      return new Response(chunk, {status: 206, headers})
+      return new Response(blob, {headers})
     }
-    const headers = new Headers({
-      'Content-Type': file.blob.type,
-      'Accept-Ranges': 'bytes',
-      'Content-Length': file.blob.size.toString(),
-    })
-    return new Response(file.blob, {headers})
-  }
-)
+  )
+}
 
 registerRoute(
   ({url, request}) =>
