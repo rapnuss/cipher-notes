@@ -104,11 +104,12 @@ const getUploadUrls = async (
 
     const upload_urls = await Promise.all(
       selectedNotes.map(async (note) => {
+        const size = uploadsById.get(note.clientside_id)!.size
         const {url, fields} = await createPresignedPost(s3, {
           Bucket: env.S3_BUCKET,
           Key: `${user_id}/${note.clientside_id}`,
           Conditions: [
-            ['content-length-range', note.committed_size, note.committed_size],
+            ['content-length-range', size, size],
             ['eq', '$key', `${user_id}/${note.clientside_id}`],
           ],
           Expires: 60,
