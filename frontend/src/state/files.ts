@@ -51,6 +51,10 @@ export const openFileArchivedToggled = () =>
     if (!state.files.openFile) return
     state.files.openFile.archived = state.files.openFile.archived ? 0 : 1
     state.files.openFile.updated_at = Date.now()
+    if (state.files.openFile.state === 'synced') {
+      state.files.openFile.version++
+      state.files.openFile.state = 'dirty'
+    }
   })
 
 export const setFilesImporting = (importing: boolean) =>
@@ -67,6 +71,7 @@ export const setFileArchived = (id: string, archived: boolean) =>
       file.updated_at = Date.now()
       if (file.state === 'synced') {
         file.version++
+        file.state = 'dirty'
       }
     })
 
