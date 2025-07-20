@@ -16,6 +16,7 @@ export default [
         ...globals.browser,
         ...globals.es2020,
         ...globals.serviceworker,
+        ComlinkWorker: 'readonly',
       },
       parser: typescriptParser,
       parserOptions: {

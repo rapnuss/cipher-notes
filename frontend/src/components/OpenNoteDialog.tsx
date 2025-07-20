@@ -186,11 +186,9 @@ export const OpenNoteDialog = () => {
           shadow='md'
           width={200}
           opened={moreMenuOpen}
-          onDismiss={() => {
-            setMoreMenuOpen(false)
-          }}
-          closeOnEscape={false}
+          onDismiss={() => setMoreMenuOpen(false)}
           closeOnClickOutside
+          closeOnEscape={false}
         >
           <Menu.Target>
             <ActionIconWithText

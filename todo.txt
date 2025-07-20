@@ -52,9 +52,20 @@ DONE:
   delete and archive on overview
     handle esc on more menu
     handle esc on delete dialog
+  figure out duplicate files on the other client issue
+  delete blobs on server when file deleted locally
+  extensions with dot
+  fix: open file archived status is not synced immediately
 FIRST:
 TODO:
+  notify other clients when file was uploaded
+    I can't, what can i do instead?
+      trigger download on open file with status remote and not currently downloading
+  How to handle the case where a blob is marked synced but is missing in s3?
+    If I set the blob_state to local, but the blob exist, the upload will fail.
+  manually sync files and show error message
 LATER:
 MAYBE:
+  better pdf viewer on mobile?
   notes grid paging
   debounce notes search

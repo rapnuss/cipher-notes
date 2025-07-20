@@ -33,7 +33,7 @@ export const sessionsTbl = pgTable('sessions', {
   created_at: bigint({mode: 'number'}).$default(Date.now).notNull(),
 })
 
-export const noteTypeEnum = pgEnum('note_type', ['note', 'todo', 'label'])
+export const noteTypeEnum = pgEnum('note_type', ['note', 'todo', 'label', 'file'])
 
 export const notesTbl = pgTable(
   'notes',
@@ -55,6 +55,11 @@ export const notesTbl = pgTable(
     clientside_created_at: bigint({mode: 'number'}).notNull(),
     clientside_updated_at: bigint({mode: 'number'}).notNull(),
     clientside_deleted_at: bigint({mode: 'number'}),
+
+    // for files only:
+    //  The size allowed to be posted to the presigned url, 0 if no presigned post url was generated.
+    //  Used to calculate s3 limit without knowing if the blob was actually uploaded.
+    committed_size: integer().notNull().default(0),
   },
   (t) => [unique('user_client_id').on(t.user_id, t.clientside_id)]
 )

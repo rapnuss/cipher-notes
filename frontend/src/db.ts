@@ -1,10 +1,13 @@
 import Dexie, {EntityTable, liveQuery} from 'dexie'
-import {Label, Note} from './business/models'
+import {FileBlob, FileMeta, FileThumb, Label, Note} from './business/models'
 
 export const db = new Dexie('DexieDB') as Dexie & {
   notes: EntityTable<Note, 'id'>
   note_base_versions: EntityTable<Note, 'id'>
   labels: EntityTable<Label, 'id'>
+  files_meta: EntityTable<FileMeta, 'id'>
+  files_blob: EntityTable<FileBlob, 'id'>
+  files_thumb: EntityTable<FileThumb, 'id'>
 }
 
 db.version(1).stores({
@@ -63,6 +66,13 @@ db.version(6)
       })
   )
 
+db.version(7).stores({
+  files_meta:
+    'id, created_at, updated_at, deleted_at, state, ext, mime, archived, has_thumb, size, blob_state',
+  files_blob: 'id',
+  files_thumb: 'id',
+})
+
 export const hasDirtyNotesObservable = liveQuery(() =>
   db.notes
     .where('state')
@@ -78,5 +88,22 @@ export const hasDirtyLabelsObservable = liveQuery(() =>
     .where('state')
     .equals('dirty')
     .first()
-    .then((n) => n !== undefined)
+    .then((l) => l !== undefined)
+)
+
+export const hasDirtyFilesMetaObservable = liveQuery(() =>
+  db.files_meta
+    .where('state')
+    .equals('dirty')
+    .first()
+    .then((f) => f !== undefined)
+)
+
+export const hasUnsyncedBlobsObservable = liveQuery(() =>
+  db.files_meta
+    .where('state')
+    .equals('synced')
+    .and((f) => f.blob_state !== 'synced')
+    .first()
+    .then((f) => f !== undefined)
 )
