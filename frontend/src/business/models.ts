@@ -23,6 +23,62 @@ export type TodoNote = NoteCommon & {type: 'todo'; todos: Todos}
 
 export type Note = XOR<TextNote, TodoNote>
 
+export type FileMeta = {
+  id: string
+  type: 'file'
+  created_at: number
+  updated_at: number
+  deleted_at: number
+  version: number
+  state: 'dirty' | 'synced'
+  blob_state: 'local' | 'synced' | 'remote'
+  title: string
+  ext: string
+  mime: string
+  labels: string[]
+  archived: 0 | 1
+  has_thumb: 0 | 1
+  size: number
+}
+export type FileBlob = {
+  id: string
+  blob: Blob
+}
+export type FileThumb = {
+  id: string
+  blob: Blob
+}
+
+export const filePullDellKeys = Object.freeze([
+  'id',
+  'type',
+  'created_at',
+  'updated_at',
+  'version',
+  'deleted_at',
+]) satisfies Readonly<(keyof FileMeta)[]>
+export type FilePullDellKeys = (typeof filePullDellKeys)[number]
+export type FilePullDel = Pick<FileMeta, FilePullDellKeys>
+export type FilePullDef = Omit<FileMeta, 'deleted_at' | 'blob_state' | 'has_thumb' | 'state'> & {
+  deleted_at: 0
+}
+export type FilePull = XOR<FilePullDel, FilePullDef>
+export type FilePullWithState = FilePull & {state: FileMeta['state']}
+
+// use record instead of array to make sure we don't forget any extra keys
+const filePullDefExtraKeysEnum: {[K in FilePullDefExtraKeys]: K} = {
+  title: 'title',
+  ext: 'ext',
+  mime: 'mime',
+  labels: 'labels',
+  archived: 'archived',
+  size: 'size',
+}
+type FilePullDefExtraKeys = Exclude<keyof FilePullDef, FilePullDellKeys>
+export const filePullDefExtraKeys: Readonly<FilePullDefExtraKeys[]> = Object.freeze(
+  Object.values(filePullDefExtraKeysEnum)
+)
+
 export const noteSortProps = ['created_at', 'updated_at'] satisfies (keyof Note)[]
 export const noteSortOptions = noteSortProps.map((prop) => ({
   value: prop,
@@ -100,6 +156,16 @@ export const labelPutTxtSchema = z.object({
     .refine((hue): hue is Hue => hueOptions.includes(hue as Hue)),
 })
 export type LabelPutTxt = z.infer<typeof labelPutTxtSchema>
+
+export const filePutTxtSchema = z.object({
+  title: z.string(),
+  ext: z.string(),
+  mime: z.string(),
+  labels: z.array(z.string().uuid()),
+  archived: z.boolean(),
+  size: z.number().int().positive(),
+})
+export type FilePutTxt = z.infer<typeof filePutTxtSchema>
 
 export const features = ['password_protected_notes', 'reminders'] as const
 export type Feature = (typeof features)[number]

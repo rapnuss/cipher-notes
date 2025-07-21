@@ -20,7 +20,6 @@ function base64ToArrayBuffer(base64: string): ArrayBuffer {
 }
 
 export async function generateKey(): Promise<string> {
-  // Generate an AES-GCM symmetric key
   const key = await crypto.subtle.generateKey(
     {name: 'AES-GCM', length: 256}, // Algorithm and key size
     true, // The key can be exported
@@ -30,16 +29,12 @@ export async function generateKey(): Promise<string> {
 }
 
 async function exportKey(key: CryptoKey): Promise<string> {
-  // Export the key as a raw byte buffer
   const exportedKey = await crypto.subtle.exportKey('raw', key)
-  // Convert the byte buffer to a Base64 string for storage/transmission
   return arrayBufferToBase64(exportedKey)
 }
 
 export async function importKey(base64Key: string): Promise<CryptoKey> {
-  // Convert the Base64 string back to a Uint8Array
-  const binaryKey = Uint8Array.from(atob(base64Key), (char) => char.charCodeAt(0))
-  // Import the raw key back into a CryptoKey object
+  const binaryKey = base64ToBin(base64Key)
   const key = await crypto.subtle.importKey(
     'raw',
     binaryKey,
@@ -50,7 +45,7 @@ export async function importKey(base64Key: string): Promise<CryptoKey> {
   return key
 }
 
-export async function encryptData(
+export async function encryptString(
   key: CryptoKey,
   data: string
 ): Promise<{cipher_text: string; iv: string}> {
@@ -62,7 +57,7 @@ export async function encryptData(
   return {cipher_text: arrayBufferToBase64(cipher_text), iv: binToBase64(iv)}
 }
 
-export async function decryptData(
+export async function decryptString(
   key: CryptoKey,
   cipher_text: string,
   ivBase64: string
@@ -74,4 +69,33 @@ export async function decryptData(
   )
   const decoder = new TextDecoder()
   return decoder.decode(decryptedData)
+}
+
+export async function encryptBlob(key: CryptoKey, blob: Blob): Promise<Blob> {
+  const data = await blob.arrayBuffer()
+  const iv = crypto.getRandomValues(new Uint8Array(12)) // 12 bytes for AES-GCM
+  const cipherText = await crypto.subtle.encrypt({name: 'AES-GCM', iv, tagLength: 128}, key, data)
+  return new Blob([iv, new Uint8Array(cipherText)], {
+    type: 'application/octet-stream',
+  })
+}
+
+export async function decryptBlob(
+  key: CryptoKey,
+  encryptedBlob: Blob,
+  mime: string
+): Promise<Blob> {
+  const encryptedArrayBuffer = await encryptedBlob.arrayBuffer()
+  const iv = new Uint8Array(encryptedArrayBuffer.slice(0, 12))
+  const cipherText = encryptedArrayBuffer.slice(12)
+  const plaintextArrayBuffer = await crypto.subtle.decrypt(
+    {
+      name: 'AES-GCM',
+      iv,
+      tagLength: 128,
+    },
+    key,
+    cipherText
+  )
+  return new Blob([plaintextArrayBuffer], {type: mime})
 }

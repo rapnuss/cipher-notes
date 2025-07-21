@@ -1,9 +1,13 @@
 import {verifyJwt} from '../services/jwt'
-import {threeWayMerge, threeWayMergeArrays} from '../util/merge'
+import {threeWayMerge} from '../util/merge'
 import {deepEquals} from '../util/misc'
 import {zodParseString} from '../util/zod'
 import {
   Feature,
+  FileMeta,
+  FilePull,
+  FilePutTxt,
+  filePutTxtSchema,
   Hue,
   jwtPayloadSchema,
   Label,
@@ -18,6 +22,8 @@ import {
   Todos,
 } from './models'
 import {Put} from './notesEncryption'
+
+export const monospaceFontFamily = "Monaco, 'Cascadia Code', Consolas, monospace"
 
 export const textToTodos = (text: string): Todos => {
   const todos = text
@@ -121,6 +127,41 @@ export const putToNote = (put: Put): Note => {
   }
 }
 
+export const putToFile = (put: Put): FilePull => {
+  if (put.type !== 'file') {
+    throw new Error('Put is not a file')
+  }
+  if (put.txt === null || put.deleted_at !== null) {
+    return {
+      id: put.id,
+      type: 'file',
+      created_at: put.created_at,
+      updated_at: put.updated_at,
+      version: put.version,
+      deleted_at: put.deleted_at,
+    }
+  }
+  const parse = zodParseString(filePutTxtSchema, put.txt)
+  if (!parse) {
+    throw new Error('Invalid file put')
+  }
+  const {title, ext, mime, labels, archived, size} = parse
+  return {
+    id: put.id,
+    created_at: put.created_at,
+    updated_at: put.updated_at,
+    version: put.version,
+    deleted_at: 0,
+    archived: archived ? 1 : 0,
+    type: 'file',
+    title,
+    ext,
+    mime,
+    labels,
+    size,
+  }
+}
+
 export const noteToPut = (n: Note): Put => {
   if (n.deleted_at !== 0) {
     return {
@@ -193,6 +234,37 @@ export const labelToPut = (l: Label): Put => {
   }
 }
 
+export const fileToPut = (f: FileMeta): Put => {
+  const txtObj: FilePutTxt = {
+    title: f.title,
+    ext: f.ext,
+    mime: f.mime,
+    labels: f.labels,
+    archived: !!f.archived,
+    size: f.size,
+  }
+  if (f.deleted_at !== 0) {
+    return {
+      type: 'file',
+      deleted_at: f.deleted_at,
+      txt: null,
+      id: f.id,
+      created_at: f.created_at,
+      updated_at: f.updated_at,
+      version: f.version,
+    }
+  }
+  return {
+    id: f.id,
+    created_at: f.created_at,
+    txt: JSON.stringify(txtObj),
+    updated_at: f.updated_at,
+    version: f.version,
+    deleted_at: null,
+    type: 'file',
+  }
+}
+
 export const notesIsEmpty = (note: Note): boolean =>
   note.deleted_at === 0 &&
   note.title === '' &&
@@ -200,7 +272,7 @@ export const notesIsEmpty = (note: Note): boolean =>
     ? note.txt === ''
     : note.todos.length === 0 || (note.todos.length === 1 && note.todos[0]!.txt === ''))
 
-export const mergeConflicts = (
+export const mergeNoteConflicts = (
   baseVersions: Note[],
   dirtyNotes: Note[],
   serverConflicts: Note[]
@@ -219,7 +291,7 @@ export const mergeConflicts = (
     ) {
       conflicts.push(serverConflict)
     } else {
-      const merge = mergeConflict(baseVersion, dirtyNote, serverConflict)
+      const merge = mergeNoteConflict(baseVersion, dirtyNote, serverConflict)
       if (merge) {
         merged.push(merge)
       } else {
@@ -230,15 +302,15 @@ export const mergeConflicts = (
   return {merged, conflicts}
 }
 
-export const mergeConflict = (
+export const mergeNoteConflict = (
   baseVersion: Note,
   dirtyNote: Note,
   serverConflict: Note
 ): Note | null => {
   if (dirtyNote.type === 'todo') {
-    return mergeTodoConflict(baseVersion, dirtyNote, serverConflict)
+    return mergeTodoNoteConflict(baseVersion, dirtyNote, serverConflict)
   } else if (dirtyNote.type === 'note') {
-    return mergeNoteConflict(baseVersion, dirtyNote, serverConflict)
+    return mergeTextNoteConflict(baseVersion, dirtyNote, serverConflict)
   } else {
     return null
   }
@@ -249,7 +321,7 @@ export const todoHasIdAndUpdatedAt = (todo: Todo): boolean =>
 export const todosHaveIdsAndUpdatedAt = (todos: Todos): boolean =>
   todos.every(todoHasIdAndUpdatedAt)
 
-export const mergeTodoConflict = (
+export const mergeTodoNoteConflict = (
   baseVersion: Note,
   dirtyNote: Note,
   serverConflict: Note
@@ -268,23 +340,8 @@ export const mergeTodoConflict = (
   } else if (baseVersion.todos === undefined || !todosHaveIdsAndUpdatedAt(baseVersion.todos)) {
     return null
   } else {
-    const baseIds = baseVersion.todos.map((t) => t.id!)
-    const dirtyIds = dirtyNote.todos.map((t) => t.id!)
-    const serverIds = serverConflict.todos.map((t) => t.id!)
-    const mergedIds = threeWayMergeArrays(baseIds, dirtyIds, serverIds)
-    todos = mergedIds.map((id) => {
-      const dirtyTodo = dirtyNote.todos.find((t) => t.id === id)
-      const serverTodo = serverConflict.todos.find((t) => t.id === id)
-      if (!dirtyTodo && serverTodo) {
-        return serverTodo
-      } else if (!serverTodo && dirtyTodo) {
-        return dirtyTodo
-      } else if (dirtyTodo && serverTodo) {
-        return dirtyTodo.updated_at! > serverTodo.updated_at! ? dirtyTodo : serverTodo
-      } else {
-        throw new Error('threeWayMergeArrays failed')
-      }
-    })
+    // TODO: merge todos, be careful with child/parent relations
+    return null
   }
   return {
     type: 'todo',
@@ -301,10 +358,13 @@ export const mergeTodoConflict = (
         ? dirtyNote.archived
         : serverConflict.archived,
     todos,
+    // TODO: merge labels
+    labels:
+      dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.labels : serverConflict.labels,
   }
 }
 
-export const mergeNoteConflict = (
+export const mergeTextNoteConflict = (
   baseVersion: Note,
   dirtyNote: Note,
   serverConflict: Note
@@ -335,22 +395,94 @@ export const mergeNoteConflict = (
     version: Math.max(dirtyNote.version, serverConflict.version) + 1,
     state: 'dirty',
     deleted_at: 0,
+    // TODO: merge labels
+    labels:
+      dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.labels : serverConflict.labels,
   }
 }
 
 export const mergeLabelConflicts = (dirtyLabels: Label[], serverConflicts: Label[]): Label[] =>
-  serverConflicts.map((sl) => {
-    const cl = dirtyLabels.find((c) => c.id === sl.id)
-    if (!cl) {
+  serverConflicts.map((serverLabel) => {
+    const clientLabel = dirtyLabels.find((c) => c.id === serverLabel.id)
+    if (!clientLabel) {
       throw new Error('Label not found')
     } else {
-      const l = cl.updated_at > sl.updated_at ? cl : sl
+      const label = clientLabel.updated_at > serverLabel.updated_at ? clientLabel : serverLabel
       return {
-        ...l,
-        version: Math.max(cl.version, sl.version) + 1,
+        ...label,
+        version: Math.max(clientLabel.version, serverLabel.version) + 1,
         state: 'dirty',
-        updated_at: Math.max(cl.updated_at, sl.updated_at),
+        updated_at: Math.max(clientLabel.updated_at, serverLabel.updated_at),
       }
+    }
+  })
+
+export const fileMetaToPull = (file: FileMeta): FilePull => {
+  const {
+    created_at,
+    deleted_at,
+    id,
+    type,
+    updated_at,
+    version,
+    archived,
+    ext,
+    labels,
+    mime,
+    title,
+    size,
+  } = file
+  if (deleted_at !== 0) {
+    return {
+      deleted_at,
+      created_at,
+      id,
+      type,
+      updated_at,
+      version,
+    }
+  } else {
+    return {
+      deleted_at: 0,
+      created_at,
+      id,
+      type,
+      updated_at,
+      version,
+      archived,
+      ext,
+      mime,
+      labels,
+      title,
+      size,
+    }
+  }
+}
+
+export const mergeFileConflicts = (
+  dirtyFiles: FilePull[],
+  serverConflicts: FilePull[]
+): FilePull[] =>
+  serverConflicts.map((serverFile) => {
+    const clientFile = dirtyFiles.find((c) => c.id === serverFile.id)
+    if (!clientFile) {
+      throw new Error('File not found')
+    }
+    const file = clientFile.updated_at > serverFile.updated_at ? clientFile : serverFile
+    if (file.deleted_at !== 0 && file.title === undefined) {
+      return {
+        ...file,
+        version: Math.max(clientFile.version, serverFile.version) + 1,
+        updated_at: Math.max(clientFile.updated_at, serverFile.updated_at),
+      }
+    } else if (file.deleted_at === 0 && file.title !== undefined) {
+      return {
+        ...file,
+        version: Math.max(clientFile.version, serverFile.version) + 1,
+        updated_at: Math.max(clientFile.updated_at, serverFile.updated_at),
+      }
+    } else {
+      throw new Error('Invalid file conflict')
     }
   })
 
@@ -446,3 +578,6 @@ export const parseSubscriptionToken = async (token: string): Promise<Feature[]> 
     return []
   }
 }
+
+export const getFilename = ({title, ext}: Pick<FileMeta, 'title' | 'ext'>): string =>
+  `${title}${ext}`

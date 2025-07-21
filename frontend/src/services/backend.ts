@@ -58,20 +58,21 @@ export const reqLoginWithCode = (email: string, code: string) =>
     body: {email, login_code: code},
   })
 
+type EncUpsertPut = {
+  id: string
+  type: 'note' | 'todo' | 'label' | 'file'
+  created_at: number
+  updated_at: number
+  cipher_text: string
+  iv: string
+  version: number
+  deleted_at: null
+}
 export type EncPut =
+  | EncUpsertPut
   | {
       id: string
-      type: 'note' | 'todo' | 'label'
-      created_at: number
-      updated_at: number
-      cipher_text: string
-      iv: string
-      version: number
-      deleted_at: null
-    }
-  | {
-      id: string
-      type: 'note' | 'todo' | 'label'
+      type: 'note' | 'todo' | 'label' | 'file'
       created_at: number
       updated_at: number
       cipher_text: null
@@ -139,4 +140,19 @@ export const reqChangeEmail = ({
       old_email_code: oldEmailCode,
       new_email_code: newEmailCode,
     },
+  })
+
+export type GetPresignedUrlsReq = {
+  uploads: {id: string; size: number}[]
+  download_ids: string[]
+}
+export type GetPresignedUrlsRes = {
+  upload_urls: {note_id: string; url: string; fields: Record<string, string>}[]
+  download_urls: {note_id: string; url: string}[]
+  hit_storage_limit: boolean
+}
+export const reqGetPresignedUrls = (req: GetPresignedUrlsReq) =>
+  request<GetPresignedUrlsRes>('/getPresignedUrls', {
+    method: 'POST',
+    body: req,
   })

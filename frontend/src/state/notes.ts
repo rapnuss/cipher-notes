@@ -5,19 +5,41 @@ import {
   NoteSortProp,
   Todo,
   activeLabelIsUuid,
+  Label,
+  FileMeta,
+  FilePull,
+  FilePullWithState,
+  filePullDellKeys,
+  filePullDefExtraKeys,
 } from '../business/models'
 import {getState, setState, subscribe} from './store'
-import {bisectBy, debounce, deepEquals, moveWithinListViaDnD, nonConcurrent} from '../util/misc'
-import {isUnauthorizedRes, reqSyncNotes} from '../services/backend'
+import {
+  debounce,
+  deepEquals,
+  moveWithinListViaDnD,
+  nonConcurrent,
+  partitionBy,
+  takeJsonSize,
+} from '../util/misc'
+import {EncPut, isUnauthorizedRes, reqSyncNotes} from '../services/backend'
 import {Put, decryptSyncData, encryptSyncData} from '../business/notesEncryption'
-import {db, hasDirtyLabelsObservable, hasDirtyNotesObservable} from '../db'
+import {
+  db,
+  hasDirtyFilesMetaObservable,
+  hasDirtyLabelsObservable,
+  hasDirtyNotesObservable,
+} from '../db'
 import {
   deriveTodosData,
+  fileMetaToPull,
+  fileToPut,
   labelToPut,
-  mergeConflicts,
+  mergeNoteConflicts,
+  mergeFileConflicts,
   mergeLabelConflicts,
   notesIsEmpty,
   noteToPut,
+  putToFile,
   putToLabel,
   putToNote,
   textToTodos,
@@ -33,6 +55,8 @@ import {
 } from '../services/localStorage'
 import XSet from '../util/XSet'
 import {notifications} from '@mantine/notifications'
+import {UserState} from './user'
+import {setOpenFile, upDownloadBlobsAndSetState} from './files'
 
 export type NotesState = {
   query: string
@@ -551,6 +575,42 @@ export const closeSyncDialog = () =>
   })
 
 // effects
+const loadEncPuts = async (
+  keyTokenPair: NonNullable<UserState['user']['keyTokenPair']>,
+  bytesLimit: number
+): Promise<{
+  encPuts: EncPut[]
+  dirtyNotes: Note[]
+  dirtyLabels: Label[]
+  dirtyFiles: FileMeta[]
+}> => {
+  const someDirtyNotes = await db.notes
+    .where('state')
+    .equals('dirty')
+    .and((n) => !notesIsEmpty(n))
+    .limit(1000)
+    .toArray()
+  const someDirtyLabels = await db.labels.where('state').equals('dirty').limit(1000).toArray()
+  const someDirtyFiles = await db.files_meta.where('state').equals('dirty').limit(1000).toArray()
+
+  const someClientPuts: Put[] = someDirtyLabels
+    .map(labelToPut)
+    .concat(someDirtyFiles.map(fileToPut))
+    .concat(someDirtyNotes.map(noteToPut))
+
+  const someEncPuts = await encryptSyncData(
+    keyTokenPair.cryptoKey,
+    takeJsonSize(someClientPuts, bytesLimit)
+  )
+  const encPuts = takeJsonSize(someEncPuts, bytesLimit)
+  return {
+    encPuts,
+    dirtyNotes: someDirtyNotes.filter((n) => encPuts.some((p) => p.id === n.id)),
+    dirtyLabels: someDirtyLabels.filter((l) => encPuts.some((p) => p.id === l.id)),
+    dirtyFiles: someDirtyFiles.filter((f) => encPuts.some((p) => p.id === f.id)),
+  }
+}
+
 export const syncNotes = nonConcurrent(async () => {
   const state = getState()
   const lastSyncedTo = state.user.user.lastSyncedTo
@@ -563,16 +623,11 @@ export const syncNotes = nonConcurrent(async () => {
     state.notes.sync.syncing = true
   })
   try {
-    const dirtyNotes = await db.notes
-      .where('state')
-      .equals('dirty')
-      .and((n) => !notesIsEmpty(n))
-      .toArray()
-    const dirtyLabels = await db.labels.where('state').equals('dirty').toArray()
-    const clientPuts: Put[] = dirtyNotes.map(noteToPut).concat(dirtyLabels.map(labelToPut))
-    const encClientSyncData = await encryptSyncData(keyTokenPair.cryptoKey, clientPuts)
-
-    const res = await reqSyncNotes(lastSyncedTo, encClientSyncData, keyTokenPair.syncToken)
+    const {encPuts, dirtyNotes, dirtyLabels, dirtyFiles} = await loadEncPuts(
+      keyTokenPair,
+      1024 * 1024
+    )
+    const res = await reqSyncNotes(lastSyncedTo, encPuts, keyTokenPair.syncToken)
     if (!res.success) {
       setState((state) => {
         state.notes.sync.error = res.error
@@ -585,100 +640,181 @@ export const syncNotes = nonConcurrent(async () => {
       })
       return
     }
-    const pulls = await decryptSyncData(keyTokenPair.cryptoKey, res.data.puts)
-    const [pullLabels, pullNotes] = bisectBy(pulls, (p) => p.type === 'label')
-    const serverConflicts = await decryptSyncData(keyTokenPair.cryptoKey, res.data.conflicts)
-    const [serverConflictsLabels, serverConflictsNotes] = bisectBy(
-      serverConflicts,
-      (p) => p.type === 'label'
-    )
+    const pulls: Put[] = await decryptSyncData(keyTokenPair.cryptoKey, res.data.puts)
+    const {
+      label: pullLabels = [],
+      note: pullNotes = [],
+      file: pullFiles = [],
+    } = partitionBy(pulls, (p) => (p.type === 'todo' ? 'note' : p.type))
+    const serverConflicts: Put[] = await decryptSyncData(keyTokenPair.cryptoKey, res.data.conflicts)
+    const {
+      label: serverConflictsLabels = [],
+      note: serverConflictsNotes = [],
+      file: serverConflictsFiles = [],
+    } = partitionBy(serverConflicts, (p) => (p.type === 'todo' ? 'note' : p.type))
 
-    const baseVersions = await db.note_base_versions
+    const baseVersions: Note[] = await db.note_base_versions
       .where('id')
       .anyOf(serverConflicts.map((n) => n.id))
       .toArray()
-    const {merged, conflicts} = mergeConflicts(
+
+    const {merged: mergedNotes, conflicts: noteConflicts} = mergeNoteConflicts(
       baseVersions,
       dirtyNotes,
       serverConflictsNotes.map(putToNote)
     )
-    const mergedLabels = mergeLabelConflicts(dirtyLabels, serverConflictsLabels.map(putToLabel))
-    const labelsToStore = Object.fromEntries(
+    const mergedLabels: Label[] = mergeLabelConflicts(
+      dirtyLabels,
+      serverConflictsLabels.map(putToLabel)
+    )
+    const mergedFiles: FilePull[] = mergeFileConflicts(
+      dirtyFiles.map(fileMetaToPull),
+      serverConflictsFiles.map(putToFile)
+    )
+
+    const labelsToStore: Record<string, Label> = Object.fromEntries(
       pullLabels
         .map(putToLabel)
         .concat(mergedLabels)
         .map((l) => [l.id, l])
     )
-
-    const toStoreById = Object.fromEntries(
+    const notesToStore: Record<string, Note> = Object.fromEntries(
       pullNotes
         .map(putToNote)
-        .concat(merged)
+        .concat(mergedNotes)
         .map((n) => [n.id, n])
     )
+    const filesToStore: Record<string, FilePullWithState> = Object.fromEntries(
+      [
+        ...pullFiles.map(putToFile).map((f): FilePullWithState => ({...f, state: 'synced'})),
+        ...mergedFiles.map((f): FilePullWithState => ({...f, state: 'dirty'})),
+      ].map((f) => [f.id, f])
+    )
+
     const idToUploaded = Object.fromEntries(dirtyNotes.map((n) => [n.id, n]))
     const idToUploadedLabels = Object.fromEntries(dirtyLabels.map((l) => [l.id, l]))
+    const idToUploadedFiles = Object.fromEntries(dirtyFiles.map((f) => [f.id, f]))
 
-    await db.transaction('rw', db.notes, db.note_base_versions, db.labels, async () => {
-      const existingLabelIds = new XSet<string>()
-      await db.labels
-        .where('id')
-        .anyOf(Object.keys(labelsToStore))
-        .modify((curr, ref) => {
-          existingLabelIds.add(curr.id)
-          const uploaded = idToUploadedLabels[curr.id]
-          const toStore = labelsToStore[curr.id]!
-          if (uploaded && curr.updated_at > uploaded.updated_at) {
-            curr.version = curr.version + 1
-            return
-          }
-          if (curr.version >= toStore.version && curr.updated_at !== toStore.updated_at) {
-            return
-          }
-          ref.value = toStore
-        })
-      const insertLabelIds = XSet.fromItr(Object.keys(labelsToStore)).without(existingLabelIds)
-      await db.labels.bulkPut(insertLabelIds.toArray().map((id) => labelsToStore[id]!))
+    await db.transaction(
+      'rw',
+      db.notes,
+      db.note_base_versions,
+      db.labels,
+      db.files_meta,
+      async (tx) => {
+        const existingLabelIds = new XSet<string>()
+        await tx.labels
+          .where('id')
+          .anyOf(Object.keys(labelsToStore))
+          .modify((curr, ref) => {
+            existingLabelIds.add(curr.id)
+            const uploaded = idToUploadedLabels[curr.id]
+            const toStore = labelsToStore[curr.id]!
+            if (uploaded && curr.updated_at > uploaded.updated_at) {
+              curr.version = curr.version + 1
+              return
+            }
+            if (curr.version >= toStore.version && curr.updated_at !== toStore.updated_at) {
+              return
+            }
+            ref.value = toStore
+          })
+        const insertLabelIds = XSet.fromItr(Object.keys(labelsToStore))
+          .without(existingLabelIds)
+          .toArray()
+        await tx.labels.bulkPut(insertLabelIds.map((id) => labelsToStore[id]!))
 
-      const baseVersions: Note[] = []
-      const existingIds = new XSet<string>()
-      await db.notes
-        .where('id')
-        .anyOf(Object.keys(toStoreById))
-        .modify((curr, ref) => {
-          existingIds.add(curr.id)
-          const uploaded = idToUploaded[curr.id]
-          const toStore = toStoreById[curr.id]!
-          if (uploaded && curr.updated_at > uploaded.updated_at) {
-            curr.version = curr.version + 1
-            return
-          }
-          if (curr.version >= toStore.version && curr.updated_at !== toStore.updated_at) {
-            return
-          }
-          ref.value = toStore
-          if (toStore.state === 'synced') baseVersions.push(toStore)
-        })
+        const existingFileIds = new XSet<string>()
+        await tx.files_meta
+          .where('id')
+          .anyOf(Object.keys(filesToStore))
+          .modify((curr) => {
+            existingFileIds.add(curr.id)
+            const uploaded = idToUploadedFiles[curr.id]
+            const toStore = filesToStore[curr.id]!
+            if (uploaded && curr.updated_at > uploaded.updated_at) {
+              curr.version = curr.version + 1
+              return
+            }
+            if (curr.version >= toStore.version && curr.updated_at !== toStore.updated_at) {
+              return
+            }
+            for (const key of filePullDellKeys) {
+              curr[key] = toStore[key] as never
+            }
+            if (toStore.deleted_at === 0 && toStore.title !== undefined) {
+              for (const key of filePullDefExtraKeys) {
+                curr[key] = toStore[key] as never
+              }
+            } else {
+              curr.title = ''
+              curr.labels = []
+            }
+            curr.state = toStore.state
+          })
+        const insertFileIds = XSet.fromItr(Object.keys(filesToStore))
+          .without(existingFileIds)
+          .toArray()
+        await tx.files_meta.bulkPut(
+          insertFileIds
+            .map((id) => ({...filesToStore[id]!, has_thumb: 0, blob_state: 'remote'} as const))
+            .filter((f) => f.title !== undefined)
+        )
 
-      const insertIds = XSet.fromItr(Object.keys(toStoreById)).without(existingIds)
-      const insertNotes = insertIds.toArray().map((id) => toStoreById[id]!)
-      await db.notes.bulkPut(insertNotes)
-      await db.note_base_versions.bulkPut(baseVersions.concat(insertNotes))
+        const baseVersions: Note[] = []
+        const existingNoteIds = new XSet<string>()
+        await tx.notes
+          .where('id')
+          .anyOf(Object.keys(notesToStore))
+          .modify((curr, ref) => {
+            existingNoteIds.add(curr.id)
+            const uploaded = idToUploaded[curr.id]
+            const toStore = notesToStore[curr.id]!
+            if (uploaded && curr.updated_at > uploaded.updated_at) {
+              curr.version = curr.version + 1
+              return
+            }
+            if (curr.version >= toStore.version && curr.updated_at !== toStore.updated_at) {
+              return
+            }
+            ref.value = toStore
+            if (toStore.state === 'synced') baseVersions.push(toStore)
+          })
+
+        const insertNoteIds = XSet.fromItr(Object.keys(notesToStore))
+          .without(existingNoteIds)
+          .toArray()
+        const insertNotes = insertNoteIds.map((id) => notesToStore[id]!)
+        await tx.notes.bulkPut(insertNotes)
+        await tx.note_base_versions.bulkPut(baseVersions.concat(insertNotes))
+      }
+    )
+
+    setOpenNote(notesToStore)
+    setOpenFile(filesToStore)
+
+    await db.transaction('rw', db.notes, db.note_base_versions, async (tx) => {
+      const syncedDeleteIds = await tx.notes
+        .where('deleted_at')
+        .notEqual(0)
+        .and((n) => n.state === 'synced')
+        .primaryKeys()
+      await tx.notes.bulkDelete(syncedDeleteIds)
+      await tx.note_base_versions.bulkDelete(syncedDeleteIds)
+    })
+    await db.transaction('rw', db.files_meta, db.files_blob, db.files_thumb, async (tx) => {
+      const syncedDeleteIds = await tx.files_meta
+        .where('deleted_at')
+        .notEqual(0)
+        .and((f) => f.state === 'synced')
+        .primaryKeys()
+      await tx.files_meta.bulkDelete(syncedDeleteIds)
+      await tx.files_blob.bulkDelete(syncedDeleteIds)
+      await tx.files_thumb.bulkDelete(syncedDeleteIds)
     })
 
-    setOpenNote(toStoreById)
-
-    const syncedDeletes = await db.notes
-      .where('deleted_at')
-      .notEqual(0)
-      .and((n) => n.state === 'synced')
-      .toArray()
-    const syncedDeleteIds = syncedDeletes.map((d) => d.id)
-    await db.notes.bulkDelete(syncedDeleteIds)
-    await db.note_base_versions.bulkDelete(syncedDeleteIds)
-
     setState((state) => {
-      state.conflicts.conflicts = conflicts
+      state.conflicts.conflicts = noteConflicts
       state.user.user.lastSyncedTo = res.data.synced_to
       state.notes.sync.error = null
       if (state.notes.sync.dialogOpen) {
@@ -688,6 +824,7 @@ export const syncNotes = nonConcurrent(async () => {
         })
       }
     })
+    upDownloadBlobsAndSetState()
   } catch (e) {
     setState((state) => {
       const message = e instanceof Error ? e.message : 'Unknown error'
@@ -800,6 +937,11 @@ export const registerNotesSubscriptions = () => {
   })
   hasDirtyLabelsObservable.subscribe((hasDirtyLabels) => {
     if (hasDirtyLabels) {
+      syncNotesDebounced()
+    }
+  })
+  hasDirtyFilesMetaObservable.subscribe((hasDirtyFiles) => {
+    if (hasDirtyFiles) {
       syncNotesDebounced()
     }
   })

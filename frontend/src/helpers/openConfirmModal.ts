@@ -33,7 +33,8 @@ export const openConfirmModalWithBackHandler = ({
       }
       closed = true
       cleanup()
-      removeBrowserHistory(id)
+      // onClose is called during render
+      queueMicrotask(() => removeBrowserHistory(id))
     },
   })
   cleanup = closeOnBack(id, () => {

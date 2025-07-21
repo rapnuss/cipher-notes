@@ -345,6 +345,8 @@ const Editor = (props: Props) => {
           selectionEnd: selectionEnd + 2,
         })
       }
+    } else if (e.key === 'Alt') {
+      e.preventDefault()
     } else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && e.altKey) {
       e.preventDefault()
       const startLine = getLines(value, selectionStart).length - 1
@@ -410,7 +412,7 @@ const Editor = (props: Props) => {
             bottom: 0;
             pointer-events: none;
             opacity: 0;
-            right: 15px;
+            right: 20px;
           }
           textarea:focus + .blur-tip {
             opacity: 0.5;

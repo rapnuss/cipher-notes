@@ -8,6 +8,7 @@ import {registerSettingsSubscriptions, settingsInit, SettingsState} from './sett
 import {importInit, ImportState} from './import'
 import {labelsInit, LabelsState, registerLabelsSubscriptions} from './labels'
 import {historyInit, HistoryState} from './history'
+import {filesInit, FilesState, registerFilesSubscriptions} from './files'
 
 export type RootState = {
   notes: NotesState
@@ -17,6 +18,7 @@ export type RootState = {
   import: ImportState
   labels: LabelsState
   history: HistoryState
+  files: FilesState
 }
 const init: RootState = {
   notes: notesInit,
@@ -26,6 +28,7 @@ const init: RootState = {
   import: importInit,
   labels: labelsInit,
   history: historyInit,
+  files: filesInit,
 }
 export const useSelector = create<RootState>()(immer(subscribeWithSelector(() => init)))
 export const getState = useSelector.getState
@@ -36,6 +39,7 @@ registerUserSubscriptions()
 registerNotesSubscriptions()
 registerSettingsSubscriptions()
 registerLabelsSubscriptions()
+registerFilesSubscriptions()
 
 export const selectAnyDialogOpen = (state: RootState): boolean =>
   state.conflicts.conflicts.length > 0 ||
@@ -49,4 +53,5 @@ export const selectAnyDialogOpen = (state: RootState): boolean =>
   state.user.imprintOpen ||
   state.settings.open ||
   state.labels.labelSelectorOpen ||
-  state.labels.dialog.open
+  state.labels.dialog.open ||
+  state.files.openFile !== null

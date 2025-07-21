@@ -1,4 +1,4 @@
-import {JsonRoot} from './type'
+import {JsonAny, JsonRoot} from './type'
 
 export const compare = (a: any, b: any) => {
   if (Array.isArray(a) && Array.isArray(b)) {
@@ -134,10 +134,21 @@ export const throttle = <Args extends any[]>(fn: (...args: Args) => unknown, tim
   }
 }
 
-export const indexBy = <T, K extends string>(arr: T[], keyFn: (item: T) => K) => {
-  const map = {} as Record<K, T>
+export const indexBy = <T, K extends string | number>(
+  arr: T[],
+  keyFn: (item: T) => K
+): Map<K, T> => {
+  const map = new Map<K, T>()
   for (const item of arr) {
-    map[keyFn(item)] = item
+    map.set(keyFn(item), item)
+  }
+  return map
+}
+
+export const indexByProp = <T, K extends keyof T>(arr: T[], key: K): Map<T[K], T> => {
+  const map = new Map<T[K], T>()
+  for (const item of arr) {
+    map.set(item[key], item)
   }
   return map
 }
@@ -145,6 +156,10 @@ export const indexBy = <T, K extends string>(arr: T[], keyFn: (item: T) => K) =>
 export const downloadJson = (data: JsonRoot, filename = 'data.json') => {
   const jsonStr = JSON.stringify(data, null, 2)
   const blob = new Blob([jsonStr], {type: 'application/json'})
+  downloadBlob(blob, filename)
+}
+
+export const downloadBlob = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob)
 
   const a = document.createElement('a')
@@ -254,6 +269,19 @@ export const bisectBy = <T>(arr: T[], pred: (x: T) => boolean): readonly [T[], T
   return [ts, fs]
 }
 
+export const partitionBy = <T, Key extends string>(
+  arr: T[],
+  keyFn: (x: T) => Key
+): Partial<Record<Key, T[]>> => {
+  const res: Partial<Record<Key, T[]>> = {}
+  for (const x of arr) {
+    const key = keyFn(x)
+    res[key] = res[key] ?? []
+    res[key].push(x)
+  }
+  return res
+}
+
 export const getColorScheme = () => {
   if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
     return 'dark'
@@ -284,4 +312,59 @@ export const moveWithinListViaDnD = <Item>(
 export const findIndex = <T>(arr: T[], pred: (x: T) => boolean): number | null => {
   const index = arr.findIndex(pred)
   return index === -1 ? null : index
+}
+
+export const splitFilename = (filename: string): [string, string] => {
+  const i = filename.lastIndexOf('.')
+  if (i === -1) {
+    return [filename, '']
+  }
+  return [filename.slice(0, i), filename.slice(i)]
+}
+
+export const takeJsonSize = <T extends JsonAny>(arr: T[], limit: number): T[] => {
+  let totalSize = 2
+  const res: T[] = []
+  for (const item of arr) {
+    const size = 1 + JSON.stringify(item).length
+    if (totalSize + size > limit) {
+      break
+    }
+    res.push(item)
+    totalSize += size
+  }
+  return res
+}
+
+export const takeSum = <T>(arr: T[], limit: number, getSize: (x: T) => number): T[] => {
+  if (arr.length === 0) return []
+  let totalSize = 0
+  const res: T[] = []
+  for (const item of arr) {
+    const size = getSize(item)
+    if (totalSize + size > limit) {
+      break
+    }
+    res.push(item)
+    totalSize += size
+  }
+  return res
+}
+
+export function parseRangeHeader(
+  rangeHeader: string | null,
+  fileSize: number
+): {start: number; end: number} | null {
+  if (!rangeHeader) return null
+  const match = rangeHeader.match(/bytes=(\d+)-(\d*)/)
+  if (!match || !match[1]) return null
+
+  const start = parseInt(match[1], 10)
+  const end = match[2] ? parseInt(match[2], 10) : fileSize - 1
+
+  if (start >= fileSize || end >= fileSize || start > end) {
+    return null
+  }
+
+  return {start, end}
 }

@@ -34,12 +34,17 @@ html[data-mantine-color-scheme='dark'] .mantine-Popover-dropdown {
 :root .mantine-Input-input,
 :root input,
 :root textarea {
-  --mantine-color-placeholder: rgba(0, 0, 0, 0.50);
-  --input-disabled-color: rgba(0, 0, 0, 0.50);
+  --mantine-color-placeholder: rgba(0, 0, 0, 0.5);
+  --input-disabled-color: rgba(0, 0, 0, 0.5);
 }
 button {
   color: inherit;
 }
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--mantine-color-placeholder);
+}
+input,
+textarea {
+  padding: 0;
 }

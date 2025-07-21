@@ -26,3 +26,19 @@ export const parseCookieHeader = (
     return acc
   }, {} as Record<string, string>)
 }
+
+export const indexBy = <T, K extends string>(arr: T[], keyFn: (item: T) => K): Map<K, T> => {
+  const map = new Map<K, T>()
+  for (const item of arr) {
+    map.set(keyFn(item), item)
+  }
+  return map
+}
+
+export const indexByProp = <T, K extends keyof T>(arr: T[], key: K): Map<T[K], T> => {
+  const map = new Map<T[K], T>()
+  for (const item of arr) {
+    map.set(item[key], item)
+  }
+  return map
+}

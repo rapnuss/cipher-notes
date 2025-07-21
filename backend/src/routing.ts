@@ -10,6 +10,7 @@ import {deleteAccountEndpoint, deleteNotesEndpoint} from './endpoints/deleteNote
 import {sendConfirmCodeEndpoint} from './endpoints/sendConfirmCode'
 import {logoutEndpoint, removeAllSessionsEndpoint} from './endpoints/logout'
 import {changeEmailEndpoint, sendChangeEmailCodesEndpoint} from './endpoints/changeEmail'
+import {getPresignedUrlsEndpoint} from './endpoints/getPresignedUrls'
 
 export const routing: Routing = {
   hello: helloEndpoint,
@@ -24,4 +25,5 @@ export const routing: Routing = {
   removeAllSessions: removeAllSessionsEndpoint,
   sendChangeEmailCodes: sendChangeEmailCodesEndpoint,
   changeEmail: changeEmailEndpoint,
+  getPresignedUrls: getPresignedUrlsEndpoint,
 }

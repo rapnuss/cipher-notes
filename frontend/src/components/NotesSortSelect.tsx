@@ -18,7 +18,7 @@ export const NotesSortSelect = () => {
         onChange={(value) => value && sortChanged(value as NoteSortProp)}
       />
       <ActionIcon
-        size='lg'
+        size='input-sm'
         title={desc ? 'Sort ascending' : 'Sort descending'}
         onClick={sortDirectionChanged}
       >

@@ -1,3 +1,4 @@
+import {monospaceFontFamily} from '../business/misc'
 import Editor from './Editor'
 
 export type XTextareaProps = {
@@ -49,7 +50,7 @@ export const XTextarea = ({
         }
       }}
       style={{
-        fontFamily: "Monaco, 'Cascadia Code', Consolas, monospace",
+        fontFamily: monospaceFontFamily,
         flex: '1 1 0',
         border: 'none',
         outline: 'none',

@@ -6,11 +6,13 @@ import {db} from '../db'
 import {bisectBy, byProp, compare, truncateWithEllipsis} from '../util/misc'
 import {IconSquare} from './icons/IconSquare'
 import {IconCheckbox} from './icons/IconCheckbox'
-import {activeLabelIsUuid, Note} from '../business/models'
-import {labelColor} from '../business/misc'
+import {activeLabelIsUuid, FileMeta, Note} from '../business/models'
+import {getFilename, labelColor} from '../business/misc'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {IconDots} from './icons/IconDots'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
+import {deleteFile, fileOpened, setFileArchived} from '../state/files'
+import {FileIconWithExtension} from './FileIconWithExtension'
 
 export const NotesGrid = () => {
   const query = useSelector((state) => state.notes.query)
@@ -19,7 +21,8 @@ export const NotesGrid = () => {
   const notes = useLiveQuery(async () => {
     const queryLower = query.toLocaleLowerCase()
     const allNotes = await db.notes.where('deleted_at').equals(0).toArray()
-    const notes = allNotes
+    const allFiles = await db.files_meta.where('deleted_at').equals(0).toArray()
+    const notes = [...allNotes, ...allFiles]
       .filter(
         (n) =>
           (activeLabel === 'archived'
@@ -33,7 +36,9 @@ export const NotesGrid = () => {
             n.title.toLocaleLowerCase().includes(queryLower) ||
             (n.type === 'note'
               ? n.txt.toLocaleLowerCase().includes(queryLower)
-              : n.todos.some((todo) => todo.txt.toLocaleLowerCase().includes(queryLower))))
+              : n.type === 'todo'
+              ? n.todos.some((todo) => todo.txt.toLocaleLowerCase().includes(queryLower))
+              : n.type === 'file' && n.ext.toLocaleLowerCase().includes(queryLower)))
       )
       .sort(byProp(sort.prop, sort.desc))
     return bisectBy(notes ?? [], (n) => n.archived === 1)
@@ -85,7 +90,7 @@ export const NotesGrid = () => {
   )
 }
 
-const NotePreview = ({note}: {note: Note}) => {
+const NotePreview = ({note}: {note: Note | FileMeta}) => {
   const colorScheme = useMyColorScheme()
   const labelsCache = useSelector((state) => state.labels.labelsCache)
   const label = note.labels?.[0] ? labelsCache[note.labels[0]] : null
@@ -103,7 +108,7 @@ const NotePreview = ({note}: {note: Note}) => {
       <UnstyledButton
         style={{
           flex: '1 1 auto',
-          padding: '1rem',
+          padding: '1rem 1rem 0 1rem',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',
           cursor: 'pointer',
@@ -112,32 +117,54 @@ const NotePreview = ({note}: {note: Note}) => {
           color: 'inherit',
           display: 'flex',
           flexDirection: 'column',
+          alignItems: 'stretch',
         }}
-        onClick={() => noteOpened(note.id)}
+        onClick={() => (note.type === 'file' ? fileOpened(note.id) : noteOpened(note.id))}
       >
-        <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>{note.title}</div>
-        {note.type === 'note'
-          ? truncateWithEllipsis(note.txt)
-          : note.todos
-              .map((t, i) => [t.done, i, t] as const)
-              .sort(compare)
-              .slice(0, 5)
-              .map(([, i, todo]) => (
-                <Flex
-                  align='center'
-                  gap='xs'
-                  ml={todo.parent ? '1rem' : 0}
-                  style={{textDecoration: todo.done ? 'line-through' : 'none'}}
-                  key={i}
-                >
-                  {todo.done ? (
-                    <IconCheckbox style={{flex: '0 0 auto'}} />
-                  ) : (
-                    <IconSquare style={{flex: '0 0 auto'}} />
-                  )}
-                  {truncateWithEllipsis(todo.txt, 1, 50)}
-                </Flex>
-              ))}
+        <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>
+          {note.type === 'file' ? getFilename(note) : note.title}
+        </div>
+        {note.type === 'note' ? (
+          truncateWithEllipsis(note.txt)
+        ) : note.type === 'todo' ? (
+          note.todos
+            .map((t, i) => [t.done, i, t] as const)
+            .sort(compare)
+            .slice(0, 5)
+            .map(([, i, todo]) => (
+              <Flex
+                align='center'
+                gap='xs'
+                ml={todo.parent ? '1rem' : 0}
+                style={{textDecoration: todo.done ? 'line-through' : 'none'}}
+                key={i}
+              >
+                {todo.done ? (
+                  <IconCheckbox style={{flex: '0 0 auto'}} />
+                ) : (
+                  <IconSquare style={{flex: '0 0 auto'}} />
+                )}
+                {truncateWithEllipsis(todo.txt, 1, 50)}
+              </Flex>
+            ))
+        ) : note.type === 'file' && note.has_thumb ? (
+          <img
+            alt={getFilename(note)}
+            src={`/thumbnails/${note.id}`}
+            style={{maxHeight: 200, objectFit: 'contain'}}
+          />
+        ) : note.type === 'file' ? (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              flex: '1 1 0',
+            }}
+          >
+            <FileIconWithExtension ext={note.ext} size={100} />
+          </div>
+        ) : null}
       </UnstyledButton>
       <Flex justify='flex-end'>
         <Menu shadow='md'>
@@ -147,7 +174,13 @@ const NotePreview = ({note}: {note: Note}) => {
             </UnstyledButton>
           </Menu.Target>
           <Menu.Dropdown>
-            <Menu.Item onClick={() => setNoteArchived(note.id, !note.archived)}>
+            <Menu.Item
+              onClick={() =>
+                note.type === 'file'
+                  ? setFileArchived(note.id, !note.archived)
+                  : setNoteArchived(note.id, !note.archived)
+              }
+            >
               {note.archived ? 'Unarchive' : 'Archive'}
             </Menu.Item>
             <Menu.Item
@@ -155,7 +188,8 @@ const NotePreview = ({note}: {note: Note}) => {
                 openConfirmModalWithBackHandler({
                   id: 'delete-note-from-grid',
                   title: 'Delete note',
-                  onConfirm: () => deleteNote(note.id),
+                  onConfirm: () =>
+                    note.type === 'file' ? deleteFile(note.id) : deleteNote(note.id),
                   labels: {confirm: 'Delete', cancel: 'Cancel'},
                 })
               }
