@@ -7,6 +7,7 @@ import {
 } from '../business/models'
 import {comlink} from '../comlink'
 import {db, hasUnsyncedBlobsObservable} from '../db'
+import {loadOpenFileId, storeOpenFileId} from '../services/localStorage'
 import {debounce, nonConcurrent, splitFilename} from '../util/misc'
 import {getState, setState, subscribe} from './store'
 
@@ -35,6 +36,11 @@ export const filesInit = {
     moreMenuOpen: false,
   },
 }
+loadOpenFileId().then((id) => {
+  if (id) {
+    fileOpened(id)
+  }
+})
 
 export const setLabelDropdownOpen = (open: boolean) =>
   setState((state) => {
@@ -283,6 +289,8 @@ export const registerFilesSubscriptions = () => {
     (state) => state.files.openFile,
     (curr, prev) => curr && prev && storeDebounced()
   )
+
+  subscribe((state) => state.files.openFile?.id ?? null, storeOpenFileId)
 
   hasUnsyncedBlobsObservable.subscribe((hasUnsyncedBlobs) => {
     if (hasUnsyncedBlobs) {

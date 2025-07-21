@@ -47,7 +47,25 @@ export const storeOpenNoteId = (id: string | null): Promise<void> =>
 
 export const loadOpenNoteId = (): Promise<string | null> =>
   Promise.resolve().then(() => {
-    return localStorage.getItem('openNoteId')
+    const openNoteId = localStorage.getItem('openNoteId')
+    const openFileId = localStorage.getItem('openFileId')
+    return openFileId ? null : openNoteId
+  })
+
+export const storeOpenFileId = (id: string | null): Promise<void> =>
+  Promise.resolve().then(() => {
+    if (id === null) {
+      localStorage.removeItem('openFileId')
+    } else {
+      localStorage.setItem('openFileId', id)
+    }
+  })
+
+export const loadOpenFileId = (): Promise<string | null> =>
+  Promise.resolve().then(() => {
+    const openFileId = localStorage.getItem('openFileId')
+    const openNoteId = localStorage.getItem('openNoteId')
+    return openNoteId ? null : openFileId
   })
 
 export const storeActiveLabelId = (labelId: string | false | null): Promise<void> =>

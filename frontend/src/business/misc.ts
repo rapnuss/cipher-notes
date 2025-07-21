@@ -1,5 +1,5 @@
 import {verifyJwt} from '../services/jwt'
-import {threeWayMerge, threeWayMergeArrays} from '../util/merge'
+import {threeWayMerge} from '../util/merge'
 import {deepEquals} from '../util/misc'
 import {zodParseString} from '../util/zod'
 import {
