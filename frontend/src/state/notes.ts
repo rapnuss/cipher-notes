@@ -645,13 +645,13 @@ export const syncNotes = nonConcurrent(async () => {
       label: pullLabels = [],
       note: pullNotes = [],
       file: pullFiles = [],
-    } = partitionBy(pulls, (p) => p.type)
+    } = partitionBy(pulls, (p) => (p.type === 'todo' ? 'note' : p.type))
     const serverConflicts: Put[] = await decryptSyncData(keyTokenPair.cryptoKey, res.data.conflicts)
     const {
       label: serverConflictsLabels = [],
       note: serverConflictsNotes = [],
       file: serverConflictsFiles = [],
-    } = partitionBy(serverConflicts, (p) => p.type)
+    } = partitionBy(serverConflicts, (p) => (p.type === 'todo' ? 'note' : p.type))
 
     const baseVersions: Note[] = await db.note_base_versions
       .where('id')

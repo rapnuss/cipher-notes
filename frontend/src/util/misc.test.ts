@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest'
-import {splitFilename} from './misc'
+import {partitionBy, splitFilename} from './misc'
 
 describe('splitFilenameExtension', () => {
   it('should split filename extension', () => {
@@ -26,5 +26,15 @@ describe('splitFilenameExtension', () => {
     const [name, ext] = splitFilename('.gitignore')
     expect(name).toBe('')
     expect(ext).toBe('.gitignore')
+  })
+})
+
+describe('partitionBy', () => {
+  it('should partition by', () => {
+    const res = partitionBy([1, 2, 3, 4, 5], (x) => String(x % 2))
+    expect(res).toEqual({
+      '0': [2, 4],
+      '1': [1, 3, 5],
+    })
   })
 })

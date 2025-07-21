@@ -340,23 +340,8 @@ export const mergeTodoNoteConflict = (
   } else if (baseVersion.todos === undefined || !todosHaveIdsAndUpdatedAt(baseVersion.todos)) {
     return null
   } else {
-    const baseIds = baseVersion.todos.map((t) => t.id!)
-    const dirtyIds = dirtyNote.todos.map((t) => t.id!)
-    const serverIds = serverConflict.todos.map((t) => t.id!)
-    const mergedIds = threeWayMergeArrays(baseIds, dirtyIds, serverIds)
-    todos = mergedIds.map((id) => {
-      const dirtyTodo = dirtyNote.todos.find((t) => t.id === id)
-      const serverTodo = serverConflict.todos.find((t) => t.id === id)
-      if (!dirtyTodo && serverTodo) {
-        return serverTodo
-      } else if (!serverTodo && dirtyTodo) {
-        return dirtyTodo
-      } else if (dirtyTodo && serverTodo) {
-        return dirtyTodo.updated_at! > serverTodo.updated_at! ? dirtyTodo : serverTodo
-      } else {
-        throw new Error('threeWayMergeArrays failed')
-      }
-    })
+    // TODO: merge todos, be careful with child/parent relations
+    return null
   }
   return {
     type: 'todo',
