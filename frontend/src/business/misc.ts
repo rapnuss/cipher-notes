@@ -373,6 +373,9 @@ export const mergeTodoNoteConflict = (
         ? dirtyNote.archived
         : serverConflict.archived,
     todos,
+    // TODO: merge labels
+    labels:
+      dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.labels : serverConflict.labels,
   }
 }
 
@@ -407,6 +410,9 @@ export const mergeTextNoteConflict = (
     version: Math.max(dirtyNote.version, serverConflict.version) + 1,
     state: 'dirty',
     deleted_at: 0,
+    // TODO: merge labels
+    labels:
+      dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.labels : serverConflict.labels,
   }
 }
 
