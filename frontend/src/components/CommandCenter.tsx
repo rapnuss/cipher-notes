@@ -65,14 +65,24 @@ export const CommandCenter = () => {
       shortcut: 'alt+shift+l',
     },
     {
+      id: 'agb',
+      label: 'Allgemeine Geschäftsbedingungen (AGB)',
+      onClick: () => window.open('/agb.html', '_blank'),
+    },
+    {
       id: 'datenschutz',
       label: 'Datenschutzerklärung',
       onClick: () => window.open('/datenschutz.html', '_blank'),
     },
     {
-      id: 'agb',
-      label: 'Allgemeine Geschäftsbedingungen (AGB)',
-      onClick: () => window.open('/agb.html', '_blank'),
+      id: 'terms',
+      label: 'Terms and Conditions',
+      onClick: () => window.open('/terms.html', '_blank'),
+    },
+    {
+      id: 'privacy',
+      label: 'Privacy Policy',
+      onClick: () => window.open('/privacy.html', '_blank'),
     },
     {
       id: 'encryptionKey',

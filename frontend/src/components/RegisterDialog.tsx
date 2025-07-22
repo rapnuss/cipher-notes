@@ -40,13 +40,24 @@ export const RegisterDialog = () => {
           onChange={(e) => registerEmailChanged(e.target.value)}
         />
         <a href='/agb.html' target='_blank'>
-          AGB
+          AGB Deutsch
         </a>
         <a href='/datenschutz.html' target='_blank'>
-          Datenschutzerklärung
+          Datenschutzerklärung Deutsch
+        </a>
+        <a href='/terms.html' target='_blank'>
+          Terms and Conditions English
+        </a>
+        <a href='/privacy.html' target='_blank'>
+          Privacy Policy English
         </a>
         <Checkbox
-          label='Ich stimme den AGB und der Datenschutzerklärung zu'
+          label={
+            <>
+              Ich stimme den AGB und der Datenschutzerklärung zu.
+              <br />I accept the Terms and Conditions and the Privacy Policy.
+            </>
+          }
           checked={agree}
           onChange={(e) => registerAgreeChanged(e.target.checked)}
         />
