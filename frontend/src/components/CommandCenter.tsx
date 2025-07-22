@@ -71,7 +71,7 @@ export const CommandCenter = () => {
     },
     {
       id: 'agb',
-      label: 'Allgemeine Geschäftsbedingungen',
+      label: 'Allgemeine Geschäftsbedingungen (AGB)',
       onClick: () => window.open('/agb.html', '_blank'),
     },
     {
