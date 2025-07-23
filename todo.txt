@@ -56,6 +56,9 @@ DONE:
   delete blobs on server when file deleted locally
   extensions with dot
   fix: open file archived status is not synced immediately
+  handel dirty deletes
+  on change encryption key
+    delete all blobs with the old key
 FIRST:
 TODO:
   notify other clients when file was uploaded

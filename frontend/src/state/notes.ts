@@ -812,6 +812,14 @@ export const syncNotes = nonConcurrent(async () => {
       await tx.files_blob.bulkDelete(syncedDeleteIds)
       await tx.files_thumb.bulkDelete(syncedDeleteIds)
     })
+    await db.transaction('rw', db.labels, async (tx) => {
+      const syncedDeleteIds = await tx.labels
+        .where('deleted_at')
+        .notEqual(0)
+        .and((l) => l.state === 'synced')
+        .primaryKeys()
+      await tx.labels.bulkDelete(syncedDeleteIds)
+    })
 
     setState((state) => {
       state.conflicts.conflicts = noteConflicts

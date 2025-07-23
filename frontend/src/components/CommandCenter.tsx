@@ -92,7 +92,7 @@ export const CommandCenter = () => {
     },
     {
       id: 'updateEncryptionKey',
-      label: 'Update Encryption-Key',
+      label: 'Import Encryption-Key',
       onClick: () => openEncryptionKeyDialog('update'),
       disabled: !loggedIn || !hasKeyTokenPair,
     },
@@ -147,7 +147,7 @@ export const CommandCenter = () => {
     },
     {
       id: 'deleteServerNotes',
-      label: 'Delete server notes and generate new Encryption-Key',
+      label: 'Generate new Encryption-Key and resync notes',
       onClick: openDeleteServerNotesDialog,
       disabled: !loggedIn,
     },

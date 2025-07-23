@@ -309,15 +309,7 @@ export const saveEncryptionKey = async (keyTokenPair: string) => {
     setState((state) => {
       state.user.user.lastSyncedTo = 0
     })
-    await db.transaction('rw', ['notes', 'note_base_versions', 'labels'], async (tx) => {
-      await tx.note_base_versions.clear()
-      await tx.notes.toCollection().modify((note) => {
-        note.state = 'dirty'
-      })
-      await tx.labels.toCollection().modify((label) => {
-        label.state = 'dirty'
-      })
-    })
+    await setEverythingDirty()
   }
   setState((state) => {
     state.user.user.keyTokenPair = {cryptoKey, syncToken}
@@ -330,6 +322,25 @@ export const saveEncryptionKey = async (keyTokenPair: string) => {
     await syncNotes()
   }
 }
+
+const setEverythingDirty = (deleteFilesMetaWithBlobStateRemote = false) =>
+  db.transaction('rw', ['notes', 'note_base_versions', 'labels', 'files_meta'], async (tx) => {
+    await tx.note_base_versions.clear()
+    await tx.notes.toCollection().modify((note) => {
+      note.state = 'dirty'
+    })
+    await tx.labels.toCollection().modify((label) => {
+      label.state = 'dirty'
+    })
+    await tx.files_meta.toCollection().modify((file, ref: any) => {
+      file.state = 'dirty'
+      if (file.blob_state === 'synced') {
+        file.blob_state = 'local'
+      } else if (file.blob_state === 'remote' && deleteFilesMetaWithBlobStateRemote) {
+        delete ref.value
+      }
+    })
+  })
 
 export const openDeleteServerNotesDialog = async () => {
   const state = getState()
@@ -407,15 +418,7 @@ export const deleteServerNotesAndGenerateNewKey = async () => {
     return
   }
 
-  await db.transaction('rw', ['notes', 'note_base_versions', 'labels'], async (tx) => {
-    await tx.note_base_versions.clear()
-    await tx.notes.toCollection().modify((note) => {
-      note.state = 'dirty'
-    })
-    await tx.labels.toCollection().modify((label) => {
-      label.state = 'dirty'
-    })
-  })
+  await setEverythingDirty(true)
 
   const cryptoKey = await generateKey()
   setState((state) => {
@@ -502,10 +505,7 @@ export const deleteAccount = async () => {
       state.user.user = {loggedIn: false, email: '', keyTokenPair: null, lastSyncedTo: 0}
     })
 
-    await db.notes.toCollection().modify((note) => {
-      note.state = 'dirty'
-    })
-    await db.note_base_versions.clear()
+    await setEverythingDirty(true)
   }
 }
 

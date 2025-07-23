@@ -108,7 +108,10 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
       }
 
       const [updates, inserts] = bisectBy(nonConflicts, (p) => existingMap.has(p.id))
-      const values = inserts.filter((c) => c.cipher_text !== null && c.iv !== null)
+      const [values, unmatchedDeletes] = bisectBy(
+        inserts,
+        (c) => c.cipher_text !== null && c.iv !== null
+      )
       if (values.length > 0) {
         await tx.insert(notesTbl).values(
           values.map((c): typeof notesTbl.$inferInsert => ({
@@ -174,10 +177,10 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
       }
 
       return {
-        puts: putsSchema.parse(pullPuts),
+        puts: putsSchema.parse(pullPuts.concat(unmatchedDeletes)),
         synced_to: Math.max(last_synced_to, maxPutAt),
         conflicts: putsSchema.parse(conflicts),
-        pushedIds: nonConflicts.map((u) => u.id),
+        pushedIds: updates.map((u) => u.id).concat(inserts.map((i) => i.id)),
       }
     })
 
@@ -223,8 +226,13 @@ const deleteBlobs = async (user_id: number): Promise<number> => {
 
   if (deletedFiles.length === 0) return 0
 
-  const deletedKeys = await s3DeleteKeys(deletedFiles.map((f) => `${user_id}/${f.clientside_id}`))
+  const {deletedKeys, errorKeys} = await s3DeleteKeys(
+    deletedFiles.map((f) => `${user_id}/${f.clientside_id}`)
+  )
   const deletedIds = deletedKeys.map((k) => k.split('/')[1]).filter((k) => k !== undefined)
+  if (errorKeys.length > 0) {
+    console.warn('Failed to delete some keys:', errorKeys)
+  }
   await db
     .update(notesTbl)
     .set({committed_size: 0})

@@ -100,6 +100,19 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
       throw createHttpError(400, 'Invalid login code')
     }
 
+    await db
+      .update(usersTbl)
+      .set({
+        login_code: null,
+        login_code_created_at: null,
+        login_tries_left: 0,
+        confirm_code: null,
+        confirm_code_tries_left: 0,
+        confirm_code_created_at: null,
+        new_email: null,
+      })
+      .where(eq(usersTbl.id, user.id))
+
     const jwtPromise = signSubscriptionToken(
       user.id,
       user.subscription,
@@ -107,18 +120,6 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
     )
 
     return await db.transaction(async (tx) => {
-      await tx
-        .update(usersTbl)
-        .set({
-          login_code: null,
-          login_code_created_at: null,
-          login_tries_left: 0,
-          confirm_code: null,
-          confirm_code_tries_left: 0,
-          confirm_code_created_at: null,
-          new_email: null,
-        })
-        .where(eq(usersTbl.id, user.id))
       const {accessToken, salt, hash} = generateSession()
       const [{session_id} = {}] = await tx
         .insert(sessionsTbl)
