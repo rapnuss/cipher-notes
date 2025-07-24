@@ -55,7 +55,7 @@ export const CommandCenter = () => {
       id: 'register',
       label: 'Register',
       onClick: openRegisterDialog,
-      disabled: !!email,
+      disabled: loggedIn,
     },
     {
       id: 'login',
