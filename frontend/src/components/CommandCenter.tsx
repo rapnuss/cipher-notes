@@ -149,7 +149,7 @@ export const CommandCenter = () => {
       id: 'deleteServerNotes',
       label: 'Generate new Encryption-Key and resync notes',
       onClick: openDeleteServerNotesDialog,
-      disabled: !loggedIn,
+      disabled: !loggedIn || !hasKeyTokenPair,
     },
     {
       id: 'changeEmail',
