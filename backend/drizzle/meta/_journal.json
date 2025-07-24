@@ -1,0 +1,13 @@
+{
+  "version": "5",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1732487460000,
+      "tag": "0001_migrate_to_bigint_ids",
+      "breakpoints": true
+    }
+  ]
+}

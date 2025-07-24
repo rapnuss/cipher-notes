@@ -5,7 +5,7 @@ export const subscriptionTypeEnum = pgEnum('subscription_type', ['free', 'plus',
 export type SubscriptionType = (typeof subscriptionTypeEnum.enumValues)[number]
 
 export const usersTbl = pgTable('users', {
-  id: integer().generatedAlwaysAsIdentity().primaryKey(),
+  id: bigint({mode: 'number'}).generatedAlwaysAsIdentity().primaryKey(),
   email: varchar({length: 255}).unique().notNull(),
   login_code: varchar({length: 6}),
   login_code_created_at: bigint({mode: 'number'}),
@@ -24,8 +24,8 @@ export const usersTbl = pgTable('users', {
 })
 
 export const sessionsTbl = pgTable('sessions', {
-  id: integer().generatedAlwaysAsIdentity().primaryKey(),
-  user_id: integer()
+  id: bigint({mode: 'number'}).generatedAlwaysAsIdentity().primaryKey(),
+  user_id: bigint({mode: 'number'})
     .references(() => usersTbl.id)
     .notNull(),
   access_token_hash: varchar({length: 64}).notNull(),
@@ -38,8 +38,8 @@ export const noteTypeEnum = pgEnum('note_type', ['note', 'todo', 'label', 'file'
 export const notesTbl = pgTable(
   'notes',
   {
-    id: integer().generatedAlwaysAsIdentity().primaryKey(),
-    user_id: integer()
+    id: bigint({mode: 'number'}).generatedAlwaysAsIdentity().primaryKey(),
+    user_id: bigint({mode: 'number'})
       .references(() => usersTbl.id)
       .notNull(),
     clientside_id: varchar({length: 36}).notNull(),
