@@ -43,7 +43,7 @@ export const sendLoginCodeEndpoint = endpointsFactory.build({
     }
 
     const lastCodeSent = user.login_code_created_at
-    if (lastCodeSent && Date.now() - lastCodeSent < 10 * 60 * 1000) {
+    if (lastCodeSent && Date.now() - lastCodeSent < 10_000) {
       throw createHttpError(400, 'Code already sent recently')
     }
 

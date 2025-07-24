@@ -2,10 +2,14 @@ import {SubscriptionType} from '../db/schema'
 import {signJwt} from '../services/jwt'
 import {generateSalt, hashToken} from '../util/hash'
 
+// on big O, no 0, no big I, no small l
+const CODE_CHARS = '123456789abcdefghijkmnopqrstuvwxyz'
+
 export const generateLoginCode = () => {
-  return Math.floor(Math.random() * 1_000_000)
-    .toString()
-    .padStart(6, '0')
+  return Array.from(
+    {length: 6},
+    () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]
+  ).join('')
 }
 
 export const generateSession = () => {

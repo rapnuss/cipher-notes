@@ -15,10 +15,7 @@ export const sendConfirmCodeEndpoint = authEndpointsFactory.build({
     if (!user) {
       throw createHttpError(500, 'User not found')
     }
-    if (
-      user.confirm_code_created_at &&
-      user.confirm_code_created_at + 10 * 60 * 1000 > Date.now()
-    ) {
+    if (user.confirm_code_created_at && user.confirm_code_created_at + 10_000 > Date.now()) {
       throw createHttpError(400, 'Confirm code already sent recently')
     }
     const confirm_code = generateLoginCode()
