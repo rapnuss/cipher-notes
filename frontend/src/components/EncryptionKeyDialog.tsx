@@ -1,4 +1,4 @@
-import {Button, Flex, Group, Modal, PasswordInput} from '@mantine/core'
+import {Button, Flex, Group, Modal, PasswordInput, Text} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {
   closeEncryptionKeyDialog,
@@ -26,13 +26,16 @@ export const EncryptionKeyDialog = () => {
   })
   return (
     <Modal title='Encryption key' opened={open} onClose={closeEncryptionKeyDialog}>
+      {!hasStoredKeyTokenPair && (
+        <Text mb='md'>Generate a new key or import from a different device to sync notes.</Text>
+      )}
       <Flex align='start'>
         <PasswordInput
           size='md'
           flex={1}
           value={keyTokenPair}
           onChange={(e) => keyTokenPairChanged(e.target.value)}
-          error={!valid ? 'Invalid key token pair' : undefined}
+          error={keyTokenPair && !valid ? 'Invalid key token pair' : undefined}
           readOnly={lastSyncedTo !== 0 && mode !== 'update'}
         />
         <ActionIconWithText

@@ -246,10 +246,22 @@ export const loginWithCode = async () => {
         message: 'You are logged in',
       })
       state.user.loginDialog.open = false
+
+      if (!state.user.user.keyTokenPair) {
+        state.user.encryptionKeyDialog = {
+          open: true,
+          keyTokenPair: '',
+          qrMode: 'hide',
+          mode: 'export/generate',
+        }
+      }
     }
   })
-  if (getState().user.user.loggedIn) {
-    await syncNotes()
+  {
+    const state = getState()
+    if (state.user.user.loggedIn && state.user.user.keyTokenPair) {
+      await syncNotes()
+    }
   }
 }
 
