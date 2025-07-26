@@ -35,13 +35,12 @@ export const LabelDialog = () => {
             variant={'default'}
             style={{
               border: h === hue ? '2px solid var(--mantine-color-bright)' : 'none',
-              outline: 'none',
             }}
             id={String(h)}
             onClick={() => labelDialogHueChanged(h)}
             c='var(--mantine-color-text)'
             bg={labelColor(h, colorScheme === 'dark')}
-            aria-label={`Select hue ${h ?? 'none'}`}
+            title={`Select hue ${h ?? 'none'}`}
           >
             {h === null ? '-' : h}
           </ActionIcon>

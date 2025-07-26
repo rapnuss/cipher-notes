@@ -156,6 +156,11 @@ export const OpenNoteDialog = () => {
             Promise.resolve().then(() => parent?.querySelector('textarea')?.focus())
           }
         }}
+        data-autofocus={
+          openNote && openNote.type === 'note' && openNote.txt === '' && openNote.title === ''
+            ? true
+            : undefined
+        }
       />
       {openNote?.type === 'note' ? (
         <XTextarea
@@ -196,6 +201,7 @@ export const OpenNoteDialog = () => {
               text='more'
               className='open-note-more-menu'
               onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+              data-autofocus
             >
               <IconDots />
             </ActionIconWithText>

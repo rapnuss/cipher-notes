@@ -185,6 +185,7 @@ export const OpenFileDialog = () => {
               text='more'
               className='open-file-more-menu'
               onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+              data-autofocus
             >
               <IconDots />
             </ActionIconWithText>

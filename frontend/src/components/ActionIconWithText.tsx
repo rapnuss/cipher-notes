@@ -11,9 +11,11 @@ export type ActionIconWithTextProps = {
   id?: string
   className?: string
   loading?: boolean
+  // Accept any data-* props
+  [key: `data-${string}`]: any
 }
 export const ActionIconWithText = forwardRef<HTMLButtonElement, ActionIconWithTextProps>(
-  ({children, title, text, disabled, style, onClick, id, className, loading}, ref) => (
+  ({children, title, text, disabled, style, onClick, id, className, loading, ...rest}, ref) => (
     <ActionIcon
       ref={ref}
       id={id}
@@ -33,6 +35,7 @@ export const ActionIconWithText = forwardRef<HTMLButtonElement, ActionIconWithTe
           justifyContent: 'center',
         },
       }}
+      {...rest}
     >
       {children}
       <div

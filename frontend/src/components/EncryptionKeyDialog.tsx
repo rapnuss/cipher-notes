@@ -40,7 +40,7 @@ export const EncryptionKeyDialog = () => {
         />
         <ActionIconWithText
           title='Copy to Clipboard'
-          text='clipb.'
+          text='copy'
           onClick={() => navigator.clipboard.writeText(keyTokenPair)}
         >
           <IconCopy />
