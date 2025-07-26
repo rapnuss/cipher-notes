@@ -60,6 +60,12 @@ export default defineConfig({
     }
     th, td {
       border: 1px solid #ccc;
+      text-align: left;
+      vertical-align: top;
+    }
+    pre {
+      white-space: pre-wrap;
+      width: 100em;
     }
   </style>
 </head>
@@ -90,9 +96,11 @@ export default defineConfig({
                 <td>${dep.license}</td>
                 <td>${dep.private}</td>
                 <td>${dep.description}</td>
-                <td>${dep.repository}</td>
-                <td>${dep.author}</td>
-                <td><pre>${dep.licenseText}</pre></td>
+                <td>${
+                  typeof dep.repository === 'string' ? dep.repository : dep.repository?.url
+                }</td>
+                <td>${dep.author?.name} ${dep.author?.email}</td>
+                <td><pre>${dep.licenseText?.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre></td>
               </tr>`
           )
           .join('')}
