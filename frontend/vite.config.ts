@@ -65,7 +65,7 @@ export default defineConfig({
     }
     pre {
       white-space: pre-wrap;
-      width: 100em;
+      width: 50em;
     }
   </style>
 </head>
