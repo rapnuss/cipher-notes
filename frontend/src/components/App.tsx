@@ -80,7 +80,7 @@ export const App = () => {
       <ChangeEmailDialog />
       <ImprintDialog />
       <PWABadge />
-      <Notifications autoClose={false} />
+      <Notifications autoClose={10_000} />
     </>
   )
 }

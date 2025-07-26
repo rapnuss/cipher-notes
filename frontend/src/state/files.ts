@@ -1,3 +1,4 @@
+import {notifications} from '@mantine/notifications'
 import {
   ActiveLabel,
   activeLabelIsUuid,
@@ -140,6 +141,15 @@ export const fileOpened = async (id: string) => {
       archived: file.archived,
     }
   })
+  const state = getState()
+  if (
+    state.user.connected &&
+    state.user.user.keyTokenPair &&
+    file.blob_state === 'remote' &&
+    !state.files.upDownloading
+  ) {
+    upDownloadBlobsAndSetState()
+  }
 }
 
 export const fileClosed = async () => {
@@ -262,26 +272,46 @@ const storeOpenFile = nonConcurrent(async () => {
   }
 })
 
-export const upDownloadBlobsAndSetState = debounce(
-  nonConcurrent(async () => {
-    const keyTokenPair = getState().user.user.keyTokenPair
-    if (!keyTokenPair) {
-      return
-    }
-    setState((state) => {
-      state.files.upDownloading = true
+const upDownloadBlobsAndSetState = nonConcurrent(async () => {
+  const keyTokenPair = getState().user.user.keyTokenPair
+  if (!keyTokenPair) {
+    return
+  }
+  setState((state) => {
+    state.files.upDownloading = true
+  })
+  await comlink
+    .upDownloadBlobs(keyTokenPair.cryptoKey)
+    .then(({hit_storage_limit}) => {
+      if (hit_storage_limit) {
+        const state = getState()
+        if (state.notes.sync.dialogOpen) {
+          notifications.show({
+            title: 'File storage limit reached',
+            message: 'You have reached your file storage limit!',
+            color: 'red',
+          })
+        }
+      }
     })
-    await comlink
-      .upDownloadBlobs(keyTokenPair.cryptoKey)
-      .catch(console.error)
-      .finally(() => {
-        setState((state) => {
-          state.files.upDownloading = false
+    .catch((error) => {
+      console.error(error)
+      const state = getState()
+      if (state.notes.sync.dialogOpen) {
+        notifications.show({
+          title: 'Failed to sync files',
+          message: error?.message ?? 'Unknown error',
+          color: 'red',
         })
+      }
+    })
+    .finally(() => {
+      setState((state) => {
+        state.files.upDownloading = false
       })
-  }),
-  1000
-)
+    })
+})
+export const upDownloadBlobsAndSetStateDebounced = debounce(upDownloadBlobsAndSetState, 1000)
 
 export const registerFilesSubscriptions = () => {
   const storeDebounced = debounce(storeOpenFile, 1000)
@@ -294,7 +324,7 @@ export const registerFilesSubscriptions = () => {
 
   hasUnsyncedBlobsObservable.subscribe((hasUnsyncedBlobs) => {
     if (hasUnsyncedBlobs) {
-      upDownloadBlobsAndSetState()
+      upDownloadBlobsAndSetStateDebounced()
     }
   })
 }

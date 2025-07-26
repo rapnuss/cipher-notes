@@ -91,10 +91,16 @@ export const CommandCenter = () => {
       disabled: !loggedIn,
     },
     {
-      id: 'updateEncryptionKey',
+      id: 'importEncryptionKey',
       label: 'Import Encryption-Key',
       onClick: () => openEncryptionKeyDialog('update'),
       disabled: !loggedIn || !hasKeyTokenPair,
+    },
+    {
+      id: 'sync',
+      label: 'Manual server sync (and view sync error)',
+      onClick: openSyncDialogAndSync,
+      disabled: !loggedIn,
     },
     {
       id: 'imprint',
@@ -146,7 +152,7 @@ export const CommandCenter = () => {
       disabled: true,
     },
     {
-      id: 'deleteServerNotes',
+      id: 'generateNewEncryptionKeyAndResync',
       label: 'Generate new Encryption-Key and resync notes',
       onClick: openDeleteServerNotesDialog,
       disabled: !loggedIn || !hasKeyTokenPair,
@@ -156,12 +162,6 @@ export const CommandCenter = () => {
       label: 'Change Email',
       onClick: openChangeEmailDialog,
       disabled: !email,
-    },
-    {
-      id: 'sync',
-      label: 'Manual server sync (and view sync error)',
-      onClick: openSyncDialogAndSync,
-      disabled: !loggedIn,
     },
     {
       id: 'deleteAccount',

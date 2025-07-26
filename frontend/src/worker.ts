@@ -49,16 +49,22 @@ export const generateThumbnails = nonConcurrent(async (): Promise<void> => {
   }
 })
 
-export const upDownloadBlobs = async (cryptoKey: string): Promise<void> => {
+export const upDownloadBlobs = async (
+  cryptoKey: string
+): Promise<{selectedAll: boolean; hit_storage_limit: boolean}> => {
   const key = await importKey(cryptoKey)
+  let selectedAll, hit_storage_limit
   while (true) {
-    const {selectedAll, hit_storage_limit} = await _upDownloadBlobs(key)
+    const res = await _upDownloadBlobs(key)
+    selectedAll = res.selectedAll
+    hit_storage_limit = res.hit_storage_limit
     if (selectedAll || hit_storage_limit) {
       break
     }
   }
 
   queueMicrotask(generateThumbnails)
+  return {selectedAll, hit_storage_limit}
 }
 
 const _upDownloadBlobs = async (

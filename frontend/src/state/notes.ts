@@ -56,7 +56,7 @@ import {
 import XSet from '../util/XSet'
 import {notifications} from '@mantine/notifications'
 import {UserState} from './user'
-import {setOpenFile, upDownloadBlobsAndSetState} from './files'
+import {setOpenFile, upDownloadBlobsAndSetStateDebounced} from './files'
 
 export type NotesState = {
   query: string
@@ -832,7 +832,7 @@ export const syncNotes = nonConcurrent(async () => {
         })
       }
     })
-    upDownloadBlobsAndSetState()
+    upDownloadBlobsAndSetStateDebounced()
   } catch (e) {
     setState((state) => {
       const message = e instanceof Error ? e.message : 'Unknown error'
