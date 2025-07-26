@@ -99,7 +99,7 @@ export default defineConfig({
                 <td>${
                   typeof dep.repository === 'string' ? dep.repository : dep.repository?.url
                 }</td>
-                <td>${dep.author?.name} ${dep.author?.email}</td>
+                <td>${dep.author?.name ?? ''} ${dep.author?.email ?? ''}</td>
                 <td><pre>${dep.licenseText?.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre></td>
               </tr>`
           )
