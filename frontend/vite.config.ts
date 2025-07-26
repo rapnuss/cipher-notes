@@ -3,6 +3,7 @@ import {VitePWA} from 'vite-plugin-pwa'
 import {defineConfig} from 'vite'
 import react from '@vitejs/plugin-react'
 import {comlink} from 'vite-plugin-comlink'
+import license from 'rollup-plugin-license'
 import fs from 'fs'
 import path from 'path'
 
@@ -36,6 +37,75 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    rollupOptions: {
+      plugins: [
+        license({
+          thirdParty: {
+            output: {
+              file: 'dist/licenses.html',
+              template: (dependencies) => `
+<html lang="en">
+<head>
+  <title>Third Party Licenses - ciphernotes</title>
+  <meta charset="utf-8">
+  <style>
+    html {
+      font-family: sans-serif;
+    }
+    .table-container {
+      overflow-x: auto;
+    }
+    table {
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <nav><a href="/">Back to the app</a></nav>
+  <h1>Third Party Licenses - ciphernotes</h1>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Version</th>
+          <th>License</th>
+          <th>Private</th>
+          <th>Description</th>
+          <th>Repository</th>
+          <th>Author</th>
+          <th>License Copyright</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${dependencies
+          .map(
+            (dep) => `
+              <tr>
+                <td>${dep.name}</td>
+                <td>${dep.version}</td>
+                <td>${dep.license}</td>
+                <td>${dep.private}</td>
+                <td>${dep.description}</td>
+                <td>${dep.repository}</td>
+                <td>${dep.author}</td>
+                <td><pre>${dep.licenseText}</pre></td>
+              </tr>`
+          )
+          .join('')}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>`,
+            },
+          },
+        }) as any,
+      ],
+    },
   },
   plugins: [
     comlink(),

@@ -169,6 +169,11 @@ export const CommandCenter = () => {
       onClick: openDeleteAccountDialog,
       disabled: !loggedIn,
     },
+    {
+      id: 'licenses',
+      label: 'Third Party Licenses',
+      onClick: () => window.open('/licenses.html', '_blank'),
+    },
   ]
 
   const enabledCommands = commands.filter((c) => !c.disabled)

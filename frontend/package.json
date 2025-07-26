@@ -61,6 +61,7 @@
     "postcss-preset-mantine": "^1.17.0",
     "postcss-simple-vars": "^7.0.1",
     "postinstall-postinstall": "^2.1.0",
+    "rollup-plugin-license": "^3.6.0",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vite-plugin-comlink": "^5.1.0",
