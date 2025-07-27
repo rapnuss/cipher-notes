@@ -103,6 +103,11 @@ export const CommandCenter = () => {
       disabled: !loggedIn,
     },
     {
+      id: 'issues',
+      label: 'Bug Reports & Feature Requests',
+      onClick: () => window.open('https://github.com/rapnuss/ciphernotes/issues', '_blank'),
+    },
+    {
       id: 'imprint',
       label: 'Imprint',
       onClick: toggleImprint,
