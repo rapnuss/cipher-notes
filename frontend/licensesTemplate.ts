@@ -5,6 +5,7 @@ export const licensesTemplate = (dependencies: Dependency[]) => `
 <head>
   <title>Third Party Licenses - ciphernotes</title>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     html {
       font-family: sans-serif;
@@ -21,9 +22,9 @@ export const licensesTemplate = (dependencies: Dependency[]) => `
       vertical-align: top;
     }
     pre {
-      font-size: 1rem;
+      font-size: 0.75rem;
       white-space: pre-wrap;
-      width: 50em;
+      width: 80em;
     }
   </style>
 </head>
