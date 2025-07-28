@@ -10,7 +10,7 @@ import reactCompiler from 'eslint-plugin-react-compiler';
 export default [
   {
     files: ['**/*.{ts,tsx}'],
-    ignores: ['dist/**', 'eslint.config.js', 'vite.config.ts', 'pwa-assets.config.ts', 'vitest.config.ts'],
+    ignores: ['dist/**', 'eslint.config.js', 'vite.config.ts', 'pwa-assets.config.ts', 'vitest.config.ts', 'licensesTemplate.ts'],
     languageOptions: {
       globals: {
         ...globals.browser,
