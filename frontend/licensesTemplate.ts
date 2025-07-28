@@ -21,6 +21,7 @@ export const licensesTemplate = (dependencies: Dependency[]) => `
       vertical-align: top;
     }
     pre {
+      font-size: 1rem;
       white-space: pre-wrap;
       width: 50em;
     }
