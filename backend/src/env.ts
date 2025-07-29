@@ -1,7 +1,6 @@
 const keys = [
   'NODE_ENV',
   'DATABASE_URL',
-  'SENDGRID_API_KEY',
   'RATE_WINDOW_SEC',
   'RATE_LIMIT',
   'PORT',
@@ -18,6 +17,10 @@ const keys = [
   'S3_REGION',
   'S3_ENDPOINT',
   'S3_BUCKET',
+  'AWS_ACCESS_KEY_ID',
+  'AWS_ACCESS_KEY_SECRET',
+  'AWS_REGION',
+  'MAIL_FROM',
 ] as const
 type Key = (typeof keys)[number]
 
