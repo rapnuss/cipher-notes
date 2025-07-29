@@ -127,8 +127,15 @@ You can share the key via a QR code directly from app to app.
 
 ## TWA
 
+### Generate keystore
+
+```powershell
+~\.bubblewrap\jdk\jdk-17.0.11+9\bin\keytool.exe -genkeypair -alias com.ciphernotes.twa -keyalg RSA \
+ -keysize 2048 -validity 10000 -keystore android.keystore
+```
+
 ### Generate SHA256 fingerprint
 
-```
+```powershell
 ~\.bubblewrap\jdk\jdk-17.0.11+9\bin\keytool.exe -printcert -jarfile ".\app-release-signed.apk"
 ```
