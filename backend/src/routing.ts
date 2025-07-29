@@ -11,6 +11,7 @@ import {sendConfirmCodeEndpoint} from './endpoints/sendConfirmCode'
 import {logoutEndpoint, removeAllSessionsEndpoint} from './endpoints/logout'
 import {changeEmailEndpoint, sendChangeEmailCodesEndpoint} from './endpoints/changeEmail'
 import {getPresignedUrlsEndpoint} from './endpoints/getPresignedUrls'
+import {snsEndpoint} from './endpoints/sns'
 
 export const routing: Routing = {
   hello: helloEndpoint,
@@ -26,4 +27,5 @@ export const routing: Routing = {
   sendChangeEmailCodes: sendChangeEmailCodesEndpoint,
   changeEmail: changeEmailEndpoint,
   getPresignedUrls: getPresignedUrlsEndpoint,
+  sns: snsEndpoint,
 }

@@ -21,6 +21,11 @@ export const usersTbl = pgTable('users', {
   // together with confirm_code_created_at and confirm_code_tries_left.
   new_email: varchar({length: 255}),
   subscription: subscriptionTypeEnum('subscription').default('free').notNull(),
+  last_login_at: bigint({mode: 'number'}),
+
+  received_soft_bounce_at: bigint({mode: 'number'}).notNull().default(0),
+  received_hard_bounce_at: bigint({mode: 'number'}).notNull().default(0),
+  received_complaint_at: bigint({mode: 'number'}).notNull().default(0),
 })
 
 export const sessionsTbl = pgTable('sessions', {
