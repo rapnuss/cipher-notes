@@ -21,6 +21,7 @@ export const usersTbl = pgTable('users', {
   // together with confirm_code_created_at and confirm_code_tries_left.
   new_email: varchar({length: 255}),
   subscription: subscriptionTypeEnum('subscription').default('free').notNull(),
+  successful_login_at: bigint({mode: 'number'}),
 })
 
 export const sessionsTbl = pgTable('sessions', {

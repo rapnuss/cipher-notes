@@ -110,6 +110,7 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
         confirm_code_tries_left: 0,
         confirm_code_created_at: null,
         new_email: null,
+        successful_login_at: Date.now(),
       })
       .where(eq(usersTbl.id, user.id))
 
