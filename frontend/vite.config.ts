@@ -9,14 +9,15 @@ import path from 'path'
 import {licensesTemplate} from './licensesTemplate'
 
 const isDev = process.env.NODE_ENV === 'development'
+const isPreview = process.env.PREVIEW === 'true'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   base: './',
   server: {
     https: {
-      key: isDev ? fs.readFileSync(path.resolve(__dirname, 'key.pem')) : undefined,
-      cert: isDev ? fs.readFileSync(path.resolve(__dirname, 'cert.pem')) : undefined,
+      key: isDev || isPreview ? fs.readFileSync(path.resolve(__dirname, 'key.pem')) : undefined,
+      cert: isDev || isPreview ? fs.readFileSync(path.resolve(__dirname, 'cert.pem')) : undefined,
     },
     proxy: {
       '/api': {
@@ -67,7 +68,7 @@ export default defineConfig({
       injectRegister: false,
 
       pwaAssets: {
-        disabled: false,
+        disabled: true,
         config: true,
       },
 
