@@ -24,6 +24,7 @@
     "@mantine/modals": "^8.0.2",
     "@mantine/notifications": "^8.0.2",
     "@mantine/spotlight": "^8.0.2",
+    "bowser": "^2.11.0",
     "comlink": "^4.4.2",
     "dexie": "^4.0.11",
     "dexie-react-hooks": "^1.1.7",

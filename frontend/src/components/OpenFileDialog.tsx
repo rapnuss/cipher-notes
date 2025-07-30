@@ -30,6 +30,7 @@ import {useCloseOnBack} from '../helpers/useCloseOnBack'
 import {useEffect} from 'react'
 import {useHotkeys} from '@mantine/hooks'
 import {FileIconWithExtension} from './FileIconWithExtension'
+import {isAndroid} from '../helpers/bowser'
 
 const fileNotFound = Symbol('file not found')
 
@@ -252,12 +253,12 @@ export const OpenFileDialog = () => {
             const record = await db.files_blob.get(file.id)
             if (!record || !record.blob) return
             downloadBlob(record.blob, getFilename(file))
-            notifications.show({
-              title: 'File downloaded',
-              message: navigator.userAgent.includes('Android')
-                ? 'Check notifications to find it.'
-                : 'Find it in your downloads.',
-            })
+            if (isAndroid()) {
+              notifications.show({
+                title: 'File downloaded',
+                message: 'Check notifications to find it.',
+              })
+            }
           }}
         >
           <IconDownload />
