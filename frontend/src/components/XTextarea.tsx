@@ -9,6 +9,7 @@ export type XTextareaProps = {
   onUp: () => void
   placeholder?: string
   textareaId?: string
+  autoFocus?: boolean
 }
 export const XTextarea = ({
   value,
@@ -18,6 +19,7 @@ export const XTextarea = ({
   onUp,
   placeholder,
   textareaId,
+  autoFocus,
 }: XTextareaProps) => {
   return (
     <Editor
@@ -28,6 +30,7 @@ export const XTextarea = ({
       value={value}
       onValueChange={onChange}
       textareaId={textareaId}
+      autoFocus={autoFocus}
       onKeyDown={(e) => {
         if (
           e.currentTarget instanceof HTMLTextAreaElement &&

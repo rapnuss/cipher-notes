@@ -450,6 +450,7 @@ const Editor = (props: Props) => {
         autoCorrect='off'
         data-gramm={false}
         aria-describedby={textareaId + '-esc'}
+        data-autofocus={autoFocus ? true : undefined}
       />
       <div id={textareaId + '-esc'} className='blur-tip'>
         Esc to remove focus

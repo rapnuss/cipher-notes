@@ -28,6 +28,7 @@ export type TodoControlProps = {
   onUp?: () => void
   onMoveTodo?: typeof moveTodo
   onMoveTodoByOne?: (id: string, direction: 'up' | 'down') => void
+  autoFocus?: boolean
 }
 export const TodoControl = ({
   todos,
@@ -40,6 +41,7 @@ export const TodoControl = ({
   onUp,
   onMoveTodo,
   onMoveTodoByOne,
+  autoFocus,
 }: TodoControlProps) => {
   const {idToTodo, visualOrderUndone, visualOrderDone} = deriveTodosData(todos)
   return (
@@ -58,6 +60,7 @@ export const TodoControl = ({
           onUp={onUp}
           onMoveTodo={onMoveTodo}
           onMoveTodoByOne={onMoveTodoByOne}
+          autoFocus={autoFocus && visualIndex === 0}
         />
       ))}
       {!!onInsertTodo && (
@@ -102,6 +105,7 @@ const TodoItem = ({
   onUp,
   onMoveTodo,
   onMoveTodoByOne,
+  autoFocus,
 }: {
   todo: Todo
   visualIndex?: number
@@ -115,6 +119,7 @@ const TodoItem = ({
   onUp?: () => void
   onMoveTodo?: typeof moveTodo
   onMoveTodoByOne?: (id: string, direction: 'up' | 'down') => void
+  autoFocus?: boolean
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const handleRef = useRef<HTMLDivElement>(null)
@@ -233,6 +238,7 @@ const TodoItem = ({
         disabled={todo.done}
         readOnly={!onTodoChanged}
         onChange={(e) => onTodoChanged?.(todo.id, e.target.value)}
+        autoFocus={autoFocus}
         onKeyDown={(e) => {
           const target = e.currentTarget
           if (

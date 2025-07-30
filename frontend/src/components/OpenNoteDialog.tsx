@@ -38,6 +38,7 @@ import {ActionIconWithText} from './ActionIconWithText'
 import {useHotkeys} from '@mantine/hooks'
 import {IconDots} from './icons/IconDots'
 import {IconArchive} from './icons/IconArchive'
+import {isDesktop} from '../helpers/bowser'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
@@ -65,6 +66,8 @@ export const OpenNoteDialog = () => {
   )
   const open = !!openNote
   useCloseOnBack({id: 'open-note-dialog', open, onClose: noteClosed})
+  const isNewNote =
+    !!openNote && openNote.type === 'note' && openNote.txt === '' && openNote.title === ''
   useHotkeys(
     [
       [
@@ -156,11 +159,7 @@ export const OpenNoteDialog = () => {
             Promise.resolve().then(() => parent?.querySelector('textarea')?.focus())
           }
         }}
-        data-autofocus={
-          openNote && openNote.type === 'note' && openNote.txt === '' && openNote.title === ''
-            ? true
-            : undefined
-        }
+        data-autofocus={isNewNote ? true : undefined}
       />
       {openNote?.type === 'note' ? (
         <XTextarea
@@ -171,6 +170,7 @@ export const OpenNoteDialog = () => {
           onRedo={redo}
           onUp={focusTitleInput}
           textareaId='open-note-textarea'
+          autoFocus={isDesktop() && !isNewNote}
         />
       ) : openNote?.type === 'todo' ? (
         <TodoControl
@@ -184,6 +184,7 @@ export const OpenNoteDialog = () => {
           onUndo={undo}
           onRedo={redo}
           onUp={focusTitleInput}
+          autoFocus={isDesktop() && !isNewNote}
         />
       ) : null}
       <Flex gap='xs'>

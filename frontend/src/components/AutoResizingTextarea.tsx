@@ -6,7 +6,7 @@ export type AutoResizingTextareaProps = TextareaHTMLAttributes<HTMLTextAreaEleme
 }
 
 export const AutoResizingTextarea: FC<AutoResizingTextareaProps> = (props) => {
-  const {onInput, textareaStyles, style, ...rest} = props
+  const {onInput, textareaStyles, style, autoFocus, ...rest} = props
   const wrapperRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -32,6 +32,8 @@ export const AutoResizingTextarea: FC<AutoResizingTextareaProps> = (props) => {
         onInput={handleInput}
         className={classes.textarea}
         style={textareaStyles}
+        autoFocus={autoFocus}
+        data-autofocus={autoFocus ? true : undefined}
       />
     </div>
   )
