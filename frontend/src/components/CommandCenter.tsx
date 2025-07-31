@@ -11,7 +11,7 @@ import {
   openDeleteAccountDialog,
   removeAllSessions,
 } from '../state/user'
-import {selectAnyDialogOpen, useSelector} from '../state/store'
+import {selectAnyDialogOpen, setSpotlightOpen, useSelector} from '../state/store'
 import {useMantineColorScheme} from '@mantine/core'
 import {HotkeyItem, useHotkeys} from '@mantine/hooks'
 import {openSettingsDialog} from '../state/settings'
@@ -235,8 +235,14 @@ export const CommandCenter = () => {
           actions: noteActions,
         },
       ]}
-      onSpotlightOpen={() => history.pushState(null, '', location.href)}
-      onSpotlightClose={() => history.back()}
+      onSpotlightOpen={() => {
+        setSpotlightOpen(true)
+        history.pushState(null, '', location.href)
+      }}
+      onSpotlightClose={() => {
+        setSpotlightOpen(false)
+        history.back()
+      }}
     />
   )
 }

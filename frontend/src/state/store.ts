@@ -19,6 +19,7 @@ export type RootState = {
   labels: LabelsState
   history: HistoryState
   files: FilesState
+  spotlightOpen: boolean
 }
 const init: RootState = {
   notes: notesInit,
@@ -29,11 +30,17 @@ const init: RootState = {
   labels: labelsInit,
   history: historyInit,
   files: filesInit,
+  spotlightOpen: false,
 }
 export const useSelector = create<RootState>()(immer(subscribeWithSelector(() => init)))
 export const getState = useSelector.getState
 export const setState = useSelector.setState
 export const subscribe = useSelector.subscribe
+
+export const setSpotlightOpen = (open: boolean) =>
+  setState((state) => {
+    state.spotlightOpen = open
+  })
 
 registerUserSubscriptions()
 registerNotesSubscriptions()

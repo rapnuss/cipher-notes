@@ -212,7 +212,7 @@ export const setOpenFile = (syncedFiles: Record<string, FilePullWithState>) => {
   }
 }
 
-export const importFiles = async (files: FileList, activeLabel: ActiveLabel) => {
+export const importFiles = async (files: Iterable<File>, activeLabel: ActiveLabel) => {
   try {
     setFilesImporting(true)
     for (const file of files) {

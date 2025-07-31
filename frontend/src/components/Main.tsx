@@ -1,4 +1,5 @@
 import {ActionIcon, Flex} from '@mantine/core'
+import {Dropzone} from '@mantine/dropzone'
 import {SearchInput} from './SearchInput'
 import {NotesGrid} from './NotesGrid'
 import {addNote} from '../state/notes'
@@ -11,7 +12,7 @@ import {IconLabel} from './icons/IconLabel'
 import {ActionIconWithText} from './ActionIconWithText'
 import {IconMenu2} from './icons/IconMenu2'
 import {useFileDialog} from '@mantine/hooks'
-import {useSelector} from '../state/store'
+import {selectAnyDialogOpen, useSelector} from '../state/store'
 import {importFiles} from '../state/files'
 import {IconPhoto} from './icons/IconPhoto'
 
@@ -47,6 +48,7 @@ export const Main = () => (
       <NotesGrid />
     </div>
     <StatusBar />
+    <FullScreenImport />
   </>
 )
 const ImportActionIcon = () => {
@@ -64,5 +66,23 @@ const ImportActionIcon = () => {
     <ActionIconWithText onClick={open} title='Add Files' text='add' loading={filesImporting}>
       <IconPhoto />
     </ActionIconWithText>
+  )
+}
+const FullScreenImport = () => {
+  const filesImporting = useSelector((state) => state.files.importing)
+  const activeLabel = useSelector((state) => state.labels.activeLabel)
+  const anyDialogOpen = useSelector(selectAnyDialogOpen)
+  const spotlightOpen = useSelector((state) => state.spotlightOpen)
+  return (
+    <Dropzone.FullScreen
+      active={!anyDialogOpen && !spotlightOpen}
+      onDrop={async (files) => {
+        if (files.length === 0) return
+        await importFiles(files, activeLabel)
+      }}
+      loading={filesImporting}
+    >
+      Drop Files anywhere to import them
+    </Dropzone.FullScreen>
   )
 }
