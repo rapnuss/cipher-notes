@@ -36,3 +36,5 @@ export type JsonAny = JsonValue | JsonArr | JsonObj
 export type Prettify<T> = {
   [K in keyof T]: T[K]
 } & unknown
+
+export type EmptyObject = Record<never, never>

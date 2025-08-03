@@ -11,7 +11,7 @@ import {
   openDeleteAccountDialog,
   removeAllSessions,
 } from '../state/user'
-import {selectAnyDialogOpen, setSpotlightOpen, useSelector} from '../state/store'
+import {selectSpotlightDisabled, setSpotlightOpen, useSelector} from '../state/store'
 import {useMantineColorScheme} from '@mantine/core'
 import {HotkeyItem, useHotkeys} from '@mantine/hooks'
 import {openSettingsDialog} from '../state/settings'
@@ -29,7 +29,7 @@ export const CommandCenter = () => {
   const loggedIn = useSelector((state) => state.user.user.loggedIn)
   const hasKeyTokenPair = useSelector((state) => !!state.user.user.keyTokenPair)
   const email = useSelector((state) => state.user.user.email)
-  const anyDialogOpen = useSelector(selectAnyDialogOpen)
+  const disabled = useSelector(selectSpotlightDisabled)
   const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
 
   const commands: (SpotlightActionData & {shortcut?: string; onClick: () => void})[] = [
@@ -187,7 +187,7 @@ export const CommandCenter = () => {
     .filter(
       (c): c is typeof c & {shortcut: string; onClick: () => void} => !!c.shortcut && !!c.onClick
     )
-    .map((c) => [c.shortcut, () => !anyDialogOpen && c.onClick()] as const)
+    .map((c) => [c.shortcut, () => !disabled && c.onClick()] as const)
 
   useHotkeys(hotkeys, [], true)
 
@@ -223,7 +223,7 @@ export const CommandCenter = () => {
       triggerOnContentEditable
       scrollable
       maxHeight='100%'
-      disabled={anyDialogOpen}
+      disabled={disabled}
       limit={actions.length}
       actions={[
         {

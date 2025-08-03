@@ -1,4 +1,4 @@
-import {ActionIcon, Flex} from '@mantine/core'
+import {ActionIcon, Flex, Text} from '@mantine/core'
 import {Dropzone} from '@mantine/dropzone'
 import {SearchInput} from './SearchInput'
 import {NotesGrid} from './NotesGrid'
@@ -12,22 +12,37 @@ import {IconLabel} from './icons/IconLabel'
 import {ActionIconWithText} from './ActionIconWithText'
 import {IconMenu2} from './icons/IconMenu2'
 import {useFileDialog} from '@mantine/hooks'
-import {selectAnyDialogOpen, useSelector} from '../state/store'
+import {selectAnyModeOrDialogActive, useSelector} from '../state/store'
 import {importFiles} from '../state/files'
 import {IconPhoto} from './icons/IconPhoto'
+import {
+  archiveSelected,
+  clearSelection,
+  deleteSelected,
+  selectSelectionActive,
+  unarchiveSelected,
+} from '../state/selection'
+import {IconX} from './icons/IconX'
+import {IconArchive} from './icons/IconArchive'
+import {IconArchiveOff} from './icons/IconArchiveOff'
+import {IconTrash} from './icons/IconTrash'
 
 export const Main = () => (
   <>
-    <Flex gap='xs' p='md' bg='rgba(0,0,0,.1)' justify='space-between'>
-      <SearchInput />
-      <Flex gap='xs' flex='0 1 auto'>
-        <NotesSortSelect />
-        <ActionIcon title='Menu' size='input-sm' onClick={spotlight.open}>
-          <IconMenu2 />
-        </ActionIcon>
-      </Flex>
-    </Flex>
+    <Header />
     <div style={{flex: '1 1 auto', overflow: 'hidden', position: 'relative'}}>
+      <FloatingButtons />
+      <NotesGrid />
+    </div>
+    <StatusBar />
+    <FullScreenImport />
+  </>
+)
+const FloatingButtons = () => {
+  const selectionActive = useSelector(selectSelectionActive)
+  if (selectionActive) return null
+  return (
+    <>
       <ActionIconWithText
         onClick={toggleLabelSelector}
         style={{position: 'absolute', bottom: '1.25rem', left: '1.25rem', zIndex: 1}}
@@ -45,12 +60,47 @@ export const Main = () => (
           <IconPlus />
         </ActionIconWithText>
       </ActionIcon.Group>
-      <NotesGrid />
-    </div>
-    <StatusBar />
-    <FullScreenImport />
-  </>
-)
+    </>
+  )
+}
+const Header = () => {
+  const selectionActive = useSelector(selectSelectionActive)
+  const selected = useSelector((state) => state.selection.selected)
+  const selectedCount = Object.keys(selected).length
+  return (
+    <Flex gap='xs' mih='4rem' px='md' bg='rgba(0,0,0,.1)' justify='space-between' align='center'>
+      {selectionActive ? (
+        <>
+          <Text>{selectedCount} selected</Text>
+          <Flex gap='xs'>
+            <ActionIconWithText title='Unarchive' text='unarch' onClick={unarchiveSelected}>
+              <IconArchiveOff />
+            </ActionIconWithText>
+            <ActionIconWithText title='Archive' text='archive' onClick={archiveSelected}>
+              <IconArchive />
+            </ActionIconWithText>
+            <ActionIconWithText title='Delete' text='delete' onClick={deleteSelected}>
+              <IconTrash />
+            </ActionIconWithText>
+            <ActionIconWithText title='Quit Selection' text='quit' onClick={clearSelection}>
+              <IconX />
+            </ActionIconWithText>
+          </Flex>
+        </>
+      ) : (
+        <>
+          <SearchInput />
+          <Flex gap='xs' flex='0 1 auto'>
+            <NotesSortSelect />
+            <ActionIcon title='Menu' size='input-sm' onClick={spotlight.open}>
+              <IconMenu2 />
+            </ActionIcon>
+          </Flex>
+        </>
+      )}
+    </Flex>
+  )
+}
 const ImportActionIcon = () => {
   const filesImporting = useSelector((state) => state.files.importing)
   const activeLabel = useSelector((state) => state.labels.activeLabel)
@@ -71,11 +121,10 @@ const ImportActionIcon = () => {
 const FullScreenImport = () => {
   const filesImporting = useSelector((state) => state.files.importing)
   const activeLabel = useSelector((state) => state.labels.activeLabel)
-  const anyDialogOpen = useSelector(selectAnyDialogOpen)
-  const spotlightOpen = useSelector((state) => state.spotlightOpen)
+  const anythingActive = useSelector(selectAnyModeOrDialogActive)
   return (
     <Dropzone.FullScreen
-      active={!anyDialogOpen && !spotlightOpen}
+      active={!anythingActive}
       onDrop={async (files) => {
         if (files.length === 0) return
         await importFiles(files, activeLabel)
