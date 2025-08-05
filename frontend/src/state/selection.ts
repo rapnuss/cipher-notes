@@ -1,14 +1,17 @@
 import {FileMeta, Note} from '../business/models'
 import {db} from '../db'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
+import XSet from '../util/XSet'
 import {getState, RootState, setState} from './store'
 
 export type SelectionState = {
   selected: {[id: string]: 'note' | 'file'}
+  bulkLabelOpen: boolean
 }
 
 export const selectionInit: SelectionState = {
   selected: {},
+  bulkLabelOpen: false,
 }
 
 export const toggleSelection = (id: string, type: 'note' | 'file') =>
@@ -19,11 +22,13 @@ export const toggleSelection = (id: string, type: 'note' | 'file') =>
     } else {
       selected[id] = type
     }
+    state.selection.bulkLabelOpen = false
   })
 
 export const clearSelection = () =>
   setState((state) => {
     state.selection.selected = {}
+    state.selection.bulkLabelOpen = false
   })
 
 export const selectSelectionActive = (state: RootState) => {
@@ -130,4 +135,62 @@ export const deleteSelected = () => {
       rec.version = rec.version + 1
     }
   }
+}
+
+export const toggleBulkLabelDropdown = () =>
+  setState((state) => {
+    state.selection.bulkLabelOpen = !state.selection.bulkLabelOpen
+  })
+
+export const openBulkLabelDropdown = () =>
+  setState((state) => {
+    state.selection.bulkLabelOpen = true
+  })
+
+export const closeBulkLabelDropdown = () =>
+  setState((state) => {
+    state.selection.bulkLabelOpen = false
+  })
+
+export const applyBulkLabels = async (updatedLabelState: Record<string, boolean | 'unchanged'>) => {
+  const state = getState()
+  const selected = Object.keys(state.selection.selected)
+
+  const adds: string[] = [],
+    removes: string[] = []
+  for (const id in updatedLabelState) {
+    if (updatedLabelState[id] === true) {
+      adds.push(id)
+    } else if (updatedLabelState[id] === false) {
+      removes.push(id)
+    }
+  }
+
+  if (selected.length === 0 || (adds.length === 0 && removes.length === 0)) return
+
+  const addSet = XSet.fromItr(adds)
+  const remSet = XSet.fromItr(removes)
+
+  db.transaction('rw', db.notes, db.files_meta, async (tx) => {
+    tx.notes.where('id').anyOf(selected).modify(applyBulkLabelsToItem)
+    tx.files_meta.where('id').anyOf(selected).modify(applyBulkLabelsToItem)
+  })
+
+  function applyBulkLabelsToItem(rec: Note | FileMeta) {
+    const initialLabels = XSet.fromItr(rec.labels ?? [])
+    const newLabels = initialLabels.union(addSet).without(remSet)
+    if (initialLabels.isEqualTo(newLabels)) {
+      return
+    }
+    if (rec.state === 'synced') {
+      rec.state = 'dirty'
+      rec.version = rec.version + 1
+    }
+    rec.labels = newLabels.toArray()
+  }
+
+  setState((state) => {
+    state.selection.bulkLabelOpen = false
+    state.selection.selected = {}
+  })
 }

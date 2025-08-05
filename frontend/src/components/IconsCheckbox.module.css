@@ -17,3 +17,13 @@
   outline: 2px solid var(--mantine-primary-color-5);
 }
 
+.crazyCheckbox {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+
+  &:focus {
+    outline: 2px solid var(--mantine-primary-color-5);
+    outline-offset: -1px;
+  }
+}

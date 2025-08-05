@@ -48,6 +48,14 @@ export default class XSet<A> extends Set<A> {
     return true
   }
 
+  isEqualTo<B>(that: Set<B>): boolean {
+    if (this.size !== that.size) return false
+    for (const item of this) {
+      if (!that.has(item as any)) return false
+    }
+    return true
+  }
+
   toArray(): A[] {
     return Array.from(this)
   }

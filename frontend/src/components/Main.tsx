@@ -1,4 +1,4 @@
-import {ActionIcon, Flex, Text} from '@mantine/core'
+import {ActionIcon, Flex, Popover, Text} from '@mantine/core'
 import {Dropzone} from '@mantine/dropzone'
 import {SearchInput} from './SearchInput'
 import {NotesGrid} from './NotesGrid'
@@ -18,14 +18,17 @@ import {IconPhoto} from './icons/IconPhoto'
 import {
   archiveSelected,
   clearSelection,
+  closeBulkLabelDropdown,
   deleteSelected,
   selectSelectionActive,
+  toggleBulkLabelDropdown,
   unarchiveSelected,
 } from '../state/selection'
 import {IconX} from './icons/IconX'
 import {IconArchive} from './icons/IconArchive'
 import {IconArchiveOff} from './icons/IconArchiveOff'
 import {IconTrash} from './icons/IconTrash'
+import {BulkLabelDropdownContent} from './LabelDropdownContent'
 
 export const Main = () => (
   <>
@@ -67,12 +70,23 @@ const Header = () => {
   const selectionActive = useSelector(selectSelectionActive)
   const selected = useSelector((state) => state.selection.selected)
   const selectedCount = Object.keys(selected).length
+  const bulkLabelOpen = useSelector((state) => state.selection.bulkLabelOpen)
   return (
     <Flex gap='xs' mih='4rem' px='md' bg='rgba(0,0,0,.1)' justify='space-between' align='center'>
       {selectionActive ? (
         <>
           <Text>{selectedCount} selected</Text>
-          <Flex gap='xs'>
+          <Flex gap='4'>
+            <Popover opened={bulkLabelOpen} onDismiss={closeBulkLabelDropdown} withArrow trapFocus>
+              <Popover.Target>
+                <ActionIconWithText title='Label' text='label' onClick={toggleBulkLabelDropdown}>
+                  <IconLabel />
+                </ActionIconWithText>
+              </Popover.Target>
+              <Popover.Dropdown>
+                <BulkLabelDropdownContent opened={bulkLabelOpen} />
+              </Popover.Dropdown>
+            </Popover>
             <ActionIconWithText title='Unarchive' text='unarch' onClick={unarchiveSelected}>
               <IconArchiveOff />
             </ActionIconWithText>
