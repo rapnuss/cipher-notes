@@ -60,8 +60,6 @@ DONE:
   on change encryption key
     delete all blobs with the old key
 FIRST:
-  create label from bulk label dropdown
-  manual esc handling
 TODO:
   notify other clients when file was uploaded
     I can't, what can i do instead?

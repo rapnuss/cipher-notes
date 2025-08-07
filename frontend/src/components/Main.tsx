@@ -11,7 +11,7 @@ import {toggleLabelSelector} from '../state/labels'
 import {IconLabel} from './icons/IconLabel'
 import {ActionIconWithText} from './ActionIconWithText'
 import {IconMenu2} from './icons/IconMenu2'
-import {useFileDialog} from '@mantine/hooks'
+import {useFileDialog, useHotkeys} from '@mantine/hooks'
 import {selectAnyModeOrDialogActive, useSelector} from '../state/store'
 import {importFiles} from '../state/files'
 import {IconPhoto} from './icons/IconPhoto'
@@ -71,13 +71,24 @@ const Header = () => {
   const selected = useSelector((state) => state.selection.selected)
   const selectedCount = Object.keys(selected).length
   const bulkLabelOpen = useSelector((state) => state.selection.bulkLabelOpen)
+  useHotkeys(
+    [['esc', () => (bulkLabelOpen ? closeBulkLabelDropdown() : clearSelection())]],
+    [],
+    true
+  )
   return (
     <Flex gap='xs' mih='4rem' px='md' bg='rgba(0,0,0,.1)' justify='space-between' align='center'>
       {selectionActive ? (
         <>
           <Text>{selectedCount} selected</Text>
           <Flex gap='4'>
-            <Popover opened={bulkLabelOpen} onDismiss={closeBulkLabelDropdown} withArrow trapFocus>
+            <Popover
+              opened={bulkLabelOpen}
+              onDismiss={closeBulkLabelDropdown}
+              withArrow
+              trapFocus
+              closeOnEscape={false}
+            >
               <Popover.Target>
                 <ActionIconWithText title='Label' text='label' onClick={toggleBulkLabelDropdown}>
                   <IconLabel />
