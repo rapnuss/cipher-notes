@@ -12,6 +12,7 @@ import {
   applyNewLabel,
   setFileMainLabel,
   toggleFileLabel,
+  createLabel,
 } from '../state/labels'
 import {IconCrown} from './icons/IconCrown'
 import {IconPlus} from './icons/IconPlus'
@@ -216,10 +217,11 @@ export const BulkLabelDropdownContent = ({opened}: {opened: boolean}) => {
         <ActionIcon
           size='input-sm'
           disabled={search.length === 0}
-          onClick={() => {
-            setSearch('')
+          onClick={async () => {
+            const label = await createLabel(search)
+            applyBulkLabels({...updatedLabelState, [label.id]: true})
           }}
-          title='Apply new label'
+          title='Create new label'
         >
           <IconPlus />
         </ActionIcon>
