@@ -519,8 +519,10 @@ export const deleteNote = async (id: string) => {
   if (note.version === 1 && note.state === 'dirty') {
     await db.notes.delete(id)
   } else {
+    const now = Date.now()
     await db.notes.update(id, {
-      deleted_at: Date.now(),
+      deleted_at: now,
+      updated_at: now,
       txt: '',
       todos: [],
       state: 'dirty',
@@ -548,8 +550,10 @@ export const deleteOpenNote = async () => {
   if (note.version === 1 && note.state === 'dirty') {
     await db.notes.delete(state.notes.openNote.id)
   } else {
+    const now = Date.now()
     await db.notes.update(state.notes.openNote.id, {
-      deleted_at: Date.now(),
+      deleted_at: now,
+      updated_at: now,
       txt: '',
       todos: [],
       state: 'dirty',

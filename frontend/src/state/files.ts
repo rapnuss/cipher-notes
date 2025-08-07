@@ -114,8 +114,10 @@ export const deleteFile = async (id: string) => {
     if (file.state === 'dirty' && file.version === 1) {
       tx.files_meta.delete(id)
     } else {
+      const now = Date.now()
       await tx.files_meta.update(id, {
-        deleted_at: Date.now(),
+        deleted_at: now,
+        updated_at: now,
         state: 'dirty',
         version: file.state === 'dirty' ? file.version : file.version + 1,
         title: '',

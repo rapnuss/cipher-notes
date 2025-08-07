@@ -64,6 +64,7 @@ export const archiveSelected = () => {
   function archiveNote(rec: Note | FileMeta) {
     if (rec.archived === 1) return
     rec.archived = 1
+    rec.updated_at = Date.now()
     if (rec.state === 'synced') {
       rec.state = 'dirty'
       rec.version = rec.version + 1
@@ -95,6 +96,7 @@ export const unarchiveSelected = () => {
   function unarchiveNote(rec: Note | FileMeta) {
     if (rec.archived === 0) return
     rec.archived = 0
+    rec.updated_at = Date.now()
     if (rec.state === 'synced') {
       rec.state = 'dirty'
       rec.version = rec.version + 1
@@ -130,6 +132,7 @@ export const deleteSelected = () => {
       return
     }
     rec.deleted_at = Date.now()
+    rec.updated_at = Date.now()
     if (rec.state === 'synced') {
       rec.state = 'dirty'
       rec.version = rec.version + 1
@@ -182,6 +185,7 @@ export const applyBulkLabels = async (updatedLabelState: Record<string, boolean 
     if (initialLabels.isEqualTo(newLabels)) {
       return
     }
+    rec.updated_at = Date.now()
     if (rec.state === 'synced') {
       rec.state = 'dirty'
       rec.version = rec.version + 1
