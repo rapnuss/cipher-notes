@@ -13,6 +13,7 @@ import {IconDots} from './icons/IconDots'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import {deleteFile, fileOpened, setFileArchived} from '../state/files'
 import {FileIconWithExtension} from './FileIconWithExtension'
+import {selectSelectionActive, toggleSelection} from '../state/selection'
 
 export const NotesGrid = () => {
   const query = useSelector((state) => state.notes.query)
@@ -94,13 +95,16 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
   const colorScheme = useMyColorScheme()
   const labelsCache = useSelector((state) => state.labels.labelsCache)
   const label = note.labels?.[0] ? labelsCache[note.labels[0]] : null
+  const selected = useSelector((state) => !!state.selection.selected[note.id])
+  const selectionActive = useSelector(selectSelectionActive)
   return (
     <Paper
       style={{
         display: 'flex',
         flexDirection: 'column',
         color: 'var(--mantine-color-text)',
-        opacity: note.archived ? 0.5 : 1,
+        opacity: note.archived && !selected ? 0.5 : 1,
+        outline: selected ? '2px solid var(--mantine-color-bright)' : undefined,
       }}
       shadow='sm'
       bg={labelColor(label?.hue ?? null, colorScheme === 'dark')}
@@ -119,7 +123,13 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
           flexDirection: 'column',
           alignItems: 'stretch',
         }}
-        onClick={() => (note.type === 'file' ? fileOpened(note.id) : noteOpened(note.id))}
+        onClick={() =>
+          selectionActive
+            ? toggleSelection(note.id, note.type === 'file' ? 'file' : 'note')
+            : note.type === 'file'
+            ? fileOpened(note.id)
+            : noteOpened(note.id)
+        }
       >
         <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>
           {note.type === 'file' ? getFilename(note) : note.title}
@@ -169,11 +179,22 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
       <Flex justify='flex-end'>
         <Menu shadow='md'>
           <Menu.Target>
-            <UnstyledButton px='.5rem' display='flex' title='note options'>
+            <UnstyledButton
+              disabled={selectionActive}
+              px='.5rem'
+              display='flex'
+              title='note options'
+              opacity={selectionActive ? 0 : 1}
+            >
               <IconDots />
             </UnstyledButton>
           </Menu.Target>
           <Menu.Dropdown>
+            <Menu.Item
+              onClick={() => toggleSelection(note.id, note.type === 'file' ? 'file' : 'note')}
+            >
+              Select
+            </Menu.Item>
             <Menu.Item
               onClick={() =>
                 note.type === 'file'
