@@ -15,8 +15,8 @@ export const ImportNotesDialog = () => {
       <FileInput
         value={file}
         onChange={importFileChanged}
-        label='Select file'
-        accept='application/json'
+        label='Select backup .zip'
+        accept='.zip,application/zip,application/x-zip-compressed'
         error={error}
       />
       <Group justify='end' mt='lg'>

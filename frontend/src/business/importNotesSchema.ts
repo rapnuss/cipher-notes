@@ -54,3 +54,31 @@ export const keepTodoNote = keepNoteCommon.extend({
 })
 export const keepNoteSchema = z.union([keepTextNote, keepTodoNote] as const)
 export type KeepNote = z.infer<typeof keepNoteSchema>
+
+// Export/Import schema for files_meta inside notes.json backup
+export const importFilesMetaSchema = z.array(
+  z
+    .object({
+      id: z.string().uuid(),
+      title: z.string(),
+      ext: z.string(),
+      mime: z.string(),
+      size: z.number().int().nonnegative(),
+      labels: z.array(z.string()).optional(), // label names
+      archived: z.boolean().optional(),
+      created_at: z.number().int().positive().optional(),
+      updated_at: z.number().int().positive().optional(),
+      deleted_at: z.number().int().nonnegative().optional(),
+    })
+    .strip()
+)
+export type ImportFileMeta = z.infer<typeof importFilesMetaSchema>[number]
+
+// Full notes.json schema
+export const notesZipSchema = z
+  .object({
+    notes: importNotesSchema,
+    files_meta: importFilesMetaSchema,
+  })
+  .strip()
+export type NotesZip = z.infer<typeof notesZipSchema>

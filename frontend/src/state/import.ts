@@ -1,18 +1,19 @@
 import {WritableDraft} from 'immer'
 import {
-  ImportNote,
-  importNotesSchema,
   KeepNote,
   keepNoteSchema,
+  notesZipSchema,
+  ImportFileMeta,
 } from '../business/importNotesSchema'
-import {Label, Note, NoteCommon} from '../business/models'
+import {FileMeta, Label, Note, NoteCommon} from '../business/models'
 import {db} from '../db'
-import {downloadJson} from '../util/misc'
+import {downloadBlob} from '../util/misc'
 import {getState, RootState, setState} from './store'
 import JSZip from 'jszip'
 import XSet from '../util/XSet'
 import {createLabel} from './labels'
 import {notifications} from '@mantine/notifications'
+import {comlink} from '../comlink'
 
 export type ImportState = {
   importDialog: {
@@ -77,96 +78,217 @@ export const keepImportArchivedChanged = (importArchived: boolean) =>
 
 // effects
 export const exportNotes = async () => {
-  const {labelsCache} = getState().labels
-  const notes = await db.notes.where('deleted_at').equals(0).toArray()
-  const notesToExport: ImportNote[] = notes.map((n) => ({
-    id: n.id,
-    txt: n.txt,
-    title: n.title,
-    created_at: n.created_at,
-    updated_at: n.updated_at,
-    todos: n.todos,
-    labels: n.labels?.map((l) => labelsCache[l]?.name).filter((l) => l !== undefined),
-    archived: n.archived === 1,
-  }))
-  downloadJson(notesToExport, 'notes.json')
+  // Export all notes and files_meta into notes.json and add file blobs as separate files
+  const zip = new JSZip()
+
+  const [notes, filesMeta, filesBlobs] = await Promise.all([
+    db.notes.toArray(),
+    db.files_meta.toArray(),
+    db.files_blob.toArray(),
+  ])
+
+  // map label ids to names for export
+  const labelsCache = getState().labels.labelsCache
+  const mapLabelIdsToNames = (ids?: string[]) =>
+    ids?.map((id) => labelsCache[id]?.name).filter((v): v is string => !!v)
+
+  const idToBlob = Object.fromEntries(filesBlobs.map((b) => [b.id, b.blob]))
+
+  const payload = {
+    notes: notes.map((n) => ({
+      id: n.id,
+      title: n.title,
+      txt: n.type === 'note' ? n.txt : undefined,
+      todos: n.type === 'todo' ? n.todos : undefined,
+      created_at: n.created_at,
+      updated_at: n.updated_at,
+      archived: n.archived === 1,
+      labels: mapLabelIdsToNames(n.labels),
+    })),
+    files_meta: filesMeta.map(
+      (f) =>
+        ({
+          id: f.id,
+          title: f.title,
+          ext: f.ext,
+          mime: f.mime,
+          size: f.size,
+          created_at: f.created_at,
+          updated_at: f.updated_at,
+          deleted_at: f.deleted_at,
+          archived: f.archived === 1,
+          labels: mapLabelIdsToNames(f.labels),
+        } satisfies ImportFileMeta)
+    ),
+  }
+
+  // validate payload
+  notesZipSchema.parse(payload)
+
+  zip.file('notes.json', JSON.stringify(payload, null, 2), {createFolders: false})
+
+  for (const meta of filesMeta) {
+    const blob = idToBlob[meta.id]
+    if (!blob) continue
+    const filename = `${meta.id}${meta.ext ?? ''}`
+    zip.file(filename, blob)
+  }
+
+  const iso = new Date().toISOString().replace(/\..+/, '').replace(/:/g, '-')
+  const blob = await zip.generateAsync({type: 'blob'})
+  downloadBlob(blob, `${iso}_ciphernotes.zip`)
 }
 export const importNotes = async (): Promise<void> => {
   const state = getState()
-  const {labelsCache} = state.labels
-  const cachedLabels = Object.values(labelsCache)
-  const existingLabels = XSet.fromItr(cachedLabels, (l) => l.name)
   const file = state.import.importDialog.file
-  if (!file) {
-    return
-  }
+  if (!file) return
+
   try {
-    const importNotes = importNotesSchema.parse(JSON.parse(await file.text()))
-    const res: Note[] = []
+    const zip = await new JSZip().loadAsync(file)
+    const notesJson = zip.file('notes.json')
+    if (!notesJson) throw new Error('notes.json not found in archive')
+    const parsed = notesZipSchema.parse(JSON.parse(await notesJson.async('string')))
+
     const now = Date.now()
-    const importLabels = XSet.fromItr(importNotes.flatMap((n) => n.labels ?? []))
-    const newLabels = importLabels.without(existingLabels).toArray()
+    const {labelsCache} = getState().labels
+    const cachedLabels = Object.values(labelsCache)
+    const existingLabels = XSet.fromItr(cachedLabels, (l) => l.name)
+    // Collect label names used in notes and files
+    const importLabelNames = XSet.fromItr([
+      ...parsed.notes.flatMap((n) => n.labels ?? []),
+      ...parsed.files_meta.flatMap((f) => f.labels ?? []),
+    ])
+    const newLabelNames = importLabelNames.without(existingLabels).toArray()
     const createdLabels: Label[] = []
-    for (const name of newLabels) {
+    for (const name of newLabelNames) {
       createdLabels.push(await createLabel(name))
     }
     const nameToId = Object.fromEntries(
       [...cachedLabels, ...createdLabels].map((l) => [l.name, l.id])
     )
-    for (const importNote of importNotes) {
-      let {id, updated_at = now} = importNote
-      if (id === undefined) {
-        id = crypto.randomUUID()
-      }
-      const {txt, todos, title, labels, archived} = importNote
-      if (todos === undefined && txt === undefined) {
-        continue
-      }
-      const todoIds = XSet.fromItr(todos ?? [], (t) => t.id)
-      const type = todos ? 'todo' : 'note'
-      const existingNote = await db.notes.get(id)
-      if (!existingNote || existingNote.deleted_at !== 0 || updated_at > existingNote.updated_at) {
-        updated_at = Math.max(updated_at, existingNote?.updated_at ?? 0)
-        const indeterminate = {
+
+    // Prepare notes to upsert similar to previous import logic, resolving label names
+    const notesToUpsert: Note[] = []
+    for (const importedNote of parsed.notes ?? []) {
+      const id = importedNote.id ?? crypto.randomUUID()
+      const existing = await db.notes.get(id)
+      const shouldInsertOrUpdate =
+        !existing ||
+        existing.deleted_at !== 0 ||
+        (importedNote.updated_at ?? 0) > existing.updated_at
+      if (!shouldInsertOrUpdate) continue
+
+      const updated_at = Math.max(importedNote.updated_at ?? 0, existing?.updated_at ?? 0)
+      const created_at = existing?.created_at ?? importedNote.created_at ?? now
+      const version = !existing
+        ? 1
+        : existing.state === 'dirty'
+        ? existing.version
+        : existing.version + 1
+
+      const labels = (importedNote.labels ?? [])
+        .map((name) => nameToId[name])
+        .filter((x): x is string => !!x)
+
+      const todos = importedNote.todos
+      const txt = importedNote.txt
+      if (todos !== undefined) {
+        const todoIds = XSet.fromItr(todos, (t) => t.id)
+        notesToUpsert.push({
           id,
-          created_at: existingNote?.created_at ?? now,
-          updated_at,
-          txt,
-          state: 'dirty',
-          type,
-          title: title ?? '',
-          version: !existingNote
-            ? 1
-            : existingNote.state === 'dirty'
-            ? existingNote.version
-            : existingNote.version + 1,
-          deleted_at: 0,
-          archived: archived ? 1 : 0,
+          title: importedNote.title ?? '',
+          type: 'todo',
           todos: todos?.map((t) => ({
             ...t,
             id: t.id ?? crypto.randomUUID(),
             updated_at: t.updated_at ?? updated_at,
             parent: todoIds.has(t.parent) ? t.parent : undefined,
           })),
-          labels: XSet.fromItr(existingNote?.labels ?? [])
-            .addItr(labels ?? [], (l) => nameToId[l]!)
-            .toArray(),
-        } as const
-        if (indeterminate.todos) {
-          res.push({...indeterminate, type: 'todo', todos: indeterminate.todos, txt: undefined})
-        } else if (indeterminate.txt) {
-          res.push({...indeterminate, type: 'note', txt: indeterminate.txt, todos: undefined})
-        }
+          created_at,
+          updated_at,
+          version,
+          state: 'dirty',
+          deleted_at: 0,
+          archived: importedNote.archived ? 1 : 0,
+          labels,
+        })
+      } else if (txt !== undefined) {
+        notesToUpsert.push({
+          id,
+          title: importedNote.title ?? '',
+          type: 'note',
+          txt: txt,
+          created_at,
+          updated_at,
+          version,
+          state: 'dirty',
+          deleted_at: 0,
+          archived: importedNote.archived ? 1 : 0,
+          labels,
+        })
       }
     }
-    await db.notes.bulkPut(res)
+
+    const filesMetaToUpsert: FileMeta[] = []
+    const blobsToPut: {id: string; blob: Blob}[] = []
+    for (const meta of parsed.files_meta ?? []) {
+      const existing = await db.files_meta.get(meta.id)
+      const shouldInsertOrUpdate =
+        !existing || existing.deleted_at !== 0 || (meta.updated_at ?? 0) > existing.updated_at
+      if (!shouldInsertOrUpdate) continue
+
+      const version = !existing
+        ? 1
+        : existing.state === 'dirty'
+        ? existing.version
+        : existing.version + 1
+
+      const entry = zip.file(`${meta.id}${meta.ext ?? ''}`)
+      const blob = entry ? await entry!.async('blob') : null
+      if (blob) {
+        blobsToPut.push({id: meta.id, blob})
+      } else {
+        continue
+      }
+
+      filesMetaToUpsert.push({
+        id: meta.id,
+        type: 'file',
+        title: meta.title,
+        ext: meta.ext,
+        mime: meta.mime,
+        size: blob.size,
+        created_at: meta.created_at ?? now,
+        updated_at: meta.updated_at ?? now,
+        deleted_at: meta.deleted_at ?? 0,
+        labels: (meta.labels ?? []).map((name) => nameToId[name]).filter((x): x is string => !!x),
+        archived: meta.archived ? 1 : 0,
+        has_thumb: 0,
+        state: 'dirty',
+        version,
+        blob_state: 'local',
+      })
+    }
+
+    await db.transaction('rw', db.notes, db.files_meta, db.files_blob, async (tx) => {
+      if (notesToUpsert.length) await tx.notes.bulkPut(notesToUpsert)
+      if (filesMetaToUpsert.length) await tx.files_meta.bulkPut(filesMetaToUpsert)
+      if (blobsToPut.length) await tx.files_blob.bulkPut(blobsToPut)
+    })
+
+    comlink
+      .generateThumbnails()
+      .then(() => console.log('thumbnails generated'))
+      .catch(console.error)
+
     setState((state) => {
       closeImportDialog(state)
     })
-    notifications.show({title: 'Success', message: 'Notes imported'})
-  } catch {
+    notifications.show({title: 'Success', message: 'Backup imported'})
+  } catch (e) {
+    console.error(e)
     setState((state) => {
-      state.import.importDialog.error = 'Invalid file format'
+      state.import.importDialog.error = e instanceof Error ? e.message : 'Invalid file format'
     })
   }
 }
