@@ -29,6 +29,7 @@ import {IconArchive} from './icons/IconArchive'
 import {IconArchiveOff} from './icons/IconArchiveOff'
 import {IconTrash} from './icons/IconTrash'
 import {BulkLabelDropdownContent} from './LabelDropdownContent'
+import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 export const Main = () => (
   <>
@@ -71,6 +72,8 @@ const Header = () => {
   const selected = useSelector((state) => state.selection.selected)
   const selectedCount = Object.keys(selected).length
   const bulkLabelOpen = useSelector((state) => state.selection.bulkLabelOpen)
+  useCloseOnBack({id: 'selectionMode', open: selectionActive, onClose: clearSelection})
+  useCloseOnBack({id: 'bulkLabelDropdown', open: bulkLabelOpen, onClose: closeBulkLabelDropdown})
   useHotkeys(
     [['esc', () => (bulkLabelOpen ? closeBulkLabelDropdown() : clearSelection())]],
     [],
