@@ -1,18 +1,20 @@
-import {Flex, Loader, Text, Tooltip} from '@mantine/core'
+import {Flex, Loader, Text, Tooltip, UnstyledButton} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
+import {openSyncDialogAndSync} from '../state/notes'
 
 export const StatusBar = () => {
   const {email, loggedIn} = useSelector((state) => state.user.user)
   const connected = useSelector((state) => state.user.connected)
   const syncing = useSelector((state) => state.notes.sync.syncing)
   const upDownloading = useSelector((state) => state.files.upDownloading)
+  const syncError = useSelector((state) => state.notes.sync.error)
   const registered = !!email
   const numDirtyNotes = useLiveQuery(() => db.notes.where('state').equals('dirty').count())
   if (!registered) return null
   return (
-    <Flex p='xs' justify='space-between' align='center' bg='rgba(0,0,0,.1)'>
+    <Flex px='xs' py='.25rem' justify='space-between' align='center' bg='rgba(0,0,0,.1)'>
       <Text size='xs'>
         {email}{' '}
         {connected === true
@@ -23,10 +25,7 @@ export const StatusBar = () => {
           ? 'offline'
           : 'logged out'}
       </Text>
-      {!!numDirtyNotes && !syncing && !upDownloading && (
-        <Text size='xs'>{numDirtyNotes} unsynced notes</Text>
-      )}
-      {(syncing || upDownloading) && (
+      {syncing || upDownloading ? (
         <Tooltip
           label={
             syncing && upDownloading
@@ -38,7 +37,18 @@ export const StatusBar = () => {
         >
           <Loader color={syncing ? undefined : 'cyan'} style={{margin: '-10px 0'}} type='dots' />
         </Tooltip>
-      )}
+      ) : syncError ? (
+        <Tooltip label={syncError}>
+          <UnstyledButton
+            onClick={openSyncDialogAndSync}
+            style={{fontSize: 'var(--mantine-font-size-xs)'}}
+          >
+            sync failed
+          </UnstyledButton>
+        </Tooltip>
+      ) : numDirtyNotes ? (
+        <Text size='xs'>{numDirtyNotes} unsynced notes</Text>
+      ) : null}
     </Flex>
   )
 }
