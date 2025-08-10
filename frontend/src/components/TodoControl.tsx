@@ -69,6 +69,14 @@ export const TodoControl = ({
             title='Add todo'
             onClick={() => {
               onInsertTodo(last(todos)?.id)
+              queueMicrotask(() => {
+                const tas = document.querySelectorAll(
+                  'textarea:not(:disabled)'
+                ) as NodeListOf<HTMLTextAreaElement>
+                if (tas.length > 0) {
+                  tas[tas.length - 1]?.select()
+                }
+              })
             }}
           >
             <IconPlus />
