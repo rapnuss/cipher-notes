@@ -18,9 +18,9 @@ import {openSettingsDialog} from '../state/settings'
 import {db} from '../db'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {useEffect} from 'react'
-import {Note} from '../business/models'
+import {ActiveLabel, Note} from '../business/models'
 import {exportNotes, openImportDialog, openKeepImportDialog} from '../state/import'
-import {toggleLabelSelector} from '../state/labels'
+import {labelSelected, selectCachedLabels, toggleLabelSelector} from '../state/labels'
 import {delay} from '../util/misc'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 
@@ -31,6 +31,7 @@ export const CommandCenter = () => {
   const email = useSelector((state) => state.user.user.email)
   const disabled = useSelector(selectSpotlightDisabled)
   const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
+  const labels = useSelector(selectCachedLabels)
 
   const commands: (SpotlightActionData & {shortcut?: string; onClick: () => void})[] = [
     {
@@ -211,6 +212,12 @@ export const CommandCenter = () => {
     },
   }))
 
+  const labelActions = labels.map((l) => ({
+    id: l.id,
+    label: l.name,
+    onClick: () => labelSelected(l.id as ActiveLabel),
+  }))
+
   useEffect(() => {
     window.addEventListener('popstate', spotlight.close)
     return () => window.removeEventListener('popstate', spotlight.close)
@@ -233,6 +240,10 @@ export const CommandCenter = () => {
         {
           group: 'Notes',
           actions: noteActions,
+        },
+        {
+          group: 'Labels',
+          actions: labelActions,
         },
       ]}
       onSpotlightOpen={() => {
