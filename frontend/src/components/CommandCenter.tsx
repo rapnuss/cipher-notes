@@ -15,6 +15,7 @@ import {selectSpotlightDisabled, setSpotlightOpen, useSelector} from '../state/s
 import {useMantineColorScheme} from '@mantine/core'
 import {HotkeyItem, useHotkeys} from '@mantine/hooks'
 import {openSettingsDialog} from '../state/settings'
+import {openStorageUsageDialog} from '../state/storageUsage'
 import {db} from '../db'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {useEffect} from 'react'
@@ -107,6 +108,12 @@ export const CommandCenter = () => {
       id: 'issues',
       label: 'Bug Reports & Feature Requests',
       onClick: () => window.open('https://github.com/rapnuss/ciphernotes/issues', '_blank'),
+    },
+    {
+      id: 'storageUsage',
+      label: 'Show storage limits',
+      onClick: openStorageUsageDialog,
+      disabled: !loggedIn,
     },
     {
       id: 'imprint',

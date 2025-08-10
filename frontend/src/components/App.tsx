@@ -19,6 +19,7 @@ import {LabelDialog} from './LabelDialog.tsx'
 import {ChangeEmailDialog} from './ChangeEmailDialog.tsx'
 import {useHotkeys} from '@mantine/hooks'
 import {OpenFileDialog} from './OpenFileDialog.tsx'
+import {StorageUsageDialog} from './StorageUsageDialog.tsx'
 
 window.addEventListener(
   'scroll',
@@ -72,6 +73,7 @@ export const App = () => {
       <RegisterDialog />
       <LoginDialog />
       <SyncDialog />
+      <StorageUsageDialog />
       <SettingsDialog />
       <ConflictDialog />
       <EncryptionKeyDialog />

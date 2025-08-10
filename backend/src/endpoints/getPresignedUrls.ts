@@ -70,7 +70,7 @@ const getUploadUrls = async (
     for (const note of notes) {
       currentSize += note.committed_size
     }
-    const maxSize = 100 * 1024 * 1024
+    const maxSize = Number(env.FILES_STORAGE_LIMIT)
     const notesById = indexByProp(notes, 'clientside_id')
     const uploadsById = indexByProp(uploads, 'id')
     let newSize = currentSize

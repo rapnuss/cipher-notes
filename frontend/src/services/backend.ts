@@ -156,3 +156,9 @@ export const reqGetPresignedUrls = (req: GetPresignedUrlsReq) =>
     method: 'POST',
     body: req,
   })
+
+export const reqStorageUsage = () =>
+  request<{files: {used: number; limit: number}; notes: {used: number; limit: number}}>(
+    '/storageUsage',
+    {method: 'GET'}
+  )

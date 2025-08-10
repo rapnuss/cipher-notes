@@ -10,6 +10,7 @@ import {labelsInit, LabelsState, registerLabelsSubscriptions} from './labels'
 import {historyInit, HistoryState} from './history'
 import {filesInit, FilesState, registerFilesSubscriptions} from './files'
 import {selectionInit, SelectionState, selectSelectionActive} from './selection'
+import {storageUsageInit, StorageUsageState} from './storageUsage'
 
 export type RootState = {
   notes: NotesState
@@ -22,6 +23,7 @@ export type RootState = {
   files: FilesState
   spotlightOpen: boolean
   selection: SelectionState
+  storageUsage: StorageUsageState
 }
 const init: RootState = {
   notes: notesInit,
@@ -34,6 +36,7 @@ const init: RootState = {
   files: filesInit,
   spotlightOpen: false,
   selection: selectionInit,
+  storageUsage: storageUsageInit,
 }
 export const useSelector = create<RootState>()(immer(subscribeWithSelector(() => init)))
 export const getState = useSelector.getState
@@ -64,7 +67,8 @@ const selectAnyDialogExceptSpotlightOpen = (state: RootState): boolean =>
   state.settings.open ||
   state.labels.labelSelectorOpen ||
   state.labels.dialog.open ||
-  state.files.openFile !== null
+  state.files.openFile !== null ||
+  state.storageUsage.open
 
 export const selectSpotlightDisabled = (state: RootState): boolean =>
   selectAnyDialogExceptSpotlightOpen(state) || selectSelectionActive(state)

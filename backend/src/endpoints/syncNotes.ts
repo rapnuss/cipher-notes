@@ -1,4 +1,4 @@
-import {and, eq, gt, inArray, isNotNull, notInArray, sql} from 'drizzle-orm'
+import {and, eq, gt, inArray, isNotNull, notInArray} from 'drizzle-orm'
 import {db} from '../db'
 import {notesTbl, usersTbl} from '../db/schema'
 import {authEndpointsFactory} from '../endpointsFactory'
@@ -9,6 +9,7 @@ import {Overwrite} from '../util/type'
 import {env} from '../env'
 import {userToSessionToSocket} from '../socket'
 import {s3DeleteKeys} from '../services/s3'
+import {getCipherTextLength} from '../db/helpers'
 
 const typeSchema = z.enum(['note', 'todo', 'label', 'file'])
 const upsertSchema = z.object({
@@ -168,10 +169,7 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
       )
       const maxPutAt = Math.max(...dbPuts.map((c) => c.serverside_updated_at))
 
-      const [{sum: cipherTextLength = 0} = {}] = await tx
-        .select({sum: sql<number>`sum(length(${notesTbl.cipher_text}))`})
-        .from(notesTbl)
-        .where(eq(notesTbl.user_id, user.id))
+      const cipherTextLength = await getCipherTextLength(tx, user.id)
       if (cipherTextLength > Number(env.NOTES_STORAGE_LIMIT)) {
         throw createHttpError(400, 'notes storage limit exceeded')
       }
