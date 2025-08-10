@@ -152,11 +152,27 @@ export const OpenNoteDialog = () => {
           ) {
             e.preventDefault()
             e.stopPropagation()
-            if (openNote?.type === 'todo' && openNote.todos.every((t) => t.done)) {
-              insertTodo()
-            }
+            const existingTextarea = (e.currentTarget.parentElement?.querySelector(
+              'textarea:not(:disabled)'
+            ) ?? null) as HTMLTextAreaElement | null
             const parent = e.currentTarget.parentElement
-            Promise.resolve().then(() => parent?.querySelector('textarea')?.focus())
+            if (
+              e.key === 'ArrowDown' &&
+              openNote?.type === 'todo' &&
+              !openNote.todos.some((t) => !t.done)
+            ) {
+              insertTodo()
+              queueMicrotask(() => parent?.querySelector('textarea')?.focus())
+            } else if (
+              e.key === 'Enter' &&
+              openNote?.type === 'todo' &&
+              (!existingTextarea || existingTextarea.value !== '')
+            ) {
+              insertTodo()
+              queueMicrotask(() => parent?.querySelector('textarea')?.focus())
+            } else if (existingTextarea) {
+              queueMicrotask(() => existingTextarea.focus())
+            }
           }
         }}
         data-autofocus={isNewNote ? true : undefined}

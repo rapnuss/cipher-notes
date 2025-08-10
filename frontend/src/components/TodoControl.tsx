@@ -54,7 +54,7 @@ export const TodoControl = ({
           onTodoChecked={onTodoChecked}
           onTodoChanged={onTodoChanged}
           onInsertTodo={onInsertTodo}
-          onTodoDeleted={todos.length === 1 ? undefined : onTodoDeleted}
+          onTodoDeleted={onTodoDeleted}
           onUndo={onUndo}
           onRedo={onRedo}
           onUp={onUp}
@@ -253,7 +253,7 @@ const TodoItem = ({
             visualIndex === 0 &&
             target.selectionStart === 0 &&
             target.selectionEnd === 0 &&
-            (e.key === 'Backspace' || e.key === 'ArrowUp')
+            e.key === 'ArrowUp'
           ) {
             e.preventDefault()
             onUp?.()
@@ -285,10 +285,14 @@ const TodoItem = ({
             target.selectionEnd === 0
           ) {
             e.preventDefault()
-            target
-              .closest('.todo-list-item')
-              ?.previousElementSibling?.querySelector('textarea')
-              ?.focus()
+            if (visualIndex === 0) {
+              document.getElementById('open-note-title')?.focus()
+            } else {
+              target
+                .closest('.todo-list-item')
+                ?.previousElementSibling?.querySelector('textarea')
+                ?.focus()
+            }
             onTodoDeleted?.(todo.id, true)
           } else if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && e.altKey) {
             e.preventDefault()
