@@ -31,7 +31,7 @@ export type UserState = {
     jwt?: string
   }
   features: Feature[]
-  connected: boolean
+  connected: boolean | null
   registerDialog: {open: boolean; email: string; loading: boolean; agree: boolean}
   loginDialog: {
     open: boolean
@@ -72,7 +72,7 @@ export type UserState = {
 export const userInit: UserState = {
   user: {email: '', loggedIn: false, lastSyncedTo: 0, keyTokenPair: null},
   features: [],
-  connected: false,
+  connected: null,
   registerDialog: {open: false, email: '', loading: false, agree: false},
   loginDialog: {open: false, email: '', code: '', loading: false, status: 'email'},
   encryptionKeyDialog: {open: false, keyTokenPair: '', qrMode: 'hide', mode: 'export/generate'},
@@ -90,23 +90,33 @@ export const userInit: UserState = {
 }
 
 // init
-loadUser().then(async (user) => {
-  if (user) {
-    const features = user.jwt ? await parseSubscriptionToken(user.jwt) : []
-    setState((state) => {
-      state.user.user = user
-      state.user.features = features
-    })
-  }
-  if (user?.loggedIn && !socket.connected) {
-    socket.connect()
-  }
-})
-window.addEventListener('focus', () => {
-  setState((state) => {
-    state.user.connected = socket.connected
+loadUser()
+  .then(async (user) => {
+    if (user) {
+      const features = user.jwt ? await parseSubscriptionToken(user.jwt) : []
+      setState((state) => {
+        state.user.user = user
+        state.user.features = features
+      })
+    }
+    if (user?.loggedIn && !socket.connected) {
+      socket.connect()
+    }
   })
-})
+  .then(() => {
+    const state = getState()
+    if (state.user.user.loggedIn && !state.notes.sync.syncing) {
+      syncNotes()
+    }
+  })
+
+setTimeout(() => {
+  setState((state) => {
+    if (state.user.connected === null) {
+      state.user.connected = socket.connected
+    }
+  })
+}, 10_000)
 
 export const registerEmailChanged = (email: string) =>
   setState((state) => {
@@ -267,6 +277,9 @@ export const loginWithCode = async () => {
 
 export const socketConnectionChanged = (connected: boolean) => {
   setState((state) => {
+    if (state.user.connected === false && connected && !state.notes.sync.syncing) {
+      queueMicrotask(syncNotes)
+    }
     state.user.connected = connected
   })
 }

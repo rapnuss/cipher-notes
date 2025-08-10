@@ -96,21 +96,13 @@ loadNotesSortOrder().then((sort) => {
     })
   }
 })
-
-new Promise((resolve) => window.addEventListener('DOMContentLoaded', resolve)).then(() => {
-  onFocus()
-  window.addEventListener('focus', onFocus)
-})
-
 loadOpenNoteId().then((id) => {
   if (id) {
     noteOpened(id)
   }
 })
-
-const onFocus = debounce(() => {
-  syncNotes()
-}, 10)
+const onFocus = debounce(() => syncNotes(), 10)
+window.addEventListener('focus', onFocus)
 
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'hidden') {
