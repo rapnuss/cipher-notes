@@ -53,7 +53,11 @@ export async function encryptString(
   const encodedData = encoder.encode(data)
 
   const iv = crypto.getRandomValues(new Uint8Array(12)) // 12 bytes for AES-GCM
-  const cipher_text = await crypto.subtle.encrypt({name: 'AES-GCM', iv}, key, encodedData)
+  const cipher_text = await crypto.subtle.encrypt(
+    {name: 'AES-GCM', iv, tagLength: 128},
+    key,
+    encodedData
+  )
   return {cipher_text: arrayBufferToBase64(cipher_text), iv: binToBase64(iv)}
 }
 
@@ -63,7 +67,7 @@ export async function decryptString(
   ivBase64: string
 ): Promise<string> {
   const decryptedData = await crypto.subtle.decrypt(
-    {name: 'AES-GCM', iv: base64ToBin(ivBase64)},
+    {name: 'AES-GCM', iv: base64ToBin(ivBase64), tagLength: 128},
     key,
     base64ToArrayBuffer(cipher_text)
   )
@@ -99,3 +103,6 @@ export async function decryptBlob(
   )
   return new Blob([plaintextArrayBuffer], {type: mime})
 }
+
+/** 16 bytes for tag + 12 bytes for iv = 28 bytes overhead */
+export const encryptedBlobSize = (plaintextSize: number): number => plaintextSize + 28

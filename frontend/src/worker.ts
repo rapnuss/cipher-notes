@@ -2,7 +2,7 @@
 
 import {db} from './db'
 import {GetPresignedUrlsReq, reqGetPresignedUrls} from './services/backend'
-import {decryptBlob, encryptBlob, importKey} from './util/encryption'
+import {decryptBlob, encryptBlob, encryptedBlobSize, importKey} from './util/encryption'
 import {canvasSupportedImageMimeTypes, generateThumbnail} from './util/images'
 import {indexByProp, nonConcurrent, takeSum} from './util/misc'
 import XSet from './util/XSet'
@@ -74,26 +74,20 @@ const _upDownloadBlobs = async (
 
   const downloadIds = unsynced.filter((f) => f.blob_state === 'remote').map((f) => f.id)
   const localFiles = unsynced.filter((f) => f.blob_state === 'local')
-  const preSelectedUploadIds = takeSum(localFiles, 100 * 1024 * 1024, (f) => f.size).map(
-    (f) => f.id
-  )
+  const selectedUploadIds = takeSum(localFiles, 100 * 1024 * 1024, (f) =>
+    encryptedBlobSize(f.size)
+  ).map((f) => f.id)
 
-  const uploadBlobs = await db.files_blob.where('id').anyOf(preSelectedUploadIds).toArray()
+  const uploadBlobs = await db.files_blob.where('id').anyOf(selectedUploadIds).toArray()
   const encryptedUploadBlobs = await Promise.all(
     uploadBlobs.map(async (b) => ({id: b.id, blob: await encryptBlob(cryptoKey, b.blob)}))
   )
   const encryptedUploadBlobsById = indexByProp(encryptedUploadBlobs, 'id')
 
-  const selectedEncryptedUploadBlobs = takeSum(
-    encryptedUploadBlobs,
-    100 * 1024 * 1024,
-    (b) => b.blob.size
-  )
-
-  const selectedAll = selectedEncryptedUploadBlobs.length === localFiles.length
+  const selectedAll = encryptedUploadBlobs.length === localFiles.length
 
   const req: GetPresignedUrlsReq = {
-    uploads: selectedEncryptedUploadBlobs.map((b) => ({id: b.id, size: b.blob.size})),
+    uploads: encryptedUploadBlobs.map((b) => ({id: b.id, size: b.blob.size})),
     download_ids: downloadIds,
   }
   if (req.uploads.length === 0 && req.download_ids.length === 0) {
