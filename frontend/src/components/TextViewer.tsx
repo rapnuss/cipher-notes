@@ -1,6 +1,6 @@
 import {Text} from '@mantine/core'
 import {useEffect, useState} from 'react'
-import {monospaceFontFamily} from '../business/misc'
+import {monospaceStyle} from '../business/misc'
 
 export type TextViewerProps = {src: string}
 export const TextViewer = ({src}: TextViewerProps) => {
@@ -25,7 +25,7 @@ export const TextViewer = ({src}: TextViewerProps) => {
       style={{
         color: text?.error ? 'red' : 'inherit',
         flex: '1 1 0',
-        fontFamily: monospaceFontFamily,
+        ...monospaceStyle,
         whiteSpace: 'pre-wrap',
         wordBreak: 'break-all',
         overflowX: 'hidden',

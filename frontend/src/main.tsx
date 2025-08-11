@@ -4,6 +4,7 @@ import '@mantine/core/styles.css'
 import '@mantine/spotlight/styles.css'
 import '@mantine/notifications/styles.css'
 import '@mantine/dropzone/styles.css'
+import '@fontsource/cascadia-code/400.css'
 import {MantineProvider} from '@mantine/core'
 import {ModalsProvider} from '@mantine/modals'
 

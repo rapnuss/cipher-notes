@@ -23,7 +23,11 @@ import {
 } from './models'
 import {Put} from './notesEncryption'
 
-export const monospaceFontFamily = "Monaco, 'Cascadia Code', Consolas, monospace"
+export const monospaceStyle = {
+  fontFamily: "'Cascadia Code', Monaco, Consolas, monospace",
+  fontWeight: 400,
+  fontSize: 'var(--mantine-font-size-sm)',
+} as const
 
 export const textToTodos = (text: string): Todos => {
   const todos = text

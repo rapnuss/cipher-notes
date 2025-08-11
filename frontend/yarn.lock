@@ -1096,6 +1096,11 @@
   resolved "https://registry.yarnpkg.com/@floating-ui/utils/-/utils-0.2.10.tgz#a2a1e3812d14525f725d011a73eceb41fef5bc1c"
   integrity sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==
 
+"@fontsource/cascadia-code@^5.2.2":
+  version "5.2.2"
+  resolved "https://registry.yarnpkg.com/@fontsource/cascadia-code/-/cascadia-code-5.2.2.tgz#798a163757f32842ccdcfb494c52686a081968e3"
+  integrity sha512-snTU9kuaH7N7QUySXF5/hGDwrxnkkwow3hi9IMnck+fxtc+5ZMj7dNPZZ8kvsiygA0Vn+uFuexkqckm1o1ilPg==
+
 "@hcaptcha/loader@^2.0.0":
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@hcaptcha/loader/-/loader-2.0.0.tgz#674b14262ca3d3302f39628a46bdfbb6f3f903f1"

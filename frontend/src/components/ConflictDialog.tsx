@@ -5,6 +5,7 @@ import {db} from '../db'
 import {formatDateTime} from '../util/misc'
 import {pickLocalNote, pickServerNote} from '../state/conflicts'
 import {TodoControl} from './TodoControl'
+import {monospaceStyle} from '../business/misc'
 
 export const ConflictDialog = () => {
   const conflicts = useSelector((state) => state.conflicts.conflicts)
@@ -39,7 +40,13 @@ export const ConflictDialog = () => {
           ) : (
             <>
               <Text size='lg'>{localNote.title}</Text>
-              <Text style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word'}} ff='monospace'>
+              <Text
+                style={{
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  ...monospaceStyle,
+                }}
+              >
                 {localNote.txt}
               </Text>
             </>
@@ -65,7 +72,13 @@ export const ConflictDialog = () => {
           ) : (
             <>
               <Text size='lg'>{serverNote.title}</Text>
-              <Text style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word'}} ff='monospace'>
+              <Text
+                style={{
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  ...monospaceStyle,
+                }}
+              >
                 {serverNote.txt}
               </Text>
             </>
