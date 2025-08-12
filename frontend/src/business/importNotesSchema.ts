@@ -29,6 +29,7 @@ export type ImportNote = z.infer<typeof importNotesSchema>[number]
 
 export const keepNoteCommon = z
   .object({
+    attachments: z.array(z.object({filePath: z.string(), mimetype: z.string()}).strip()).optional(),
     title: z.string(),
     userEditedTimestampUsec: z.number(),
     createdTimestampUsec: z.number(),

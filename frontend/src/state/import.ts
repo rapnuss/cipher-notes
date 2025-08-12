@@ -5,9 +5,9 @@ import {
   notesZipSchema,
   ImportFileMeta,
 } from '../business/importNotesSchema'
-import {FileMeta, Label, Note, NoteCommon} from '../business/models'
+import {FileBlob, FileMeta, Label, Note, NoteCommon} from '../business/models'
 import {db} from '../db'
-import {downloadBlob} from '../util/misc'
+import {downloadBlob, splitFilename} from '../util/misc'
 import {getState, RootState, setState} from './store'
 import JSZip from 'jszip'
 import XSet from '../util/XSet'
@@ -306,6 +306,8 @@ export const keepImportNotes = async (): Promise<void> => {
     const zip = new JSZip()
     const zipFile = await zip.loadAsync(file)
     const res: Note[] = []
+    const resFiles: FileMeta[] = []
+    const resBlobs: FileBlob[] = []
     const re = /Keep\/[^/]+\.json$/
 
     const importNotes: KeepNote[] = []
@@ -349,6 +351,38 @@ export const keepImportNotes = async (): Promise<void> => {
         labels: importNote.labels?.map((l) => nameToId[l.name]!),
         archived: importNote.isArchived ? 1 : 0,
       }
+      const filesMeta: FileMeta[] =
+        importNote.attachments?.map((a) => ({
+          id: crypto.randomUUID(),
+          created_at: noteCommon.created_at,
+          updated_at: noteCommon.updated_at,
+          title: noteCommon.title,
+          deleted_at: noteCommon.deleted_at,
+          state: noteCommon.state,
+          version: noteCommon.version,
+          labels: noteCommon.labels ?? [],
+          archived: noteCommon.archived,
+
+          type: 'file',
+          ext: splitFilename(a.filePath)[1],
+          mime: a.mimetype,
+          has_thumb: 0,
+          size: 0,
+          blob_state: 'local',
+        })) ?? []
+      for (let i = filesMeta.length - 1; i >= 0; --i) {
+        const fileMeta = filesMeta[i]!
+        const a = importNote.attachments![i]!
+        const blob = await zipFile.file(`Takeout/Keep/${a.filePath}`)?.async('blob')
+        if (blob) {
+          resBlobs.push({id: fileMeta.id, blob})
+          filesMeta[i]!.size = blob.size
+        } else {
+          filesMeta.splice(i, 1)
+          console.warn(`File ${a.filePath} not found in zip`)
+        }
+      }
+      resFiles.push(...filesMeta)
       if ('textContent' in importNote) {
         const note: Note = {
           ...noteCommon,
@@ -375,6 +409,12 @@ export const keepImportNotes = async (): Promise<void> => {
       return
     }
     await db.notes.bulkPut(res)
+    await db.files_meta.bulkPut(resFiles)
+    await db.files_blob.bulkPut(resBlobs)
+    comlink
+      .generateThumbnails()
+      .then(() => console.log('thumbnails generated'))
+      .catch(console.error)
     closeKeepImportDialog()
     notifications.show({title: 'Success', message: 'Keep notes imported'})
   } catch (e) {
