@@ -43,7 +43,11 @@ import {isDesktop} from '../helpers/bowser'
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
   return openNote.type === 'note'
-    ? {type: 'note', txt: openNote.txt}
+    ? {
+        type: 'note',
+        txt: openNote.txt,
+        selections: openNote.selections,
+      }
     : {type: 'todo', todos: openNote.todos}
 }
 
@@ -180,12 +184,13 @@ export const OpenNoteDialog = () => {
       {openNote?.type === 'note' ? (
         <XTextarea
           placeholder='Note text'
-          value={openNote?.txt ?? ''}
+          value={openNote.txt}
+          selections={openNote.selections}
           onChange={openNoteTxtChanged}
           onUndo={undo}
           onRedo={redo}
           onUp={focusTitleInput}
-          textareaId='open-note-textarea'
+          className='open-note-textarea'
           autoFocus={isDesktop() && !isNewNote}
         />
       ) : openNote?.type === 'todo' ? (

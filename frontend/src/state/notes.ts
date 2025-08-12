@@ -11,6 +11,7 @@ import {
   FilePullWithState,
   filePullDellKeys,
   filePullDefExtraKeys,
+  initialSelection,
 } from '../business/models'
 import {getState, setState, subscribe} from './store'
 import {
@@ -57,6 +58,7 @@ import XSet from '../util/XSet'
 import {notifications} from '@mantine/notifications'
 import {UserState} from './user'
 import {setOpenFile, upDownloadBlobsAndSetStateDebounced} from './files'
+import {ISelection} from 'monaco-editor'
 
 export type NotesState = {
   query: string
@@ -145,6 +147,7 @@ export const noteOpened = async (id: string) => {
         title: note.title,
         updatedAt: note.updated_at,
         archived: note.archived === 1,
+        selections: [],
       }
     }
   })
@@ -205,7 +208,15 @@ export const addNote = async () => {
   await db.notes.add(note)
 
   setState((state) => {
-    state.notes.openNote = {type: 'note', id, txt: '', title: '', updatedAt: now, archived: false}
+    state.notes.openNote = {
+      type: 'note',
+      id,
+      txt: '',
+      title: '',
+      updatedAt: now,
+      archived: false,
+      selections: [initialSelection],
+    }
   })
 }
 export const openNoteTitleChanged = (title: string) =>
@@ -214,12 +225,15 @@ export const openNoteTitleChanged = (title: string) =>
     state.notes.openNote.title = title
     state.notes.openNote.updatedAt = Date.now()
   })
-export const openNoteTxtChanged = (txt: string) =>
+export const openNoteTxtChanged = (txt: string, selections: ISelection[]) => {
+  console.log(selections)
   setState((state) => {
     if (!state.notes.openNote) return
     state.notes.openNote.txt = txt
+    state.notes.openNote.selections = selections
     state.notes.openNote.updatedAt = Date.now()
   })
+}
 export const openNoteTypeToggled = () =>
   setState((state) => {
     if (!state.notes.openNote) return
@@ -240,6 +254,7 @@ export const openNoteTypeToggled = () =>
         title: state.notes.openNote.title,
         updatedAt: Date.now(),
         archived: state.notes.openNote.archived,
+        selections: [initialSelection],
       }
     }
   })
@@ -490,6 +505,7 @@ export const openNoteHistoryHandler = (historyItem: NoteHistoryItem | null) => {
     if (historyItem.type === 'note') {
       state.notes.openNote.type = 'note'
       state.notes.openNote.txt = historyItem.txt
+      state.notes.openNote.selections = historyItem.selections
     } else {
       state.notes.openNote.type = 'todo'
       state.notes.openNote.todos = historyItem.todos
@@ -874,6 +890,10 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
               txt: note.txt,
               updatedAt: note.updated_at,
               archived: note.archived === 1,
+              selections:
+                state.notes.openNote && 'selections' in state.notes.openNote
+                  ? state.notes.openNote.selections ?? [initialSelection]
+                  : [initialSelection],
             }
           : {
               type: note.type,

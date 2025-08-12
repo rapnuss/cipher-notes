@@ -1,6 +1,7 @@
 import {z} from 'zod'
 import {XOR} from '../util/type'
 import {UUID} from 'crypto'
+import {ISelection} from 'monaco-editor'
 
 export type ActiveLabel = UUID | 'unlabeled' | 'all' | 'archived'
 
@@ -99,6 +100,13 @@ export type Todo = z.infer<typeof todoSchema>
 export const todosSchema = z.array(todoSchema)
 export type Todos = z.infer<typeof todosSchema>
 
+export const initialSelection: Readonly<ISelection> = Object.freeze({
+  positionColumn: 1,
+  positionLineNumber: 1,
+  selectionStartColumn: 1,
+  selectionStartLineNumber: 1,
+})
+
 export type TextOpenNote = {
   type: 'note'
   id: string
@@ -106,6 +114,7 @@ export type TextOpenNote = {
   txt: string
   updatedAt: number
   archived: boolean
+  selections: ISelection[]
 }
 export type TodoOpenNote = {
   type: 'todo'
@@ -117,7 +126,9 @@ export type TodoOpenNote = {
 }
 export type OpenNote = XOR<TextOpenNote, TodoOpenNote>
 
-export type NoteHistoryItem = {type: 'note'; txt: string} | {type: 'todo'; todos: Todos}
+export type NoteHistoryItem =
+  | {type: 'note'; txt: string; selections: ISelection[]}
+  | {type: 'todo'; todos: Todos}
 
 export const hueOptions = [null, 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330] as const
 export type Hue = (typeof hueOptions)[number]
