@@ -97,13 +97,14 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
   const label = note.labels?.[0] ? labelsCache[note.labels[0]] : null
   const selected = useSelector((state) => !!state.selection.selected[note.id])
   const selectionActive = useSelector(selectSelectionActive)
+  const activeLabelArchived = useSelector((state) => state.labels.activeLabel === 'archived')
   return (
     <Paper
       style={{
         display: 'flex',
         flexDirection: 'column',
         color: 'var(--mantine-color-text)',
-        opacity: note.archived && !selected ? 0.5 : 1,
+        opacity: note.archived && !selected && !activeLabelArchived ? 0.5 : 1,
         outline: selected ? '2px solid var(--mantine-color-bright)' : undefined,
       }}
       shadow='sm'
