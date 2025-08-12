@@ -28,7 +28,7 @@ export const KeepImportDialog = () => {
         value={file}
         onChange={keepImportFileChanged}
         label='Select file'
-        accept='.zip'
+        accept='.zip,application/x-zip-compressed,application/zip'
         error={error}
       />
       <Checkbox
