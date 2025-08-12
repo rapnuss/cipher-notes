@@ -20,6 +20,7 @@ import {ChangeEmailDialog} from './ChangeEmailDialog.tsx'
 import {useHotkeys} from '@mantine/hooks'
 import {OpenFileDialog} from './OpenFileDialog.tsx'
 import {StorageUsageDialog} from './StorageUsageDialog.tsx'
+import {useSetColorSchemeAndListenForChange} from '../helpers/useMyColorScheme.ts'
 
 window.addEventListener(
   'scroll',
@@ -60,6 +61,7 @@ document.addEventListener(
 
 export const App = () => {
   useHotkeys([['Escape', () => notifications.clean()]], [], true)
+  useSetColorSchemeAndListenForChange()
   return (
     <>
       <Main />
