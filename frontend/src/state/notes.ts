@@ -11,6 +11,8 @@ import {
   FilePullWithState,
   filePullDellKeys,
   filePullDefExtraKeys,
+  defaultSelection,
+  CMSelection,
 } from '../business/models'
 import {getState, setState, subscribe} from './store'
 import {
@@ -145,6 +147,7 @@ export const noteOpened = async (id: string) => {
         title: note.title,
         updatedAt: note.updated_at,
         archived: note.archived === 1,
+        selections: [defaultSelection],
       }
     }
   })
@@ -205,7 +208,15 @@ export const addNote = async () => {
   await db.notes.add(note)
 
   setState((state) => {
-    state.notes.openNote = {type: 'note', id, txt: '', title: '', updatedAt: now, archived: false}
+    state.notes.openNote = {
+      type: 'note',
+      id,
+      txt: '',
+      title: '',
+      updatedAt: now,
+      archived: false,
+      selections: [defaultSelection],
+    }
   })
 }
 export const openNoteTitleChanged = (title: string) =>
@@ -214,10 +225,11 @@ export const openNoteTitleChanged = (title: string) =>
     state.notes.openNote.title = title
     state.notes.openNote.updatedAt = Date.now()
   })
-export const openNoteTxtChanged = (txt: string) =>
+export const openNoteTxtChanged = (txt: string, selections: CMSelection[]) =>
   setState((state) => {
     if (!state.notes.openNote) return
     state.notes.openNote.txt = txt
+    state.notes.openNote.selections = selections
     state.notes.openNote.updatedAt = Date.now()
   })
 export const openNoteTypeToggled = () =>
@@ -240,6 +252,7 @@ export const openNoteTypeToggled = () =>
         title: state.notes.openNote.title,
         updatedAt: Date.now(),
         archived: state.notes.openNote.archived,
+        selections: [defaultSelection],
       }
     }
   })
@@ -490,6 +503,7 @@ export const openNoteHistoryHandler = (historyItem: NoteHistoryItem | null) => {
     if (historyItem.type === 'note') {
       state.notes.openNote.type = 'note'
       state.notes.openNote.txt = historyItem.txt
+      state.notes.openNote.selections = historyItem.selections
     } else {
       state.notes.openNote.type = 'todo'
       state.notes.openNote.todos = historyItem.todos
@@ -874,6 +888,10 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
               txt: note.txt,
               updatedAt: note.updated_at,
               archived: note.archived === 1,
+              selections:
+                'selections' in openNote && openNote.selections // TODO: check if we need to clamp selections
+                  ? openNote.selections
+                  : [defaultSelection],
             }
           : {
               type: note.type,

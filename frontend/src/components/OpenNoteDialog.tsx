@@ -43,7 +43,7 @@ import {isDesktop} from '../helpers/bowser'
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
   return openNote.type === 'note'
-    ? {type: 'note', txt: openNote.txt}
+    ? {type: 'note', txt: openNote.txt, selections: openNote.selections}
     : {type: 'todo', todos: openNote.todos}
 }
 
@@ -74,6 +74,7 @@ export const OpenNoteDialog = () => {
         'Escape',
         () => {
           const activeElement = document.activeElement
+          const editorDiv = document.getElementById('open-note-textarea')
           if (moreMenuOpen) {
             setMoreMenuOpen(false)
             const button = document.querySelector('.open-note-more-menu')
@@ -86,10 +87,7 @@ export const OpenNoteDialog = () => {
             if (button instanceof HTMLElement) {
               button.focus()
             }
-          } else if (
-            activeElement instanceof HTMLTextAreaElement &&
-            activeElement.id === 'open-note-textarea'
-          ) {
+          } else if (editorDiv?.contains(activeElement)) {
             const button = document.querySelector('.open-note-more-menu')
             if (button instanceof HTMLElement) {
               button.focus()
@@ -180,12 +178,13 @@ export const OpenNoteDialog = () => {
       {openNote?.type === 'note' ? (
         <XTextarea
           placeholder='Note text'
-          value={openNote?.txt ?? ''}
+          value={openNote.txt}
+          selections={openNote.selections}
           onChange={openNoteTxtChanged}
           onUndo={undo}
           onRedo={redo}
           onUp={focusTitleInput}
-          textareaId='open-note-textarea'
+          id='open-note-textarea'
           autoFocus={isDesktop() && !isNewNote}
         />
       ) : openNote?.type === 'todo' ? (
@@ -218,7 +217,7 @@ export const OpenNoteDialog = () => {
               text='more'
               className='open-note-more-menu'
               onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-              data-autofocus
+              data-autofocus={isDesktop() && !isNewNote ? undefined : true}
             >
               <IconDots />
             </ActionIconWithText>

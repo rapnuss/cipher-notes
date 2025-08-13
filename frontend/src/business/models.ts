@@ -99,6 +99,14 @@ export type Todo = z.infer<typeof todoSchema>
 export const todosSchema = z.array(todoSchema)
 export type Todos = z.infer<typeof todosSchema>
 
+export type CMSelection = {
+  anchor: number
+  head: number
+}
+export const defaultSelection: Readonly<CMSelection> = Object.freeze({
+  anchor: 0,
+  head: 0,
+})
 export type TextOpenNote = {
   type: 'note'
   id: string
@@ -106,6 +114,7 @@ export type TextOpenNote = {
   txt: string
   updatedAt: number
   archived: boolean
+  selections: CMSelection[]
 }
 export type TodoOpenNote = {
   type: 'todo'
@@ -117,7 +126,9 @@ export type TodoOpenNote = {
 }
 export type OpenNote = XOR<TextOpenNote, TodoOpenNote>
 
-export type NoteHistoryItem = {type: 'note'; txt: string} | {type: 'todo'; todos: Todos}
+export type NoteHistoryItem =
+  | {type: 'note'; txt: string; selections: CMSelection[]}
+  | {type: 'todo'; todos: Todos}
 
 export const hueOptions = [null, 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330] as const
 export type Hue = (typeof hueOptions)[number]

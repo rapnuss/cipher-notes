@@ -17,6 +17,9 @@
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.7.0",
     "@atlaskit/pragmatic-drag-and-drop-hitbox": "^1.1.0",
+    "@codemirror/commands": "^6.8.1",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.1",
     "@fontsource/cascadia-code": "^5.2.2",
     "@hcaptcha/react-hcaptcha": "^1.12.0",
     "@mantine/core": "^8.2.2",
@@ -26,6 +29,8 @@
     "@mantine/notifications": "^8.2.2",
     "@mantine/spotlight": "^8.2.2",
     "bowser": "^2.11.0",
+    "codemirror": "^6.0.2",
+    "codemirror-wrapped-line-indent": "^1.0.9",
     "comlink": "^4.4.2",
     "dexie": "^4.0.11",
     "dexie-react-hooks": "^1.1.7",
