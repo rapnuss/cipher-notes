@@ -25,8 +25,8 @@ import {Put} from './notesEncryption'
 
 export const monospaceStyle = {
   fontFamily: "'Cascadia Code', Monaco, Consolas, monospace",
-  fontWeight: 400,
-  fontSize: 'var(--mantine-font-size-sm)',
+  fontWeight: '400',
+  fontSize: 14,
 } as const
 
 export const textToTodos = (text: string): Todos => {

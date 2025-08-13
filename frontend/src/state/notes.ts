@@ -147,7 +147,7 @@ export const noteOpened = async (id: string) => {
         title: note.title,
         updatedAt: note.updated_at,
         archived: note.archived === 1,
-        selections: [],
+        selections: [initialSelection],
       }
     }
   })
@@ -226,7 +226,6 @@ export const openNoteTitleChanged = (title: string) =>
     state.notes.openNote.updatedAt = Date.now()
   })
 export const openNoteTxtChanged = (txt: string, selections: ISelection[]) => {
-  console.log(selections)
   setState((state) => {
     if (!state.notes.openNote) return
     state.notes.openNote.txt = txt
