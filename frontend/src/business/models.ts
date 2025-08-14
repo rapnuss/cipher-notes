@@ -161,10 +161,21 @@ export type TodoPutTxt = z.infer<typeof todoPutTxtSchema>
 
 export const labelPutTxtSchema = z.object({
   name: z.string(),
-  hue: z
-    .number()
-    .nullable()
-    .refine((hue): hue is Hue => hueOptions.includes(hue as Hue)),
+  hue: z.union([
+    z.literal(null),
+    z.literal(0),
+    z.literal(30),
+    z.literal(60),
+    z.literal(90),
+    z.literal(120),
+    z.literal(150),
+    z.literal(180),
+    z.literal(210),
+    z.literal(240),
+    z.literal(270),
+    z.literal(300),
+    z.literal(330),
+  ]),
 })
 export type LabelPutTxt = z.infer<typeof labelPutTxtSchema>
 

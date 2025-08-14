@@ -45,7 +45,7 @@
     "react-zoom-pan-pinch": "^3.7.0",
     "reselect": "^5.1.1",
     "socket.io-client": "^4.8.1",
-    "zod": "^3.25.45",
+    "zod": "^4.0.17",
     "zustand": "^5.0.7"
   },
   "devDependencies": {
