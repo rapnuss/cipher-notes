@@ -12,11 +12,24 @@ export function binToBase64(iv: Uint8Array): string {
 export function base64ToBin(base64: string): Uint8Array {
   return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0))
 }
+function ensureArrayBuffer(buffer: ArrayBufferLike): ArrayBuffer {
+  if (typeof SharedArrayBuffer !== 'undefined' && buffer instanceof SharedArrayBuffer) {
+    const uint8Array = new Uint8Array(buffer)
+    const newBuffer = new ArrayBuffer(uint8Array.byteLength)
+    new Uint8Array(newBuffer).set(uint8Array)
+    return newBuffer
+  }
+  if (buffer instanceof ArrayBuffer) {
+    return buffer
+  }
+  throw new Error('Invalid buffer')
+}
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return binToBase64(new Uint8Array(buffer))
 }
 function base64ToArrayBuffer(base64: string): ArrayBuffer {
-  return base64ToBin(base64).buffer
+  const uint8Array = base64ToBin(base64)
+  return ensureArrayBuffer(uint8Array.buffer)
 }
 
 export async function generateKey(): Promise<string> {
@@ -35,9 +48,10 @@ async function exportKey(key: CryptoKey): Promise<string> {
 
 export async function importKey(base64Key: string): Promise<CryptoKey> {
   const binaryKey = base64ToBin(base64Key)
+  const arrayBuffer = ensureArrayBuffer(binaryKey.buffer)
   const key = await crypto.subtle.importKey(
     'raw',
-    binaryKey,
+    arrayBuffer,
     {name: 'AES-GCM'}, // Algorithm
     true, // Whether the key can be exported again
     ['encrypt', 'decrypt'] // Usages
@@ -66,8 +80,11 @@ export async function decryptString(
   cipher_text: string,
   ivBase64: string
 ): Promise<string> {
+  const iv = base64ToBin(ivBase64)
+  const ivArrayBuffer = ensureArrayBuffer(iv.buffer)
+
   const decryptedData = await crypto.subtle.decrypt(
-    {name: 'AES-GCM', iv: base64ToBin(ivBase64), tagLength: 128},
+    {name: 'AES-GCM', iv: ivArrayBuffer, tagLength: 128},
     key,
     base64ToArrayBuffer(cipher_text)
   )
