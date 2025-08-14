@@ -72,6 +72,9 @@ export const Editor = ({
           paddingLeft: 0,
           textIndent: 0,
         },
+        '.cm-selectionBackground': {
+          backgroundColor: (isDark ? '#0005' : '#aaa5') + ' !important',
+        },
       }),
     [isDark]
   )
