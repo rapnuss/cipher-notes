@@ -1,5 +1,5 @@
 /* eslint-disable react-compiler/react-compiler */
-import {useEffect, useMemo, useRef, useState} from 'react'
+import {useEffect, useId, useMemo, useRef, useState} from 'react'
 import {EditorState, EditorSelection, Extension} from '@codemirror/state'
 import {
   EditorView,
@@ -13,12 +13,13 @@ import {
 } from '@codemirror/view'
 import {defaultKeymap, indentWithTab} from '@codemirror/commands'
 import {wrappedLineIndent} from 'codemirror-wrapped-line-indent'
+import {selectNextOccurrence} from '@codemirror/search'
 import {monospaceStyle} from '../business/misc'
 import {CMSelection} from '../business/models'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {isDesktop} from '../helpers/bowser'
 
-export type XTextareaProps = {
+export type EditorProps = {
   value: string
   selections: CMSelection[]
   onChange: (value: string, selections: CMSelection[]) => void
@@ -29,7 +30,7 @@ export type XTextareaProps = {
   id?: string
   autoFocus?: boolean
 }
-export const XTextarea = ({
+export const Editor = ({
   value,
   selections,
   onChange,
@@ -38,12 +39,18 @@ export const XTextarea = ({
   id,
   placeholder,
   autoFocus,
-}: XTextareaProps) => {
+}: EditorProps) => {
+  const genId = useId()
   const hostRef = useRef<HTMLDivElement | null>(null)
   const viewRef = useRef<EditorView | null>(null)
   const applyingRef = useRef(false)
   const isDark = useMyColorScheme() === 'dark'
   const [hasFocus, setHasFocus] = useState(false)
+
+  if (!id) {
+    id = genId
+  }
+  const focusHintId = `${id}-focus-hint`
 
   const theme = useMemo<Extension>(
     () =>
@@ -79,8 +86,12 @@ export const XTextarea = ({
       crosshairCursor(),
       EditorState.allowMultipleSelections.of(true),
       cmPlaceholder(placeholder ?? ''),
+      EditorView.contentAttributes.of({spellcheck: 'true'}),
+      EditorView.editorAttributes.of({
+        'aria-labelledby': focusHintId,
+      }),
     ],
-    [theme, placeholder]
+    [theme, placeholder, focusHintId]
   )
 
   const keys = useMemo<Extension>(
@@ -92,6 +103,7 @@ export const XTextarea = ({
             onUndo()
             return true
           },
+          preventDefault: true,
         },
         {
           key: 'Mod-Shift-z',
@@ -99,6 +111,7 @@ export const XTextarea = ({
             onRedo()
             return true
           },
+          preventDefault: true,
         },
         {
           key: 'Mod-y',
@@ -106,6 +119,7 @@ export const XTextarea = ({
             onRedo()
             return true
           },
+          preventDefault: true,
         },
         {
           key: 'Mod-Alt-ArrowUp',
@@ -119,6 +133,7 @@ export const XTextarea = ({
           run: addCursorDown,
           preventDefault: true,
         },
+        {key: 'Mod-d', run: selectNextOccurrence, preventDefault: true},
         ...defaultKeymap,
         indentWithTab,
       ]),
@@ -212,9 +227,9 @@ export const XTextarea = ({
       style={{flex: '1 1 0', position: 'relative', minHeight: 0, overflow: 'hidden'}}
       ref={hostRef}
     >
-      {isDesktop() && id && hasFocus && (
+      {isDesktop() && hasFocus && (
         <div
-          id={`${id}-focus-hint`}
+          id={focusHintId}
           style={{
             position: 'absolute',
             bottom: 0,

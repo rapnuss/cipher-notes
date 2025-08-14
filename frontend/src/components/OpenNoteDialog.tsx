@@ -23,7 +23,7 @@ import {useUndoRedo} from '../util/undoHook'
 import {IconTrash} from './icons/IconTrash'
 import {IconX} from './icons/IconX'
 import {Hue, NoteHistoryItem, OpenNote} from '../business/models'
-import {XTextarea} from './XTextarea'
+import {Editor} from './Editor'
 import {TodoControl} from './TodoControl'
 import {IconCheckbox} from './icons/IconCheckbox'
 import {IconLabel} from './icons/IconLabel'
@@ -74,7 +74,7 @@ export const OpenNoteDialog = () => {
         'Escape',
         () => {
           const activeElement = document.activeElement
-          const editorDiv = document.getElementById('open-note-textarea')
+          const editorDiv = document.getElementById('open-note-editor')
           if (moreMenuOpen) {
             setMoreMenuOpen(false)
             const button = document.querySelector('.open-note-more-menu')
@@ -176,7 +176,7 @@ export const OpenNoteDialog = () => {
         data-autofocus={isNewNote ? true : undefined}
       />
       {openNote?.type === 'note' ? (
-        <XTextarea
+        <Editor
           placeholder='Note text'
           value={openNote.txt}
           selections={openNote.selections}
@@ -184,7 +184,7 @@ export const OpenNoteDialog = () => {
           onUndo={undo}
           onRedo={redo}
           onUp={focusTitleInput}
-          id='open-note-textarea'
+          id='open-note-editor'
           autoFocus={isDesktop() && !isNewNote}
         />
       ) : openNote?.type === 'todo' ? (
