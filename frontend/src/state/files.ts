@@ -279,24 +279,56 @@ export const isClipboardSupported = (mime: string) => {
   return mime.startsWith('image/') || mime.startsWith('text/') || mime === 'application/json'
 }
 
-export const copyFileToClipboard = async (id: string) => {
-  const record = await db.files_blob.get(id)
-  const blob = record?.blob
-  if (!blob) return
+export const copyFileToClipboard = async (file: FileMeta) => {
   try {
-    if (blob.type.startsWith('text/') || blob.type === 'application/json') {
-      const text = await blob.text()
-      await navigator.clipboard.writeText(text)
+    if (file.mime.startsWith('text/') || file.mime === 'application/json') {
+      await navigator.clipboard.write([getTextItem()])
       notifications.show({message: 'Text content copied to clipboard.'})
       return
     }
 
-    let imageBlob: Blob | undefined
-    if (blob.type === 'image/png') {
-      imageBlob = blob
-    } else if (blob.type.startsWith('image/')) {
+    if (file.mime.startsWith('image/')) {
+      await navigator.clipboard.write([getImageItem()])
+      notifications.show({message: 'Image copied to clipboard.'})
+      return
+    }
+
+    throw new Error('unsupported file type')
+  } catch (e) {
+    notifications.show({
+      color: 'red',
+      message: `Could not copy to clipboard: ${e instanceof Error ? e.message : 'Unknown error'}`,
+    })
+  }
+
+  function getTextItem() {
+    const stringPromise = fetch(`/files/${file.id}`)
+      .then((res) => res.text())
+      .catch((e) => {
+        notifications.show({
+          color: 'red',
+          message: `Could not copy to clipboard: ${
+            e instanceof Error ? e.message : 'Unknown error'
+          }`,
+        })
+        throw e
+      })
+    return new ClipboardItem({
+      'text/plain': stringPromise,
+    })
+  }
+  function getImageItem() {
+    if (file.mime === 'image/png') {
+      return new ClipboardItem({
+        'image/png': fetch(`/files/${file.id}`).then((res) => res.blob()),
+      })
+    }
+    if (!file.mime.startsWith('image/')) {
+      throw new Error('unsupported file type')
+    }
+    const blobPromise = Promise.resolve().then(async () => {
       const img = document.createElement('img')
-      const url = `/files/${id}`
+      const url = `/files/${file.id}`
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve()
         img.onerror = () => reject(new Error('Image load failed'))
@@ -308,25 +340,16 @@ export const copyFileToClipboard = async (id: string) => {
       const ctx = canvas.getContext('2d')
       if (!ctx) throw new Error('Canvas 2D context not available')
       ctx.drawImage(img, 0, 0)
-      imageBlob = await new Promise<Blob>((resolve, reject) => {
+      const pngBlob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((b) => {
           if (b) resolve(b)
           else reject(new Error('PNG conversion failed'))
         }, 'image/png')
       })
-    }
-
-    if (imageBlob) {
-      await navigator.clipboard.write([new ClipboardItem({[imageBlob.type]: imageBlob})])
-      notifications.show({message: 'Image copied to clipboard.'})
-      return
-    }
-
-    throw 'unsupported file type'
-  } catch {
-    notifications.show({
-      color: 'red',
-      message: 'Could not copy to clipboard.',
+      return pngBlob
+    })
+    return new ClipboardItem({
+      'image/png': blobPromise.then((blob) => blob),
     })
   }
 }

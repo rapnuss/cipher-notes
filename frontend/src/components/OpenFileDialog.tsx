@@ -200,7 +200,7 @@ export const OpenFileDialog = () => {
               disabled={!isClipboardSupported(file.mime)}
               onClick={async () => {
                 setMoreMenuOpen(false)
-                copyFileToClipboard(file.id)
+                await copyFileToClipboard(file)
               }}
             >
               Copy to clipboard
