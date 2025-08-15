@@ -246,7 +246,7 @@ export const importNotes = async (): Promise<void> => {
       const entry = zip.file(`${meta.id}${meta.ext ?? ''}`)
       const blob = entry ? await entry!.async('blob') : null
       if (blob) {
-        blobsToPut.push({id: meta.id, blob})
+        blobsToPut.push({id: meta.id, blob: new Blob([blob], {type: meta.mime})})
       } else {
         continue
       }
@@ -375,7 +375,8 @@ export const keepImportNotes = async (): Promise<void> => {
         const a = importNote.attachments![i]!
         const blob = await zipFile.file(`Takeout/Keep/${a.filePath}`)?.async('blob')
         if (blob) {
-          resBlobs.push({id: fileMeta.id, blob})
+          const blobWithType = new Blob([blob], {type: a.mimetype})
+          resBlobs.push({id: fileMeta.id, blob: blobWithType})
           filesMeta[i]!.size = blob.size
         } else {
           filesMeta.splice(i, 1)
