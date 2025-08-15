@@ -274,6 +274,63 @@ const storeOpenFile = nonConcurrent(async () => {
   }
 })
 
+export const isClipboardSupported = (mime: string) => {
+  if (!navigator.clipboard || !('write' in navigator.clipboard)) return false
+  return mime.startsWith('image/') || mime.startsWith('text/') || mime === 'application/json'
+}
+
+export const copyFileToClipboard = async (id: string) => {
+  const record = await db.files_blob.get(id)
+  const blob = record?.blob
+  if (!blob) return
+  try {
+    if (blob.type.startsWith('text/') || blob.type === 'application/json') {
+      const text = await blob.text()
+      await navigator.clipboard.writeText(text)
+      notifications.show({message: 'Text content copied to clipboard.'})
+      return
+    }
+
+    let imageBlob: Blob | undefined
+    if (blob.type === 'image/png') {
+      imageBlob = blob
+    } else if (blob.type.startsWith('image/')) {
+      const img = document.createElement('img')
+      const url = `/files/${id}`
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve()
+        img.onerror = () => reject(new Error('Image load failed'))
+        img.src = url
+      })
+      const canvas = document.createElement('canvas')
+      canvas.width = img.naturalWidth || img.width
+      canvas.height = img.naturalHeight || img.height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Canvas 2D context not available')
+      ctx.drawImage(img, 0, 0)
+      imageBlob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((b) => {
+          if (b) resolve(b)
+          else reject(new Error('PNG conversion failed'))
+        }, 'image/png')
+      })
+    }
+
+    if (imageBlob) {
+      await navigator.clipboard.write([new ClipboardItem({[imageBlob.type]: imageBlob})])
+      notifications.show({message: 'Image copied to clipboard.'})
+      return
+    }
+
+    throw 'unsupported file type'
+  } catch {
+    notifications.show({
+      color: 'red',
+      message: 'Could not copy to clipboard.',
+    })
+  }
+}
+
 const upDownloadBlobsAndSetState = nonConcurrent(async () => {
   const keyTokenPair = getState().user.user.keyTokenPair
   if (!keyTokenPair) {

@@ -1,8 +1,10 @@
 import {Drawer, Flex, Menu, Popover} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {
+  copyFileToClipboard,
   deleteOpenFile,
   fileClosed,
+  isClipboardSupported,
   openFileArchivedToggled,
   openFileTitleChanged,
   setLabelDropdownOpen,
@@ -195,20 +197,10 @@ export const OpenFileDialog = () => {
           <Menu.Dropdown>
             <Menu.Item
               leftSection={<IconCopy />}
+              disabled={!isClipboardSupported(file.mime)}
               onClick={async () => {
                 setMoreMenuOpen(false)
-                const record = await db.files_blob.get(file.id)
-                const blob = record?.blob
-                if (!blob) return
-                try {
-                  await navigator.clipboard.write([new ClipboardItem({[blob.type]: blob})])
-                  notifications.show({message: 'File copied to clipboard.'})
-                } catch {
-                  notifications.show({
-                    color: 'red',
-                    message: `Could not copy to clipboard. Unsupported file type ${blob.type}.`,
-                  })
-                }
+                copyFileToClipboard(file.id)
               }}
             >
               Copy to clipboard
