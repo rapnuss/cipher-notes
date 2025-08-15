@@ -31,6 +31,7 @@ import {useEffect} from 'react'
 import {useHotkeys} from '@mantine/hooks'
 import {FileIconWithExtension} from './FileIconWithExtension'
 import {isAndroid} from '../helpers/bowser'
+import {IconCopy} from './icons/IconCopy'
 
 const fileNotFound = Symbol('file not found')
 
@@ -192,6 +193,26 @@ export const OpenFileDialog = () => {
             </ActionIconWithText>
           </Menu.Target>
           <Menu.Dropdown>
+            <Menu.Item
+              leftSection={<IconCopy />}
+              onClick={async () => {
+                setMoreMenuOpen(false)
+                const record = await db.files_blob.get(file.id)
+                const blob = record?.blob
+                if (!blob) return
+                try {
+                  await navigator.clipboard.write([new ClipboardItem({[blob.type]: blob})])
+                  notifications.show({message: 'File copied to clipboard.'})
+                } catch {
+                  notifications.show({
+                    color: 'red',
+                    message: `Could not copy to clipboard. Unsupported file type ${blob.type}.`,
+                  })
+                }
+              }}
+            >
+              Copy to clipboard
+            </Menu.Item>
             <Menu.Item
               leftSection={<IconTrash />}
               onClick={() => {
