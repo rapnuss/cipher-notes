@@ -30,7 +30,7 @@ import {IconLabel} from './icons/IconLabel'
 import {LabelDropdownContent} from './LabelDropdownContent'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
-import {labelColor} from '../business/misc'
+import {labelColor, todosToText} from '../business/misc'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
@@ -39,6 +39,8 @@ import {useHotkeys} from '@mantine/hooks'
 import {IconDots} from './icons/IconDots'
 import {IconArchive} from './icons/IconArchive'
 import {isDesktop} from '../helpers/bowser'
+import {IconCopy} from './icons/IconCopy'
+import {notifications} from '@mantine/notifications'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
@@ -223,6 +225,19 @@ export const OpenNoteDialog = () => {
             </ActionIconWithText>
           </Menu.Target>
           <Menu.Dropdown>
+            <Menu.Item
+              leftSection={<IconCopy />}
+              onClick={() => {
+                if (!openNote) return
+                setMoreMenuOpen(false)
+                navigator.clipboard.writeText(
+                  openNote.type === 'note' ? openNote.txt : todosToText(openNote.todos, true)
+                )
+                notifications.show({message: 'Note copied to clipboard.   '})
+              }}
+            >
+              Copy to clipboard
+            </Menu.Item>
             <Menu.Item
               leftSection={<IconTrash />}
               onClick={() => {

@@ -40,7 +40,10 @@ export const textToTodos = (text: string): Todos => {
     : todos
 }
 
-export const todosToText = (todos: Todos): string => todos.map((t) => t.txt).join('\n')
+export const todosToText = (todos: Todos, markdown = false): string =>
+  todos
+    .map((t) => (markdown ? `${t.parent ? '   ' : ''}- [${t.done ? 'x' : ' '}] ${t.txt}` : t.txt))
+    .join('\n')
 
 export const putToLabel = (put: Put): Label => {
   const {id, created_at, updated_at, version, deleted_at, type, txt} = put
