@@ -81,10 +81,12 @@ export const Editor = ({
     [isDark]
   )
 
-  const baseExtensions = useMemo<Extension[]>(() => {
-    const exts: Extension[] = [
+  const baseExtensions = useMemo<Extension[]>(
+    () => [
       theme,
-      ...(isIOS() ? [] : [drawSelection(), EditorView.lineWrapping, wrappedLineIndent]),
+      ...(isIOS() ? [] : [drawSelection()]),
+      EditorView.lineWrapping,
+      wrappedLineIndent,
       rectangularSelection(),
       crosshairCursor(),
       EditorState.allowMultipleSelections.of(true),
@@ -93,9 +95,9 @@ export const Editor = ({
       EditorView.editorAttributes.of({
         'aria-labelledby': focusHintId,
       }),
-    ]
-    return exts
-  }, [theme, placeholder, focusHintId])
+    ],
+    [theme, placeholder, focusHintId]
+  )
 
   const keys = useMemo<Extension>(
     () =>
