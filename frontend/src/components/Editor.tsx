@@ -75,7 +75,7 @@ export const Editor = ({
           textIndent: 0,
         },
         '.cm-selectionBackground': {
-          backgroundColor: (isDark ? '#0005' : '#aaa5') + ' !important',
+          backgroundColor: (isDark ? '#fff5' : '#0005') + ' !important',
         },
       }),
     [isDark]
