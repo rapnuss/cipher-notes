@@ -84,8 +84,7 @@ export const Editor = ({
   const baseExtensions = useMemo<Extension[]>(() => {
     const exts: Extension[] = [
       theme,
-      EditorView.lineWrapping,
-      wrappedLineIndent,
+      ...(isIOS() ? [] : [drawSelection(), EditorView.lineWrapping, wrappedLineIndent]),
       rectangularSelection(),
       crosshairCursor(),
       EditorState.allowMultipleSelections.of(true),
@@ -95,11 +94,6 @@ export const Editor = ({
         'aria-labelledby': focusHintId,
       }),
     ]
-    // On iOS Safari, the custom selection overlay can get stuck visually.
-    // Prefer the native selection rendering there.
-    if (!isIOS()) {
-      exts.unshift(drawSelection())
-    }
     return exts
   }, [theme, placeholder, focusHintId])
 
