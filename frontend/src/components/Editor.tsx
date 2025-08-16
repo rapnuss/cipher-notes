@@ -17,7 +17,7 @@ import {selectNextOccurrence} from '@codemirror/search'
 import {monospaceStyle} from '../business/misc'
 import {CMSelection} from '../business/models'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
-import {isDesktop} from '../helpers/bowser'
+import {isDesktop, isIOS} from '../helpers/bowser'
 
 export type EditorProps = {
   value: string
@@ -66,6 +66,8 @@ export const Editor = ({
           fontFamily: monospaceStyle.fontFamily,
           fontSize: monospaceStyle.fontSize,
           fontWeight: monospaceStyle.fontWeight,
+          // Native caret color (used on iOS where we don't draw overlay selection)
+          caretColor: isDark ? '#fff' : '#000',
         },
         '.cm-scroller': {fontFamily: monospaceStyle.fontFamily},
         '.cm-line': {
@@ -79,12 +81,11 @@ export const Editor = ({
     [isDark]
   )
 
-  const baseExtensions = useMemo<Extension[]>(
-    () => [
+  const baseExtensions = useMemo<Extension[]>(() => {
+    const exts: Extension[] = [
       theme,
       EditorView.lineWrapping,
       wrappedLineIndent,
-      drawSelection(),
       rectangularSelection(),
       crosshairCursor(),
       EditorState.allowMultipleSelections.of(true),
@@ -93,9 +94,14 @@ export const Editor = ({
       EditorView.editorAttributes.of({
         'aria-labelledby': focusHintId,
       }),
-    ],
-    [theme, placeholder, focusHintId]
-  )
+    ]
+    // On iOS Safari, the custom selection overlay can get stuck visually.
+    // Prefer the native selection rendering there.
+    if (!isIOS()) {
+      exts.unshift(drawSelection())
+    }
+    return exts
+  }, [theme, placeholder, focusHintId])
 
   const keys = useMemo<Extension>(
     () =>
