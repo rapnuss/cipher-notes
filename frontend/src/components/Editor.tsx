@@ -1,5 +1,5 @@
 /* eslint-disable react-compiler/react-compiler */
-import {useEffect, useId, useMemo, useRef, useState} from 'react'
+import {RefObject, useEffect, useId, useMemo, useRef, useState} from 'react'
 import {EditorState, EditorSelection, Extension} from '@codemirror/state'
 import {
   EditorView,
@@ -29,6 +29,7 @@ export type EditorProps = {
   placeholder?: string
   id?: string
   autoFocus?: boolean
+  viewRef: RefObject<EditorView | null>
 }
 export const Editor = ({
   value,
@@ -39,10 +40,10 @@ export const Editor = ({
   id,
   placeholder,
   autoFocus,
+  viewRef,
 }: EditorProps) => {
   const genId = useId()
   const hostRef = useRef<HTMLDivElement | null>(null)
-  const viewRef = useRef<EditorView | null>(null)
   const applyingRef = useRef(false)
   const isDark = useMyColorScheme() === 'dark'
   const [hasFocus, setHasFocus] = useState(false)
@@ -224,7 +225,7 @@ export const Editor = ({
       view.dispatch(trSpec)
       applyingRef.current = false
     }
-  }, [value, selections])
+  }, [value, selections, viewRef])
 
   return (
     <div

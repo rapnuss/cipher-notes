@@ -41,6 +41,8 @@ import {IconArchive} from './icons/IconArchive'
 import {isDesktop} from '../helpers/bowser'
 import {IconCopy} from './icons/IconCopy'
 import {notifications} from '@mantine/notifications'
+import {EditorView} from '@codemirror/view'
+import {useRef} from 'react'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
@@ -70,6 +72,7 @@ export const OpenNoteDialog = () => {
   useCloseOnBack({id: 'open-note-dialog', open, onClose: noteClosed})
   const isNewNote =
     !!openNote && openNote.type === 'note' && openNote.txt === '' && openNote.title === ''
+  const viewRef = useRef<EditorView | null>(null)
   useHotkeys(
     [
       [
@@ -188,6 +191,7 @@ export const OpenNoteDialog = () => {
           onUp={focusTitleInput}
           id='open-note-editor'
           autoFocus={isDesktop() && !isNewNote}
+          viewRef={viewRef}
         />
       ) : openNote?.type === 'todo' ? (
         <TodoControl
@@ -299,10 +303,44 @@ export const OpenNoteDialog = () => {
         >
           <IconCheckbox />
         </ActionIconWithText>
-        <ActionIconWithText title='Undo' text='undo' onClick={undo} disabled={!canUndo}>
+        <ActionIconWithText
+          title='Undo'
+          text='undo'
+          onMouseDown={(e) => {
+            e.preventDefault()
+          }}
+          onClick={() => {
+            undo()
+            queueMicrotask(() => {
+              const view = viewRef.current
+              if (view) {
+                view.focus()
+                view.dispatch({scrollIntoView: true})
+              }
+            })
+          }}
+          disabled={!canUndo}
+        >
           <IconArrowBackUp />
         </ActionIconWithText>
-        <ActionIconWithText title='Redo' text='redo' onClick={redo} disabled={!canRedo}>
+        <ActionIconWithText
+          title='Redo'
+          text='redo'
+          onMouseDown={(e) => {
+            e.preventDefault()
+          }}
+          onClick={() => {
+            redo()
+            queueMicrotask(() => {
+              const view = viewRef.current
+              if (view) {
+                view.focus()
+                view.dispatch({scrollIntoView: true})
+              }
+            })
+          }}
+          disabled={!canRedo}
+        >
           <IconArrowForwardUp />
         </ActionIconWithText>
         <ActionIconWithText title='Close note' text='close' onClick={noteClosed}>

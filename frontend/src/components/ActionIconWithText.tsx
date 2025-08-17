@@ -1,10 +1,11 @@
 import {ActionIcon} from '@mantine/core'
-import {CSSProperties, forwardRef, ReactNode} from 'react'
+import {CSSProperties, forwardRef, ReactNode, MouseEventHandler} from 'react'
 
 export type ActionIconWithTextProps = {
   text: ReactNode
   title?: string
   onClick?: () => void
+  onMouseDown?: MouseEventHandler<HTMLButtonElement>
   children: ReactNode
   disabled?: boolean
   style?: CSSProperties
