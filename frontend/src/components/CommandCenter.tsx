@@ -21,9 +21,11 @@ import {useLiveQuery} from 'dexie-react-hooks'
 import {useEffect} from 'react'
 import {ActiveLabel, Note} from '../business/models'
 import {exportNotes, openImportDialog, openKeepImportDialog} from '../state/import'
-import {labelSelected, selectCachedLabels, toggleLabelSelector} from '../state/labels'
+import {labelSelected, selectCachedLabels} from '../state/labels'
 import {delay} from '../util/misc'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
+
+type Command = SpotlightActionData & {shortcut?: string; onClick: () => void}
 
 export const CommandCenter = () => {
   const {toggleColorScheme} = useMantineColorScheme()
@@ -33,13 +35,14 @@ export const CommandCenter = () => {
   const disabled = useSelector(selectCommandCenterDisabled)
   const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
   const labels = useSelector(selectCachedLabels)
+  const activeLabel = useSelector((state) => state.labels.activeLabel)
 
-  const commands: (SpotlightActionData & {shortcut?: string; onClick: () => void})[] = [
+  const commands: Command[] = [
     {
       id: 'toggleColorScheme',
       label: 'Toggle Dark Mode',
       onClick: toggleColorScheme,
-      shortcut: 'alt+shift+t',
+      shortcut: 'alt+shift+d',
     },
     {
       id: 'newNote',
@@ -48,10 +51,25 @@ export const CommandCenter = () => {
       shortcut: 'alt+shift+n',
     },
     {
-      id: 'labelSelector',
-      label: 'Show label selector',
-      onClick: toggleLabelSelector,
-      shortcut: 'alt+shift+l',
+      id: 'select-all',
+      label: 'Show all notes (un-archived)',
+      onClick: () => labelSelected('all'),
+      shortcut: 'alt+shift+a',
+      disabled: activeLabel === 'all',
+    },
+    {
+      id: 'select-unlabeled',
+      label: 'Show unlabeled notes',
+      onClick: () => labelSelected('unlabeled'),
+      shortcut: 'alt+shift+u',
+      disabled: activeLabel === 'unlabeled',
+    },
+    {
+      id: 'select-archived',
+      label: 'Show archived notes',
+      onClick: () => labelSelected('archived'),
+      shortcut: 'alt+shift+h',
+      disabled: activeLabel === 'archived',
     },
     {
       id: 'register',
@@ -199,7 +217,7 @@ export const CommandCenter = () => {
 
   useHotkeys(hotkeys, [], true)
 
-  const actions = enabledCommands.map(({shortcut, onClick, ...a}) => ({
+  const actions: SpotlightActionData[] = enabledCommands.map(({shortcut, onClick, ...a}) => ({
     ...a,
     rightSection: shortcut,
     onClick: async () => {
@@ -209,7 +227,7 @@ export const CommandCenter = () => {
     },
   }))
 
-  const noteActions = notes.map((n) => ({
+  const noteActions: SpotlightActionData[] = notes.map((n) => ({
     id: n.id,
     label: n.title,
     onClick: async () => {
@@ -219,7 +237,7 @@ export const CommandCenter = () => {
     },
   }))
 
-  const labelActions = labels.map((l) => ({
+  const labelActions: SpotlightActionData[] = labels.map((l) => ({
     id: l.id,
     label: l.name,
     onClick: () => labelSelected(l.id as ActiveLabel),
