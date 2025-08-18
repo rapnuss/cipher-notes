@@ -21,7 +21,7 @@ export type RootState = {
   labels: LabelsState
   history: HistoryState
   files: FilesState
-  spotlightOpen: boolean
+  commandCenterOpen: boolean
   selection: SelectionState
   storageUsage: StorageUsageState
 }
@@ -34,7 +34,7 @@ const init: RootState = {
   labels: labelsInit,
   history: historyInit,
   files: filesInit,
-  spotlightOpen: false,
+  commandCenterOpen: false,
   selection: selectionInit,
   storageUsage: storageUsageInit,
 }
@@ -43,9 +43,9 @@ export const getState = useSelector.getState
 export const setState = useSelector.setState
 export const subscribe = useSelector.subscribe
 
-export const setSpotlightOpen = (open: boolean) =>
+export const setCommandCenterOpen = (open: boolean) =>
   setState((state) => {
-    state.spotlightOpen = open
+    state.commandCenterOpen = open
   })
 
 registerUserSubscriptions()
@@ -54,7 +54,7 @@ registerSettingsSubscriptions()
 registerLabelsSubscriptions()
 registerFilesSubscriptions()
 
-const selectAnyDialogExceptSpotlightOpen = (state: RootState): boolean =>
+const selectAnyDialogExceptCommandCenterOpen = (state: RootState): boolean =>
   state.conflicts.conflicts.length > 0 ||
   state.notes.openNote !== null ||
   state.import.importDialog.open ||
@@ -70,11 +70,13 @@ const selectAnyDialogExceptSpotlightOpen = (state: RootState): boolean =>
   state.files.openFile !== null ||
   state.storageUsage.open
 
-export const selectSpotlightDisabled = (state: RootState): boolean =>
-  selectAnyDialogExceptSpotlightOpen(state) || selectSelectionActive(state)
+export const selectCommandCenterDisabled = (state: RootState): boolean =>
+  selectAnyDialogExceptCommandCenterOpen(state) || selectSelectionActive(state)
 
 export const selectAnyDialogOpen = (state: RootState): boolean =>
-  selectAnyDialogExceptSpotlightOpen(state) || state.spotlightOpen
+  selectAnyDialogExceptCommandCenterOpen(state) || state.commandCenterOpen
 
 export const selectAnyModeOrDialogActive = (state: RootState): boolean =>
-  selectAnyDialogExceptSpotlightOpen(state) || state.spotlightOpen || selectSelectionActive(state)
+  selectAnyDialogExceptCommandCenterOpen(state) ||
+  state.commandCenterOpen ||
+  selectSelectionActive(state)

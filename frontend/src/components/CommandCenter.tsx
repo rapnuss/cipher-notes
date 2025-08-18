@@ -11,7 +11,7 @@ import {
   openDeleteAccountDialog,
   removeAllSessions,
 } from '../state/user'
-import {selectSpotlightDisabled, setSpotlightOpen, useSelector} from '../state/store'
+import {selectCommandCenterDisabled, setCommandCenterOpen, useSelector} from '../state/store'
 import {useMantineColorScheme} from '@mantine/core'
 import {HotkeyItem, useHotkeys} from '@mantine/hooks'
 import {openSettingsDialog} from '../state/settings'
@@ -30,7 +30,7 @@ export const CommandCenter = () => {
   const loggedIn = useSelector((state) => state.user.user.loggedIn)
   const hasKeyTokenPair = useSelector((state) => !!state.user.user.keyTokenPair)
   const email = useSelector((state) => state.user.user.email)
-  const disabled = useSelector(selectSpotlightDisabled)
+  const disabled = useSelector(selectCommandCenterDisabled)
   const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
   const labels = useSelector(selectCachedLabels)
 
@@ -254,11 +254,11 @@ export const CommandCenter = () => {
         },
       ]}
       onSpotlightOpen={() => {
-        setSpotlightOpen(true)
+        setCommandCenterOpen(true)
         history.pushState(null, '', location.href)
       }}
       onSpotlightClose={() => {
-        setSpotlightOpen(false)
+        setCommandCenterOpen(false)
         history.back()
       }}
     />
