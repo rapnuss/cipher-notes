@@ -3,17 +3,18 @@ import {useSelector} from '../state/store'
 import {deleteNote, noteOpened, setNoteArchived} from '../state/notes'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
-import {bisectBy, byProp, compare, truncateWithEllipsis} from '../util/misc'
+import {bisectBy, byProp, truncateWithEllipsis} from '../util/misc'
 import {IconSquare} from './icons/IconSquare'
 import {IconCheckbox} from './icons/IconCheckbox'
-import {activeLabelIsUuid, FileMeta, Note} from '../business/models'
-import {getFilename, labelColor} from '../business/misc'
+import {activeLabelIsUuid, FileMeta, Note, Todo} from '../business/models'
+import {deriveTodosData, getFilename, labelColor} from '../business/misc'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {IconDots} from './icons/IconDots'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import {deleteFile, fileOpened, setFileArchived} from '../state/files'
 import {FileIconWithExtension} from './FileIconWithExtension'
 import {selectSelectionActive, toggleSelection} from '../state/selection'
+import {IconSquareMinus} from './icons/IconSquareMinus'
 
 export const NotesGrid = () => {
   const query = useSelector((state) => state.notes.query)
@@ -138,26 +139,7 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
         {note.type === 'note' ? (
           truncateWithEllipsis(note.txt)
         ) : note.type === 'todo' ? (
-          note.todos
-            .map((t, i) => [t.done, i, t] as const)
-            .sort(compare)
-            .slice(0, 5)
-            .map(([, i, todo]) => (
-              <Flex
-                align='center'
-                gap='xs'
-                ml={todo.parent ? '1rem' : 0}
-                style={{textDecoration: todo.done ? 'line-through' : 'none'}}
-                key={i}
-              >
-                {todo.done ? (
-                  <IconCheckbox style={{flex: '0 0 auto'}} />
-                ) : (
-                  <IconSquare style={{flex: '0 0 auto'}} />
-                )}
-                {truncateWithEllipsis(todo.txt, 1, 50)}
-              </Flex>
-            ))
+          <TodosPreview todos={note.todos} />
         ) : note.type === 'file' && note.has_thumb ? (
           <img
             alt={getFilename(note)}
@@ -223,4 +205,58 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
       </Flex>
     </Paper>
   )
+}
+
+const TodosPreview = ({todos}: {todos: Todo[]}) => {
+  const {idToTodo, visualOrderUndone, visualOrderDone} = deriveTodosData(todos)
+  const result: {
+    id: string
+    indent: boolean
+    done: boolean | 'indeterminate'
+    txt: string
+    translucent: boolean
+  }[] = []
+  const undoneCount = Math.min(5, visualOrderUndone.length)
+  for (let i = 0; i < undoneCount; i++) {
+    const id = visualOrderUndone[i]!
+    const todo = idToTodo[id]!
+    result.push({
+      id,
+      indent: !!todo.parent,
+      done: false,
+      txt: todo.txt,
+      translucent: false,
+    })
+  }
+  const remainingSlots = Math.max(0, 5 - undoneCount)
+  for (let i = 0; i < remainingSlots && i < visualOrderDone.length; i++) {
+    const id = visualOrderDone[i]!
+    const todo = idToTodo[id]!
+    result.push({
+      id,
+      indent: !!todo.parent,
+      done: todo.done ? true : 'indeterminate',
+      txt: todo.txt,
+      translucent: true,
+    })
+  }
+  return result.map((todo) => (
+    <Flex
+      key={todo.done + todo.id}
+      align='center'
+      gap='xs'
+      ml={todo.indent ? '1rem' : 0}
+      style={{textDecoration: todo.done === true ? 'line-through' : 'none'}}
+      opacity={todo.translucent ? 0.5 : 1}
+    >
+      {todo.done === true ? (
+        <IconCheckbox style={{flex: '0 0 auto'}} />
+      ) : todo.done === 'indeterminate' ? (
+        <IconSquareMinus style={{flex: '0 0 auto'}} />
+      ) : (
+        <IconSquare style={{flex: '0 0 auto'}} />
+      )}
+      {truncateWithEllipsis(todo.txt, 1, 50)}
+    </Flex>
+  ))
 }
