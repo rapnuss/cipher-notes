@@ -32,7 +32,7 @@ export const CommandCenter = () => {
   const loggedIn = useSelector((state) => state.user.user.loggedIn)
   const hasKeyTokenPair = useSelector((state) => !!state.user.user.keyTokenPair)
   const email = useSelector((state) => state.user.user.email)
-  const disabled = useSelector(selectCommandCenterDisabled)
+  const commandCenterDisabled = useSelector(selectCommandCenterDisabled)
   const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
   const labels = useSelector(selectCachedLabels)
   const activeLabel = useSelector((state) => state.labels.activeLabel)
@@ -49,6 +49,15 @@ export const CommandCenter = () => {
       label: 'New note',
       onClick: addNote,
       shortcut: 'alt+shift+n',
+    },
+    {
+      id: 'searchContent',
+      label: 'Search notes content',
+      onClick: () => {
+        const input = document.getElementById('searchInput') as HTMLInputElement | null
+        input?.select()
+      },
+      shortcut: 'alt+shift+f',
     },
     {
       id: 'select-all',
@@ -213,7 +222,18 @@ export const CommandCenter = () => {
     .filter(
       (c): c is typeof c & {shortcut: string; onClick: () => void} => !!c.shortcut && !!c.onClick
     )
-    .map((c) => [c.shortcut, () => !disabled && c.onClick()] as const)
+    .map(
+      (c) =>
+        [
+          c.shortcut,
+          async () => {
+            if (commandCenterDisabled) return
+            spotlight.close()
+            await delay(100)
+            c.onClick()
+          },
+        ] as const
+    )
 
   useHotkeys(hotkeys, [], true)
 
@@ -240,7 +260,11 @@ export const CommandCenter = () => {
   const labelActions: SpotlightActionData[] = labels.map((l) => ({
     id: l.id,
     label: l.name,
-    onClick: () => labelSelected(l.id as ActiveLabel),
+    onClick: async () => {
+      spotlight.close()
+      await delay(100)
+      labelSelected(l.id as ActiveLabel)
+    },
   }))
 
   useEffect(() => {
@@ -255,7 +279,7 @@ export const CommandCenter = () => {
       triggerOnContentEditable
       scrollable
       maxHeight='100%'
-      disabled={disabled}
+      disabled={commandCenterDisabled}
       limit={actions.length}
       actions={[
         {

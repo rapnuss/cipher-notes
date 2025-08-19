@@ -13,6 +13,7 @@ export const SearchInput = () => {
       flex='0 1 auto'
       value={query}
       onChange={(e) => noteQueryChanged(e.target.value)}
+      id='searchInput'
       placeholder={
         'Search ' +
         (activeLabel === 'all'
