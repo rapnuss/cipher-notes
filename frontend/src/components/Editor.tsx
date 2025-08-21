@@ -18,6 +18,7 @@ import {monospaceStyle} from '../business/misc'
 import {CMSelection} from '../business/models'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {isDesktop, isIOS} from '../helpers/bowser'
+import {hyperLinkStyle, TextToLink} from '../helpers/TextToLink'
 
 export type EditorProps = {
   value: string
@@ -96,6 +97,8 @@ export const Editor = ({
       EditorView.editorAttributes.of({
         'aria-labelledby': focusHintId,
       }),
+      TextToLink,
+      hyperLinkStyle,
     ],
     [theme, placeholder, focusHintId]
   )
