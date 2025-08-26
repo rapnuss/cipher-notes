@@ -61,11 +61,12 @@ export const LabelSelector = () => {
         </ActionIconWithText>
       </div>
       <Divider mb='md' mt='xs' />
-      <Stack gap='xs'>
+      <Flex gap='xs'>
         <Box
           ta='left'
           bd={activeLabel === 'all' ? '2px solid var(--mantine-color-bright)' : 'none'}
           p='xs'
+          flex='1 1 0'
           style={{borderRadius: 'var(--mantine-radius-md)', outlineOffset: '2px'}}
           bg={colorScheme === 'dark' ? darkColorsGradient : lightColorsGradient}
           onClick={() => {
@@ -82,6 +83,7 @@ export const LabelSelector = () => {
           ta='left'
           bd={activeLabel === 'unlabeled' ? '2px solid var(--mantine-color-bright)' : 'none'}
           p='xs'
+          flex='1 1 0'
           style={{borderRadius: 'var(--mantine-radius-md)', outlineOffset: '2px'}}
           onClick={() => {
             labelSelected('unlabeled')
@@ -98,6 +100,7 @@ export const LabelSelector = () => {
           ta='left'
           bd={activeLabel === 'archived' ? '2px solid var(--mantine-color-bright)' : 'none'}
           p='xs'
+          flex='1 1 0'
           onClick={() => {
             labelSelected('archived')
             toggleLabelSelector()
@@ -108,7 +111,7 @@ export const LabelSelector = () => {
         >
           Archived
         </Paper>
-      </Stack>
+      </Flex>
       <Flex justify='space-between' pt='md'>
         Labels
         <UnstyledButton title='Close label selector' onClick={toggleLabelSelector}>
