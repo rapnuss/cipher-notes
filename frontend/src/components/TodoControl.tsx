@@ -46,6 +46,12 @@ export const TodoControl = ({
   const {idToTodo, visualOrderUndone, visualOrderDone} = deriveTodosData(todos)
   return (
     <Stack flex={1} style={{overflowY: 'auto', paddingTop: '1px'}} gap={0}>
+      <style scoped>{`
+        textarea:disabled {
+          color: var(--mantine-color-text);
+          opacity: 0.5;
+        }
+      `}</style>
       {visualOrderUndone.map((id, visualIndex) => (
         <TodoItem
           key={`${id}undone`}

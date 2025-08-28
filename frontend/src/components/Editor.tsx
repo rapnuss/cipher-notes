@@ -79,6 +79,10 @@ export const Editor = ({
         '.cm-selectionBackground': {
           backgroundColor: (isDark ? '#fff5' : '#0005') + ' !important',
         },
+        '.cm-placeholder': {
+          color: isDark ? '#fff' : '#000',
+          opacity: 0.5,
+        },
       }),
     [isDark]
   )
