@@ -222,11 +222,15 @@ const TodoItem = ({
       pos='relative'
       style={{opacity: ghost ? 0.5 : 1}}
     >
-      <div ref={handleRef} style={{padding: '0 .75rem 0 0', marginLeft: todo.parent ? '2rem' : 0}}>
+      <div
+        ref={handleRef}
+        style={{padding: '0 .75rem 0 0', marginLeft: todo.parent ? '2rem' : 0}}
+        title={todo.done || ghost ? undefined : 'alt+up or alt+down to move todo'}
+      >
         <IconGridDots style={{display: 'block', opacity: todo.done ? 0.2 : 0.5}} />
       </div>
       {ghost ? (
-        <IconSquareMinus />
+        <IconSquareMinus aria-label='checkbox mixed' />
       ) : (
         <IconsCheckbox
           tabIndex={onTodoChecked ? undefined : -1}
@@ -255,6 +259,7 @@ const TodoItem = ({
         readOnly={!onTodoChanged}
         onChange={(e) => onTodoChanged?.(todo.id, e.target.value)}
         autoFocus={autoFocus}
+        title={todo.done || ghost ? undefined : 'alt+shit+i to indent todo'}
         onKeyDown={(e) => {
           const target = e.currentTarget
           if (
