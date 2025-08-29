@@ -234,9 +234,11 @@ const TodoItem = ({
           readOnly={!onTodoChecked}
           onChange={(e) => onTodoChecked?.(todo.id, e.target.checked)}
           style={{marginRight: '.25rem'}}
+          aria-labelledby={`todo-${todo.id}-textarea`}
         />
       )}
       <AutoResizingTextarea
+        id={`todo-${todo.id}-textarea`}
         tabIndex={onTodoChanged ? undefined : -1}
         placeholder='To do...'
         style={{flex: 1}}

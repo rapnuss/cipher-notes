@@ -12,6 +12,7 @@ export type IconsCheckboxProps = {
   onChange?: (e: ChangeEvent<HTMLInputElement>) => void
   disabled?: boolean
   style?: CSSProperties
+  'aria-labelledby'?: string
 }
 export const IconsCheckbox = ({
   checked,
@@ -20,6 +21,7 @@ export const IconsCheckbox = ({
   style,
   tabIndex,
   readOnly,
+  'aria-labelledby': ariaLabelledBy,
 }: IconsCheckboxProps) => (
   <label className={classes.label} style={style}>
     <input
@@ -30,6 +32,7 @@ export const IconsCheckbox = ({
       disabled={disabled}
       tabIndex={tabIndex}
       readOnly={readOnly}
+      aria-labelledby={ariaLabelledBy}
     />
     {checked ? <IconCheckbox /> : <IconSquare />}
   </label>
