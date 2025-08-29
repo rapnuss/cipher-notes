@@ -26,8 +26,11 @@ export const LoginDialog = () => {
             type='email'
             value={email}
             onChange={(e) => loginEmailChanged(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !loading && email) sendLoginCode()
+            }}
           />
-          <Button loading={loading} onClick={sendLoginCode}>
+          <Button loading={loading} onClick={sendLoginCode} disabled={loading || !email}>
             Request login code
           </Button>
           <Flex gap='md' align='center'>
@@ -46,8 +49,15 @@ export const LoginDialog = () => {
             value={email}
             onChange={(e) => loginEmailChanged(e.target.value)}
           />
-          <TextInput label='Code' value={code} onChange={(e) => loginCodeChanged(e.target.value)} />
-          <Button loading={loading} onClick={loginWithCode}>
+          <TextInput
+            label='Code'
+            value={code}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !loading && code.length === 6) loginWithCode()
+            }}
+            onChange={(e) => loginCodeChanged(e.target.value)}
+          />
+          <Button loading={loading} onClick={loginWithCode} disabled={loading || code.length !== 6}>
             Login
           </Button>
           <Flex gap='md' align='center'>
