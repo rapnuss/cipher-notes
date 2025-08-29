@@ -172,8 +172,6 @@ export const downloadBlob = (blob: Blob, filename: string) => {
   URL.revokeObjectURL(url)
 }
 
-export const formatDateTime = (date: string | number) => new Date(date).toLocaleString()
-
 export const safeJsonParse = (str: string): unknown => {
   try {
     return JSON.parse(str)
@@ -367,4 +365,13 @@ export function parseRangeHeader(
   }
 
   return {start, end}
+}
+
+export const formatDateTime = (date: string | number | Date) => {
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = (d.getMonth() + 1).toString().padStart(2, '0')
+  const day = d.getDate().toString().padStart(2, '0')
+  const localTime = d.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'})
+  return `${year}-${month}-${day} ${localTime}`
 }

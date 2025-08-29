@@ -26,7 +26,7 @@ import {IconDots} from './icons/IconDots'
 import {IconLabel} from './icons/IconLabel'
 import {LabelDropdownContent} from './LabelDropdownContent'
 import {IconDownload} from './icons/IconDownload'
-import {downloadBlob} from '../util/misc'
+import {downloadBlob, formatDateTime} from '../util/misc'
 import {notifications} from '@mantine/notifications'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
 import {useEffect} from 'react'
@@ -34,6 +34,8 @@ import {useHotkeys} from '@mantine/hooks'
 import {FileIconWithExtension} from './FileIconWithExtension'
 import {isAndroid} from '../helpers/bowser'
 import {IconCopy} from './icons/IconCopy'
+import {IconClockPlus} from './icons/IconClockPlus'
+import {IconClockEdit} from './icons/IconClockEdit'
 
 const fileNotFound = Symbol('file not found')
 
@@ -195,6 +197,12 @@ export const OpenFileDialog = () => {
             </ActionIconWithText>
           </Menu.Target>
           <Menu.Dropdown>
+            <Menu.Item leftSection={<IconClockPlus />} disabled title='Created'>
+              {!file ? '' : formatDateTime(file.created_at)}
+            </Menu.Item>
+            <Menu.Item leftSection={<IconClockEdit />} disabled title='Updated'>
+              {!file ? '' : formatDateTime(file.updated_at)}
+            </Menu.Item>
             <Menu.Item
               leftSection={<IconCopy />}
               disabled={!isClipboardSupported(file.mime)}

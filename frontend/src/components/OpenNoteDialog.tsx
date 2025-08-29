@@ -43,6 +43,9 @@ import {IconCopy} from './icons/IconCopy'
 import {notifications} from '@mantine/notifications'
 import {EditorView} from '@codemirror/view'
 import {useRef} from 'react'
+import {IconClockPlus} from './icons/IconClockPlus'
+import {IconClockEdit} from './icons/IconClockEdit'
+import {formatDateTime} from '../util/misc'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
@@ -56,10 +59,11 @@ export const OpenNoteDialog = () => {
   const openNote = useSelector((state) => state.notes.openNote)
   const {labelDropdownOpen, moreMenuOpen} = useSelector((state) => state.notes.noteDialog)
   const labelsCache = useSelector((state) => state.labels.labelsCache)
-  const openNoteLabel = useLiveQuery(
-    () => db.notes.get(openNote?.id ?? '').then((n) => n?.labels?.[0]),
+  const note = useLiveQuery(
+    () => (!openNote ? undefined : db.notes.get(openNote.id)),
     [openNote?.id]
   )
+  const openNoteLabel = note?.labels?.[0]
   const hue: Hue = openNoteLabel ? labelsCache[openNoteLabel]?.hue ?? null : null
   const historyItem = selectHistoryItem(openNote)
   const {undo, redo, canUndo, canRedo} = useUndoRedo<NoteHistoryItem | null>(
@@ -211,7 +215,7 @@ export const OpenNoteDialog = () => {
       <Flex gap='xs'>
         <Menu
           shadow='md'
-          width={200}
+          width={230}
           opened={moreMenuOpen}
           onDismiss={() => setMoreMenuOpen(false)}
           closeOnClickOutside
@@ -229,6 +233,12 @@ export const OpenNoteDialog = () => {
             </ActionIconWithText>
           </Menu.Target>
           <Menu.Dropdown>
+            <Menu.Item leftSection={<IconClockPlus />} disabled title='Created'>
+              {!note ? '' : formatDateTime(note.created_at)}
+            </Menu.Item>
+            <Menu.Item leftSection={<IconClockEdit />} disabled title='Updated'>
+              {!openNote ? '' : formatDateTime(openNote.updatedAt)}
+            </Menu.Item>
             <Menu.Item
               leftSection={<IconCopy />}
               onClick={() => {
