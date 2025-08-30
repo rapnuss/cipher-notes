@@ -3,7 +3,7 @@ import {config} from './config'
 import {routing} from './routing'
 import {startCronJobs} from './cron'
 import {createSocketServer} from './socket'
-import {env} from './env'
+import {env, hostingMode} from './env'
 import {db} from './db'
 import {usersTbl} from './db/schema'
 import {eq} from 'drizzle-orm'
@@ -17,7 +17,7 @@ const server = servers[0]!
 
 createSocketServer(server)
 
-if (env.HOSTING_MODE === 'self') {
+if (hostingMode === 'self' && env.ADMIN_USERNAME && env.ADMIN_PASSWORD) {
   const [user] = await db
     .select()
     .from(usersTbl)

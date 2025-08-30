@@ -5,7 +5,7 @@ import {usersTbl} from '../db/schema'
 import {eq} from 'drizzle-orm'
 import createHttpError from 'http-errors'
 import {hashPassword, verifyPassword} from '../util/password.js'
-import {env} from '../env'
+import {hostingMode} from '../env'
 
 const assertAdmin = async (user_id: number) => {
   const [user] = await db.select().from(usersTbl).where(eq(usersTbl.id, user_id))
@@ -22,7 +22,7 @@ export const adminCreateUserEndpoint = authEndpointsFactory.build({
   }),
   output: z.object({}),
   handler: async ({input, options: {user_id}}) => {
-    if (env.HOSTING_MODE !== 'self') throw createHttpError(400, 'Only in self-hosted')
+    if (hostingMode !== 'self') throw createHttpError(400, 'Only in self-hosted')
     await assertAdmin(user_id)
     const [existing] = await db
       .select()
@@ -36,6 +36,7 @@ export const adminCreateUserEndpoint = authEndpointsFactory.build({
       password_hash,
       is_admin: 0,
       login_tries_left: 3,
+      login_code_created_at: null,
     })
     return {}
   },
@@ -50,7 +51,7 @@ export const adminSetPasswordEndpoint = authEndpointsFactory.build({
   }),
   output: z.object({}),
   handler: async ({input, options: {user_id}}) => {
-    if (env.HOSTING_MODE !== 'self') throw createHttpError(400, 'Only in self-hosted')
+    if (hostingMode !== 'self') throw createHttpError(400, 'Only in self-hosted')
     const [admin] = await db.select().from(usersTbl).where(eq(usersTbl.id, user_id)).limit(1)
     if (!admin || admin.is_admin !== 1 || !admin.password_hash)
       throw createHttpError(403, 'Forbidden')
@@ -65,7 +66,7 @@ export const adminSetPasswordEndpoint = authEndpointsFactory.build({
     const password_hash = await hashPassword(input.new_password)
     await db
       .update(usersTbl)
-      .set({password_hash, login_tries_left: 3})
+      .set({password_hash, login_tries_left: 3, login_code_created_at: null})
       .where(eq(usersTbl.id, target.id))
     return {}
   },

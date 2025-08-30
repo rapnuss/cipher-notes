@@ -7,7 +7,7 @@ import {generateLoginCode, generateSession, signSubscriptionToken} from '../busi
 import {sendLoginCode} from '../services/mail'
 import createHttpError from 'http-errors'
 import {verify} from 'hcaptcha'
-import {env} from '../env'
+import {env, hostingMode} from '../env'
 import {verifyPassword} from '../util/password.js'
 
 export const registerEmailEndpoint = endpointsFactory.build({
@@ -18,7 +18,7 @@ export const registerEmailEndpoint = endpointsFactory.build({
   }),
   output: z.object({}),
   handler: async ({input: {email, captcha_token}}) => {
-    if (env.HOSTING_MODE === 'self') {
+    if (hostingMode === 'self') {
       throw createHttpError(400, 'Registration disabled')
     }
     const res = await verify(env.HCAPTCHA_SECRET, captcha_token, undefined, env.HCAPTCHA_SITE_KEY)
@@ -41,7 +41,7 @@ export const sendLoginCodeEndpoint = endpointsFactory.build({
   }),
   output: z.object({}),
   handler: async ({input: {email}}) => {
-    if (env.HOSTING_MODE === 'self') {
+    if (hostingMode === 'self') {
       throw createHttpError(400, 'Login via code disabled')
     }
     const [user] = await db.select().from(usersTbl).where(eq(usersTbl.email, email))
@@ -82,7 +82,7 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
   }),
   output: z.object({access_token: z.string(), session_id: z.number(), jwt: z.string()}),
   handler: async ({input}) => {
-    if (env.HOSTING_MODE === 'self') {
+    if (hostingMode === 'self') {
       throw createHttpError(400, 'Login via code disabled')
     }
     const [user] = await db.select().from(usersTbl).where(eq(usersTbl.email, input.email))
@@ -153,7 +153,7 @@ export const loginWithPasswordEndpoint = endpointsFactory.build({
   }),
   output: z.object({access_token: z.string(), session_id: z.number(), jwt: z.string()}),
   handler: async ({input}) => {
-    if (env.HOSTING_MODE !== 'self') {
+    if (hostingMode !== 'self') {
       throw createHttpError(400, 'Password login disabled')
     }
     const [user] = await db
@@ -167,14 +167,21 @@ export const loginWithPasswordEndpoint = endpointsFactory.build({
     if (!user.password_hash) {
       throw createHttpError(400, 'No password set')
     }
-    if (user.login_tries_left === 0) {
-      throw createHttpError(400, 'No tries left')
+    if (
+      user.login_tries_left === 0 &&
+      user.login_code_created_at &&
+      Date.now() - user.login_code_created_at < 60_000
+    ) {
+      throw createHttpError(400, 'Too many login attempts, wait 5 minutes!')
     }
     const ok = await verifyPassword(input.password, user.password_hash)
     if (!ok) {
       await db
         .update(usersTbl)
-        .set({login_tries_left: Math.max(0, user.login_tries_left - 1)})
+        .set({
+          login_tries_left: Math.max(0, user.login_tries_left - 1),
+          login_code_created_at: user.login_tries_left === 3 ? Date.now() : undefined,
+        })
         .where(eq(usersTbl.id, user.id))
       throw createHttpError(400, 'Invalid password')
     }
@@ -183,6 +190,7 @@ export const loginWithPasswordEndpoint = endpointsFactory.build({
       .set({
         login_tries_left: 3,
         successful_login_at: Date.now(),
+        login_code_created_at: null,
       })
       .where(eq(usersTbl.id, user.id))
 

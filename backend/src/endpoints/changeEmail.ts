@@ -6,7 +6,7 @@ import createHttpError from 'http-errors'
 import {eq} from 'drizzle-orm'
 import {generateLoginCode} from '../business/misc'
 import {sendConfirmCode} from '../services/mail'
-import {env} from '../env'
+import {hostingMode} from '../env'
 
 export const sendChangeEmailCodesEndpoint = endpointsFactory.build({
   method: 'post',
@@ -16,7 +16,7 @@ export const sendChangeEmailCodesEndpoint = endpointsFactory.build({
   }),
   output: z.object({}),
   handler: async ({input: {new_email, old_email}}) => {
-    if (env.HOSTING_MODE === 'self') {
+    if (hostingMode === 'self') {
       throw createHttpError(400, 'Change email disabled')
     }
     const [user] = await db.select().from(usersTbl).where(eq(usersTbl.email, old_email))
