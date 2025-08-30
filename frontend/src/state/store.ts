@@ -4,7 +4,7 @@ import {notesInit, NotesState, registerNotesSubscriptions} from './notes'
 import {subscribeWithSelector} from 'zustand/middleware'
 import {registerUserSubscriptions, userInit, UserState} from './user'
 import {conflictsInit, ConflictsState} from './conflicts'
-import {registerSettingsSubscriptions, settingsInit, SettingsState} from './settings'
+import {adminInit, AdminState} from './admin'
 import {importInit, ImportState} from './import'
 import {labelsInit, LabelsState, registerLabelsSubscriptions} from './labels'
 import {historyInit, HistoryState} from './history'
@@ -16,7 +16,7 @@ export type RootState = {
   notes: NotesState
   user: UserState
   conflicts: ConflictsState
-  settings: SettingsState
+  admin: AdminState
   import: ImportState
   labels: LabelsState
   history: HistoryState
@@ -29,7 +29,7 @@ const init: RootState = {
   notes: notesInit,
   user: userInit,
   conflicts: conflictsInit,
-  settings: settingsInit,
+  admin: adminInit,
   import: importInit,
   labels: labelsInit,
   history: historyInit,
@@ -50,7 +50,6 @@ export const setCommandCenterOpen = (open: boolean) =>
 
 registerUserSubscriptions()
 registerNotesSubscriptions()
-registerSettingsSubscriptions()
 registerLabelsSubscriptions()
 registerFilesSubscriptions()
 
@@ -64,7 +63,7 @@ const selectAnyDialogExceptCommandCenterOpen = (state: RootState): boolean =>
   state.user.loginDialog.open ||
   state.user.encryptionKeyDialog.open ||
   state.user.imprintOpen ||
-  state.settings.open ||
+  state.admin.open ||
   state.labels.labelSelectorOpen ||
   state.labels.dialog.open ||
   state.files.openFile !== null ||

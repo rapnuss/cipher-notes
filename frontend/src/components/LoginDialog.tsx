@@ -9,6 +9,9 @@ import {
   switchLoginStatus,
 } from '../state/user'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
+import {hostingMode} from '../config'
+import {useState} from 'react'
+import {loginWithPassword} from '../state/user'
 
 export const LoginDialog = () => {
   const {open, email, code, loading, status} = useSelector((state) => state.user.loginDialog)
@@ -17,35 +20,68 @@ export const LoginDialog = () => {
     open,
     onClose: closeLoginDialog,
   })
+  const [identifier, setIdentifier] = useState('')
+  const [password, setPassword] = useState('')
+  const [pwdLoading, setPwdLoading] = useState(false)
   return (
     <Modal opened={open} onClose={closeLoginDialog} title='Login'>
-      {status === 'email' && (
+      {hostingMode === 'self' ? (
         <Stack gap='md'>
           <TextInput
-            label='Email'
-            type='email'
-            value={email}
-            onChange={(e) => loginEmailChanged(e.target.value)}
+            label='Username'
+            name='username'
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+          />
+          <TextInput
+            label='Password'
+            type='password'
+            name='password'
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !loading && email) sendLoginCode()
+              if (e.key === 'Enter' && !pwdLoading && identifier && password) handlePasswordLogin()
             }}
           />
-          <Button loading={loading} onClick={sendLoginCode} disabled={loading || !email}>
-            Request login code
+          <Button
+            loading={pwdLoading}
+            disabled={!identifier || !password}
+            onClick={handlePasswordLogin}
+          >
+            Login
           </Button>
-          <Flex gap='md' align='center'>
-            <p>Already have a code?</p>
-            <Button onClick={switchLoginStatus} size='xs'>
-              Enter code
-            </Button>
-          </Flex>
         </Stack>
+      ) : (
+        status === 'email' && (
+          <Stack gap='md'>
+            <TextInput
+              label='Email'
+              type='email'
+              name='email'
+              value={email}
+              onChange={(e) => loginEmailChanged(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !loading && email) sendLoginCode()
+              }}
+            />
+            <Button loading={loading} onClick={sendLoginCode} disabled={loading || !email}>
+              Request login code
+            </Button>
+            <Flex gap='md' align='center'>
+              <p>Already have a code?</p>
+              <Button onClick={switchLoginStatus} size='xs'>
+                Enter code
+              </Button>
+            </Flex>
+          </Stack>
+        )
       )}
-      {status === 'code' && (
+      {hostingMode === 'central' && status === 'code' && (
         <Stack gap='md'>
           <TextInput
             label='Email'
             type='email'
+            name='email'
             value={email}
             onChange={(e) => loginEmailChanged(e.target.value)}
           />
@@ -70,4 +106,10 @@ export const LoginDialog = () => {
       )}
     </Modal>
   )
+
+  async function handlePasswordLogin() {
+    setPwdLoading(true)
+    await loginWithPassword(identifier, password)
+    setPwdLoading(false)
+  }
 }

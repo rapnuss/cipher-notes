@@ -36,6 +36,7 @@ export default defineConfig({
   },
   define: {
     ENV_GIT_COMMIT: JSON.stringify(process.env.RENDER_GIT_COMMIT ?? 'unknown'),
+    VITE_HOSTING_MODE: JSON.stringify(process.env.HOSTING_MODE ?? 'central'),
   },
   build: {
     outDir: 'dist',

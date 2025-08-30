@@ -11,7 +11,7 @@ import {ConflictDialog} from './ConflictDialog.tsx'
 import {OpenNoteDialog} from './OpenNoteDialog.tsx'
 import {ImprintDialog} from './ImprintDialog.tsx'
 import {DeleteAccountDialog, DeleteServerNotesDialog} from './DeleteServerNotesDialog'
-import {SettingsDialog} from './SettingsDialog.tsx'
+import {AdminPanel} from './AdminDialog.tsx'
 import {KeepImportDialog} from './KeepImportDialog.tsx'
 import {debounce, delay} from '../util/misc.ts'
 import {LabelSelector} from './LabelSelector.tsx'
@@ -76,7 +76,7 @@ export const App = () => {
       <LoginDialog />
       <SyncDialog />
       <StorageUsageDialog />
-      <SettingsDialog />
+      <AdminPanel />
       <ConflictDialog />
       <EncryptionKeyDialog />
       <DeleteServerNotesDialog />

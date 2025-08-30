@@ -55,7 +55,7 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
   output: z.object({
     puts: putsSchema,
     conflicts: putsSchema,
-    synced_to: z.number().int().positive(),
+    synced_to: z.number().int().nonnegative(),
   }),
   handler: async ({
     input: {last_synced_to, puts: clientPuts, sync_token},

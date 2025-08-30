@@ -11,10 +11,11 @@ import {
   openDeleteAccountDialog,
   removeAllSessions,
 } from '../state/user'
+import {hostingMode} from '../config'
 import {selectCommandCenterDisabled, setCommandCenterOpen, useSelector} from '../state/store'
 import {useMantineColorScheme} from '@mantine/core'
 import {HotkeyItem, useHotkeys} from '@mantine/hooks'
-import {openSettingsDialog} from '../state/settings'
+import {openAdminDialog} from '../state/admin'
 import {openStorageUsageDialog} from '../state/storageUsage'
 import {db} from '../db'
 import {useLiveQuery} from 'dexie-react-hooks'
@@ -31,6 +32,7 @@ export const CommandCenter = () => {
   const {toggleColorScheme} = useMantineColorScheme()
   const loggedIn = useSelector((state) => state.user.user.loggedIn)
   const hasKeyTokenPair = useSelector((state) => !!state.user.user.keyTokenPair)
+  const isAdmin = useSelector((state) => state.user.user.isAdmin)
   const email = useSelector((state) => state.user.user.email)
   const commandCenterDisabled = useSelector(selectCommandCenterDisabled)
   const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
@@ -84,7 +86,7 @@ export const CommandCenter = () => {
       id: 'register',
       label: 'Register',
       onClick: openRegisterDialog,
-      disabled: loggedIn,
+      disabled: loggedIn || hostingMode === 'self',
     },
     {
       id: 'login',
@@ -186,10 +188,10 @@ export const CommandCenter = () => {
       disabled: !loggedIn,
     },
     {
-      id: 'settings',
-      label: 'Settings',
-      onClick: openSettingsDialog,
-      disabled: true,
+      id: 'adminPanel',
+      label: 'Admin Panel',
+      onClick: openAdminDialog,
+      disabled: !isAdmin || hostingMode === 'central',
     },
     {
       id: 'generateNewEncryptionKeyAndResync',
@@ -201,7 +203,7 @@ export const CommandCenter = () => {
       id: 'changeEmail',
       label: 'Change Email',
       onClick: openChangeEmailDialog,
-      disabled: !email,
+      disabled: !email || hostingMode === 'self',
     },
     {
       id: 'deleteAccount',

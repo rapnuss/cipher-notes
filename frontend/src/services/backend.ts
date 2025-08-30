@@ -58,6 +58,29 @@ export const reqLoginWithCode = (email: string, code: string) =>
     body: {email, login_code: code},
   })
 
+export const reqLoginWithPassword = (identifier: string, password: string) =>
+  request<{jwt: string; is_admin: boolean}>('/loginWithPassword', {
+    method: 'POST',
+    body: {identifier, password},
+  })
+
+export const reqAdminCreateUser = (username: string, password: string) =>
+  request<void>('/adminCreateUser', {method: 'POST', body: {username, password}})
+
+export const reqAdminSetPassword = (
+  targetIdentifier: string,
+  newPassword: string,
+  adminPassword: string
+) =>
+  request<void>('/adminSetPassword', {
+    method: 'POST',
+    body: {
+      target_identifier: targetIdentifier,
+      new_password: newPassword,
+      admin_password: adminPassword,
+    },
+  })
+
 type EncUpsertPut = {
   id: string
   type: 'note' | 'todo' | 'label' | 'file'
@@ -89,16 +112,16 @@ export const reqSyncNotes = (lastSyncedTo: number, puts: EncPut[], syncToken: st
     body: {last_synced_to: lastSyncedTo, sync_token: syncToken, puts},
   })
 
-export const reqDeleteNotes = (confirm: string) =>
+export const reqDeleteNotes = ({confirm, password}: {confirm?: string; password?: string}) =>
   request<void>('/deleteNotes', {
     method: 'POST',
-    body: {confirm},
+    body: {confirm, password},
   })
 
-export const reqDeleteAccount = (confirm: string) =>
+export const reqDeleteAccount = ({confirm, password}: {confirm?: string; password?: string}) =>
   request<void>('/deleteAccount', {
     method: 'POST',
-    body: {confirm},
+    body: {confirm, password},
   })
 
 export const reqSendConfirmCode = () =>

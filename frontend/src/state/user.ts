@@ -10,6 +10,7 @@ import {
   reqChangeEmail,
   reqDeleteAccount,
   reqRemoveAllSessions,
+  reqLoginWithPassword,
 } from '../services/backend'
 import {loadUser, storeUser} from '../services/localStorage'
 import {getState, setState, subscribe} from './store'
@@ -21,12 +22,14 @@ import {notifications} from '@mantine/notifications'
 import {syncNotes} from './notes'
 import {Feature} from '../business/models'
 import {parseSubscriptionToken} from '../business/misc'
+import {hostingMode} from '../config'
 
 export type UserState = {
   user: {
     email: string
     loggedIn: boolean
     lastSyncedTo: number
+    isAdmin: boolean
     keyTokenPair: {cryptoKey: string; syncToken: string} | null
     jwt?: string
   }
@@ -70,7 +73,7 @@ export type UserState = {
 }
 
 export const userInit: UserState = {
-  user: {email: '', loggedIn: false, lastSyncedTo: 0, keyTokenPair: null},
+  user: {email: '', loggedIn: false, lastSyncedTo: 0, keyTokenPair: null, isAdmin: false},
   features: [],
   connected: null,
   registerDialog: {open: false, email: '', loading: false, agree: false},
@@ -275,6 +278,46 @@ export const loginWithCode = async () => {
   }
 }
 
+export const loginWithPassword = async (identifier: string, password: string) => {
+  const state = getState()
+  if (!identifier || !password || state.user.loginDialog.loading) return
+  setState((state) => {
+    state.user.loginDialog.loading = true
+  })
+  const res = await reqLoginWithPassword(identifier, password)
+  const features = res.success ? await parseSubscriptionToken(res.data.jwt) : []
+  setState((state) => {
+    state.user.loginDialog.loading = false
+    if (!res.success) {
+      notifications.show({
+        title: 'Login failed',
+        message: res.error,
+        color: 'red',
+      })
+    } else {
+      state.user.user.loggedIn = true
+      state.user.user.email = identifier
+      state.user.user.jwt = res.data.jwt
+      state.user.features = features
+      state.user.user.isAdmin = res.data.is_admin
+      notifications.show({title: 'Success', message: 'You are logged in'})
+      state.user.loginDialog.open = false
+      if (!state.user.user.keyTokenPair) {
+        state.user.encryptionKeyDialog = {
+          open: true,
+          keyTokenPair: '',
+          qrMode: 'hide',
+          mode: 'export/generate',
+        }
+      }
+    }
+  })
+  const s = getState()
+  if (s.user.user.loggedIn && s.user.user.keyTokenPair) {
+    await syncNotes()
+  }
+}
+
 export const socketConnectionChanged = (connected: boolean) => {
   setState((state) => {
     if (state.user.connected === false && connected && !state.notes.sync.syncing) {
@@ -376,30 +419,30 @@ export const openDeleteServerNotesDialog = async () => {
     state.user.deleteServerNotesDialog = {
       open: true,
       code: '',
-      codeLoading: true,
+      codeLoading: hostingMode === 'central',
       deleteLoading: false,
     }
   })
-
-  const res = await reqSendConfirmCode()
-
-  setState((state) => {
-    state.user.deleteServerNotesDialog.codeLoading = false
-    if (isUnauthorizedRes(res)) {
-      state.user.user.loggedIn = false
+  if (hostingMode === 'central') {
+    const res = await reqSendConfirmCode()
+    setState((state) => {
+      state.user.deleteServerNotesDialog.codeLoading = false
+      if (isUnauthorizedRes(res)) {
+        state.user.user.loggedIn = false
+      }
+    })
+    if (!res.success) {
+      notifications.show({
+        title: 'Failed to send confirmation code',
+        message: res.error,
+        color: 'red',
+      })
+    } else {
+      notifications.show({
+        title: 'Confirmation code sent',
+        message: 'Check your email for the confirmation code',
+      })
     }
-  })
-  if (!res.success) {
-    notifications.show({
-      title: 'Failed to send confirmation code',
-      message: res.error,
-      color: 'red',
-    })
-  } else {
-    notifications.show({
-      title: 'Confirmation code sent',
-      message: 'Check your email for the confirmation code',
-    })
   }
 }
 
@@ -426,7 +469,7 @@ export const deleteServerNotesAndGenerateNewKey = async () => {
     state.user.deleteServerNotesDialog.deleteLoading = true
   })
 
-  const res = await reqDeleteNotes(code)
+  const res = await reqDeleteNotes(hostingMode === 'self' ? {password: code} : {confirm: code})
 
   if (!res.success) {
     setState((state) => {
@@ -464,28 +507,33 @@ export const openDeleteAccountDialog = async () => {
   if (!loggedIn) return
 
   setState((state) => {
-    state.user.deleteAccountDialog = {open: true, code: '', codeLoading: true, deleteLoading: false}
-  })
-
-  const res = await reqSendConfirmCode()
-
-  setState((state) => {
-    state.user.deleteAccountDialog.codeLoading = false
-    if (isUnauthorizedRes(res)) {
-      state.user.user.loggedIn = false
+    state.user.deleteAccountDialog = {
+      open: true,
+      code: '',
+      codeLoading: hostingMode === 'central',
+      deleteLoading: false,
     }
   })
-  if (!res.success) {
-    notifications.show({
-      title: 'Failed to send confirmation code',
-      message: res.error,
-      color: 'red',
+  if (hostingMode === 'central') {
+    const res = await reqSendConfirmCode()
+    setState((state) => {
+      state.user.deleteAccountDialog.codeLoading = false
+      if (isUnauthorizedRes(res)) {
+        state.user.user.loggedIn = false
+      }
     })
-  } else {
-    notifications.show({
-      title: 'Confirmation code sent',
-      message: 'Check your email for the confirmation code',
-    })
+    if (!res.success) {
+      notifications.show({
+        title: 'Failed to send confirmation code',
+        message: res.error,
+        color: 'red',
+      })
+    } else {
+      notifications.show({
+        title: 'Confirmation code sent',
+        message: 'Check your email for the confirmation code',
+      })
+    }
   }
 }
 export const closeDeleteAccountDialog = () =>
@@ -508,7 +556,7 @@ export const deleteAccount = async () => {
     state.user.deleteAccountDialog.deleteLoading = true
   })
 
-  const res = await reqDeleteAccount(code)
+  const res = await reqDeleteAccount(hostingMode === 'self' ? {password: code} : {confirm: code})
 
   setState((state) => {
     state.user.deleteAccountDialog.deleteLoading = false
@@ -527,7 +575,13 @@ export const deleteAccount = async () => {
     })
     setState((state) => {
       state.user.deleteAccountDialog.open = false
-      state.user.user = {loggedIn: false, email: '', keyTokenPair: null, lastSyncedTo: 0}
+      state.user.user = {
+        loggedIn: false,
+        email: '',
+        keyTokenPair: null,
+        lastSyncedTo: 0,
+        isAdmin: false,
+      }
     })
 
     await setEverythingDirty(true)

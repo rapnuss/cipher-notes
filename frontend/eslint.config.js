@@ -17,6 +17,7 @@ export default [
         ...globals.es2020,
         ...globals.serviceworker,
         ComlinkWorker: 'readonly',
+        VITE_HOSTING_MODE: 'readonly',
       },
       parser: typescriptParser,
       parserOptions: {

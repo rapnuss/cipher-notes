@@ -1,4 +1,4 @@
-import {pgTable, varchar, text, integer, unique, bigint, pgEnum} from 'drizzle-orm/pg-core'
+import {pgTable, varchar, text, integer, unique, bigint, pgEnum, boolean} from 'drizzle-orm/pg-core'
 
 export const subscriptionTypeEnum = pgEnum('subscription_type', ['free', 'plus', 'pro'])
 
@@ -7,6 +7,8 @@ export type SubscriptionType = (typeof subscriptionTypeEnum.enumValues)[number]
 export const usersTbl = pgTable('users', {
   id: bigint({mode: 'number'}).generatedAlwaysAsIdentity().primaryKey(),
   email: varchar({length: 255}).unique().notNull(),
+  password_hash: varchar({length: 255}),
+  is_admin: boolean().default(false).notNull(),
   login_code: varchar({length: 6}),
   login_code_created_at: bigint({mode: 'number'}),
   login_tries_left: integer().default(0).notNull(),

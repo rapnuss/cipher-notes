@@ -60,6 +60,10 @@ DONE:
   on change encryption key
     delete all blobs with the old key
 FIRST:
+  confirm flow via password
+    three tries every 5 minutes
+      reset to 3 tries after 5 minutes
+  hcaptcha site code via env
 TODO:
 LATER:
 MAYBE:

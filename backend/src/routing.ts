@@ -5,6 +5,7 @@ import {
   sendLoginCodeEndpoint,
   registerEmailEndpoint,
 } from './endpoints/login'
+import {loginWithPasswordEndpoint} from './endpoints/login'
 import {syncNotesEndpoint} from './endpoints/syncNotes'
 import {deleteAccountEndpoint, deleteNotesEndpoint} from './endpoints/deleteNotes'
 import {sendConfirmCodeEndpoint} from './endpoints/sendConfirmCode'
@@ -12,12 +13,14 @@ import {logoutEndpoint, removeAllSessionsEndpoint} from './endpoints/logout'
 import {changeEmailEndpoint, sendChangeEmailCodesEndpoint} from './endpoints/changeEmail'
 import {getPresignedUrlsEndpoint} from './endpoints/getPresignedUrls'
 import {storageUsageEndpoint} from './endpoints/storageUsage'
+import {adminCreateUserEndpoint, adminSetPasswordEndpoint} from './endpoints/admin'
 
 export const routing: Routing = {
   hello: helloEndpoint,
   registerEmail: registerEmailEndpoint,
   sendLoginCode: sendLoginCodeEndpoint,
   loginWithCode: loginWithCodeEndpoint,
+  loginWithPassword: loginWithPasswordEndpoint,
   syncNotes: syncNotesEndpoint,
   deleteNotes: deleteNotesEndpoint,
   deleteAccount: deleteAccountEndpoint,
@@ -28,4 +31,6 @@ export const routing: Routing = {
   changeEmail: changeEmailEndpoint,
   getPresignedUrls: getPresignedUrlsEndpoint,
   storageUsage: storageUsageEndpoint,
+  adminCreateUser: adminCreateUserEndpoint,
+  adminSetPassword: adminSetPasswordEndpoint,
 }
