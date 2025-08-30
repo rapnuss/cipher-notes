@@ -11,6 +11,7 @@ import {
   openDeleteAccountDialog,
   removeAllSessions,
 } from '../state/user'
+import {hostingMode} from '../config'
 import {selectCommandCenterDisabled, setCommandCenterOpen, useSelector} from '../state/store'
 import {useMantineColorScheme} from '@mantine/core'
 import {HotkeyItem, useHotkeys} from '@mantine/hooks'
@@ -80,12 +81,16 @@ export const CommandCenter = () => {
       shortcut: 'alt+shift+h',
       disabled: activeLabel === 'archived',
     },
-    {
-      id: 'register',
-      label: 'Register',
-      onClick: openRegisterDialog,
-      disabled: loggedIn,
-    },
+    ...(hostingMode === 'central'
+      ? [
+          {
+            id: 'register',
+            label: 'Register',
+            onClick: openRegisterDialog,
+            disabled: loggedIn,
+          } as Command,
+        ]
+      : []),
     {
       id: 'login',
       label: 'Login',
@@ -197,12 +202,16 @@ export const CommandCenter = () => {
       onClick: openDeleteServerNotesDialog,
       disabled: !loggedIn || !hasKeyTokenPair,
     },
-    {
-      id: 'changeEmail',
-      label: 'Change Email',
-      onClick: openChangeEmailDialog,
-      disabled: !email,
-    },
+    ...(hostingMode === 'central'
+      ? [
+          {
+            id: 'changeEmail',
+            label: 'Change Email',
+            onClick: openChangeEmailDialog,
+            disabled: !email,
+          } as Command,
+        ]
+      : []),
     {
       id: 'deleteAccount',
       label: 'Delete Account',

@@ -10,6 +10,7 @@ import {
   reqChangeEmail,
   reqDeleteAccount,
   reqRemoveAllSessions,
+  reqLoginWithPassword,
 } from '../services/backend'
 import {loadUser, storeUser} from '../services/localStorage'
 import {getState, setState, subscribe} from './store'
@@ -272,6 +273,45 @@ export const loginWithCode = async () => {
     if (state.user.user.loggedIn && state.user.user.keyTokenPair) {
       await syncNotes()
     }
+  }
+}
+
+export const loginWithPassword = async (identifier: string, password: string) => {
+  const state = getState()
+  if (!identifier || !password || state.user.loginDialog.loading) return
+  setState((state) => {
+    state.user.loginDialog.loading = true
+  })
+  const res = await reqLoginWithPassword(identifier, password)
+  const features = res.success ? await parseSubscriptionToken(res.data.jwt) : []
+  setState((state) => {
+    state.user.loginDialog.loading = false
+    if (!res.success) {
+      notifications.show({
+        title: 'Login failed',
+        message: res.error,
+        color: 'red',
+      })
+    } else {
+      state.user.user.loggedIn = true
+      state.user.user.email = identifier
+      state.user.user.jwt = res.data.jwt
+      state.user.features = features
+      notifications.show({title: 'Success', message: 'You are logged in'})
+      state.user.loginDialog.open = false
+      if (!state.user.user.keyTokenPair) {
+        state.user.encryptionKeyDialog = {
+          open: true,
+          keyTokenPair: '',
+          qrMode: 'hide',
+          mode: 'export/generate',
+        }
+      }
+    }
+  })
+  const s = getState()
+  if (s.user.user.loggedIn && s.user.user.keyTokenPair) {
+    await syncNotes()
   }
 }
 

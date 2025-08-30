@@ -58,6 +58,29 @@ export const reqLoginWithCode = (email: string, code: string) =>
     body: {email, login_code: code},
   })
 
+export const reqLoginWithPassword = (identifier: string, password: string) =>
+  request<{jwt: string}>('/loginWithPassword', {
+    method: 'POST',
+    body: {identifier, password},
+  })
+
+export const reqAdminCreateUser = (username: string, password: string) =>
+  request<void>('/adminCreateUser', {method: 'POST', body: {username, password}})
+
+export const reqAdminSetPassword = (
+  targetIdentifier: string,
+  newPassword: string,
+  adminPassword: string
+) =>
+  request<void>('/adminSetPassword', {
+    method: 'POST',
+    body: {
+      target_identifier: targetIdentifier,
+      new_password: newPassword,
+      admin_password: adminPassword,
+    },
+  })
+
 type EncUpsertPut = {
   id: string
   type: 'note' | 'todo' | 'label' | 'file'

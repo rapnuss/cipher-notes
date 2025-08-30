@@ -7,6 +7,8 @@ export type SubscriptionType = (typeof subscriptionTypeEnum.enumValues)[number]
 export const usersTbl = pgTable('users', {
   id: bigint({mode: 'number'}).generatedAlwaysAsIdentity().primaryKey(),
   email: varchar({length: 255}).unique().notNull(),
+  password_hash: varchar({length: 255}),
+  is_admin: integer().default(0).notNull(),
   login_code: varchar({length: 6}),
   login_code_created_at: bigint({mode: 'number'}),
   login_tries_left: integer().default(0).notNull(),

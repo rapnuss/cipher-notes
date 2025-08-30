@@ -8,7 +8,7 @@ import {
 } from '../state/user'
 import {useRef, useState} from 'react'
 import HCaptcha from '@hcaptcha/react-hcaptcha'
-import {hCaptchaSiteCode} from '../config'
+import {hCaptchaSiteCode, hostingMode} from '../config'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 export const RegisterDialog = () => {
@@ -61,21 +61,25 @@ export const RegisterDialog = () => {
           checked={agree}
           onChange={(e) => registerAgreeChanged(e.target.checked)}
         />
-        <HCaptcha ref={hcaptchaRef} sitekey={hCaptchaSiteCode} onVerify={setCaptchaToken} />
-        <Button
-          loading={loading}
-          disabled={!email || !agree || !captchaToken}
-          onClick={async () => {
-            if (!captchaToken) return
-            await registerEmail(captchaToken)
-            if (captchaToken) {
-              hcaptchaRef.current?.resetCaptcha()
-              setCaptchaToken(null)
-            }
-          }}
-        >
-          Register
-        </Button>
+        {hostingMode === 'central' && (
+          <>
+            <HCaptcha ref={hcaptchaRef} sitekey={hCaptchaSiteCode} onVerify={setCaptchaToken} />
+            <Button
+              loading={loading}
+              disabled={!email || !agree || !captchaToken}
+              onClick={async () => {
+                if (!captchaToken) return
+                await registerEmail(captchaToken)
+                if (captchaToken) {
+                  hcaptchaRef.current?.resetCaptcha()
+                  setCaptchaToken(null)
+                }
+              }}
+            >
+              Register
+            </Button>
+          </>
+        )}
       </Stack>
     </Modal>
   )

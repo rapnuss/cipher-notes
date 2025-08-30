@@ -5,6 +5,7 @@ import {notesTbl, sessionsTbl, usersTbl} from '../db/schema'
 import createHttpError from 'http-errors'
 import {eq} from 'drizzle-orm'
 import {s3DeletePrefix} from '../services/s3'
+import {env} from '../env'
 
 export const deleteNotesEndpoint = authEndpointsFactory.build({
   method: 'post',
@@ -13,6 +14,9 @@ export const deleteNotesEndpoint = authEndpointsFactory.build({
   }),
   output: z.object({}),
   handler: async ({options: {user_id}, input: {confirm}}) => {
+    if (env.HOSTING_MODE === 'self') {
+      throw createHttpError(400, 'Confirm flow disabled')
+    }
     const [user] = await db.select().from(usersTbl).where(eq(usersTbl.id, user_id))
     if (!user) {
       throw createHttpError(500, 'User not found')
@@ -70,6 +74,9 @@ export const deleteAccountEndpoint = authEndpointsFactory.build({
   }),
   output: z.object({}),
   handler: async ({options: {user_id}, input: {confirm}}) => {
+    if (env.HOSTING_MODE === 'self') {
+      throw createHttpError(400, 'Confirm flow disabled')
+    }
     const [user] = await db.select().from(usersTbl).where(eq(usersTbl.id, user_id))
     if (!user) {
       throw createHttpError(500, 'User not found')

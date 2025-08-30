@@ -6,11 +6,15 @@ import {db} from '../db'
 import {usersTbl} from '../db/schema'
 import {sendConfirmCode} from '../services/mail'
 import {eq} from 'drizzle-orm'
+import {env} from '../env'
 
 export const sendConfirmCodeEndpoint = authEndpointsFactory.build({
   method: 'post',
   output: z.object({}),
   handler: async ({options: {user_id}}) => {
+    if (env.HOSTING_MODE === 'self') {
+      throw createHttpError(400, 'Confirm flow disabled')
+    }
     const [user] = await db.select().from(usersTbl).where(eq(usersTbl.id, user_id))
     if (!user) {
       throw createHttpError(500, 'User not found')

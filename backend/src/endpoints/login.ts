@@ -8,6 +8,7 @@ import {sendLoginCode} from '../services/mail'
 import createHttpError from 'http-errors'
 import {verify} from 'hcaptcha'
 import {env} from '../env'
+import {verifyPassword} from '../util/password.js'
 
 export const registerEmailEndpoint = endpointsFactory.build({
   method: 'post',
@@ -17,6 +18,9 @@ export const registerEmailEndpoint = endpointsFactory.build({
   }),
   output: z.object({}),
   handler: async ({input: {email, captcha_token}}) => {
+    if (env.HOSTING_MODE === 'self') {
+      throw createHttpError(400, 'Registration disabled')
+    }
     const res = await verify(env.HCAPTCHA_SECRET, captcha_token, undefined, env.HCAPTCHA_SITE_KEY)
     if (!res.success) {
       throw createHttpError(400, 'Invalid captcha')
@@ -37,6 +41,9 @@ export const sendLoginCodeEndpoint = endpointsFactory.build({
   }),
   output: z.object({}),
   handler: async ({input: {email}}) => {
+    if (env.HOSTING_MODE === 'self') {
+      throw createHttpError(400, 'Login via code disabled')
+    }
     const [user] = await db.select().from(usersTbl).where(eq(usersTbl.email, email))
     if (!user) {
       throw createHttpError(400, 'User not found')
@@ -75,6 +82,9 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
   }),
   output: z.object({access_token: z.string(), session_id: z.number(), jwt: z.string()}),
   handler: async ({input}) => {
+    if (env.HOSTING_MODE === 'self') {
+      throw createHttpError(400, 'Login via code disabled')
+    }
     const [user] = await db.select().from(usersTbl).where(eq(usersTbl.email, input.email))
     if (!user) {
       throw createHttpError(400, 'User not found')
@@ -120,6 +130,67 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
       Date.now() + 1000 * 60 * 60 * 24 * 31
     )
 
+    return await db.transaction(async (tx) => {
+      const {accessToken, salt, hash} = generateSession()
+      const [{session_id} = {}] = await tx
+        .insert(sessionsTbl)
+        .values({
+          user_id: user.id,
+          access_token_hash: hash,
+          access_token_salt: salt,
+        })
+        .returning({session_id: sessionsTbl.id})
+      return {access_token: accessToken, session_id: session_id!, jwt: await jwtPromise}
+    })
+  },
+})
+
+export const loginWithPasswordEndpoint = endpointsFactory.build({
+  method: 'post',
+  input: z.object({
+    identifier: z.string().min(1),
+    password: z.string().min(1),
+  }),
+  output: z.object({access_token: z.string(), session_id: z.number(), jwt: z.string()}),
+  handler: async ({input}) => {
+    if (env.HOSTING_MODE !== 'self') {
+      throw createHttpError(400, 'Password login disabled')
+    }
+    const [user] = await db
+      .select()
+      .from(usersTbl)
+      .where(eq(usersTbl.email, input.identifier))
+      .limit(1)
+    if (!user) {
+      throw createHttpError(400, 'User not found')
+    }
+    if (!user.password_hash) {
+      throw createHttpError(400, 'No password set')
+    }
+    if (user.login_tries_left === 0) {
+      throw createHttpError(400, 'No tries left')
+    }
+    const ok = await verifyPassword(input.password, user.password_hash)
+    if (!ok) {
+      await db
+        .update(usersTbl)
+        .set({login_tries_left: Math.max(0, user.login_tries_left - 1)})
+        .where(eq(usersTbl.id, user.id))
+      throw createHttpError(400, 'Invalid password')
+    }
+    await db
+      .update(usersTbl)
+      .set({
+        login_tries_left: 3,
+        successful_login_at: Date.now(),
+      })
+      .where(eq(usersTbl.id, user.id))
+
+    const jwtPromise = signSubscriptionToken(
+      user.id,
+      user.subscription,
+      Date.now() + 1000 * 60 * 60 * 24 * 31
+    )
     return await db.transaction(async (tx) => {
       const {accessToken, salt, hash} = generateSession()
       const [{session_id} = {}] = await tx

@@ -3,6 +3,11 @@ import {config} from './config'
 import {routing} from './routing'
 import {startCronJobs} from './cron'
 import {createSocketServer} from './socket'
+import {env} from './env'
+import {db} from './db'
+import {usersTbl} from './db/schema'
+import {eq} from 'drizzle-orm'
+import {hashPassword} from './util/password.js'
 
 console.info('NODE_ENV', process.env.NODE_ENV)
 
@@ -11,3 +16,23 @@ const {servers} = await createServer(config, routing)
 const server = servers[0]!
 
 createSocketServer(server)
+
+if (env.HOSTING_MODE === 'self') {
+  const [user] = await db
+    .select()
+    .from(usersTbl)
+    .where(eq(usersTbl.email, env.ADMIN_USERNAME))
+    .limit(1)
+  const password_hash = await hashPassword(env.ADMIN_PASSWORD)
+  if (!user) {
+    await db.insert(usersTbl).values({
+      email: env.ADMIN_USERNAME,
+      password_hash,
+      is_admin: 1,
+    })
+    console.info('Admin user created')
+  } else {
+    await db.update(usersTbl).set({password_hash, is_admin: 1}).where(eq(usersTbl.id, user.id))
+    console.info('Admin user updated')
+  }
+}
