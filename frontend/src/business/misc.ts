@@ -29,21 +29,52 @@ export const monospaceStyle = {
   fontSize: 'var(--mantine-font-size-sm)',
 } as const
 
+const emptyRegex = /^\s*$/
+const todoRegex = /^( {2,})?- \[([x ])\] (.*)$/
+
 export const textToTodos = (text: string): Todos => {
-  const todos = text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => ({txt: line, done: false, id: crypto.randomUUID(), updated_at: Date.now()}))
+  const lines = text.split('\n').filter((line) => !emptyRegex.test(line))
+
+  const todos: Todos = []
+  let lastParentId: string | undefined
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!
+    const match = todoRegex.exec(line)
+    let todo: Todo
+    if (!match) {
+      const indent = line.startsWith('  ')
+      todo = {
+        txt: line.trim(),
+        done: false,
+        id: crypto.randomUUID(),
+        updated_at: Date.now(),
+        parent: indent ? lastParentId : undefined,
+      }
+      if (!indent) {
+        lastParentId = todo.id
+      }
+    } else {
+      const indent = match[1] ? true : false
+      const done = match[2]! === 'x'
+      const txt = match[3] ?? ''
+      const parent = indent ? lastParentId : undefined
+      const id = crypto.randomUUID()
+      todo = {txt, done, id, updated_at: Date.now(), parent}
+      if (!indent) {
+        lastParentId = todo.id
+      }
+    }
+    todos.push(todo)
+  }
+
   return todos.length === 0
     ? [{txt: '', done: false, id: crypto.randomUUID(), updated_at: Date.now()}]
     : todos
 }
 
-export const todosToText = (todos: Todos, markdown = false): string =>
-  todos
-    .map((t) => (markdown ? `${t.parent ? '   ' : ''}- [${t.done ? 'x' : ' '}] ${t.txt}` : t.txt))
-    .join('\n')
+export const todosToText = (todos: Todos): string =>
+  // 3 spaces for md compatibility
+  todos.map((t) => `${t.parent ? '   ' : ''}- [${t.done ? 'x' : ' '}] ${t.txt}`).join('\n')
 
 export const putToLabel = (put: Put): Label => {
   const {id, created_at, updated_at, version, deleted_at, type, txt} = put

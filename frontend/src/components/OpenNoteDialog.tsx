@@ -245,7 +245,7 @@ export const OpenNoteDialog = () => {
                 if (!openNote) return
                 setMoreMenuOpen(false)
                 navigator.clipboard.writeText(
-                  openNote.type === 'note' ? openNote.txt : todosToText(openNote.todos, true)
+                  openNote.type === 'note' ? openNote.txt : todosToText(openNote.todos)
                 )
                 notifications.show({message: 'Note copied to clipboard.   '})
               }}
