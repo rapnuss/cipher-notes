@@ -1,5 +1,5 @@
 export const backendUrl = '/api'
 export const backendTimeout = 8000
-export const hCaptchaSiteCode = 'd79424e2-e326-4dca-8dce-4aa2e8844fb6'
+export const hCaptchaSiteCode = ENV_HCAPTCHA_SITE_KEY
 export const hostingMode: 'central' | 'self' =
-  typeof VITE_HOSTING_MODE === 'string' && VITE_HOSTING_MODE === 'self' ? 'self' : 'central'
+  typeof ENV_HOSTING_MODE === 'string' && ENV_HOSTING_MODE === 'self' ? 'self' : 'central'

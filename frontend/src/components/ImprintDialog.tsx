@@ -3,8 +3,6 @@ import {useSelector} from '../state/store'
 import {toggleImprint} from '../state/user'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
-declare const ENV_GIT_COMMIT: string
-
 export const ImprintDialog = () => {
   const open = useSelector((state) => state.user.imprintOpen)
   useCloseOnBack({

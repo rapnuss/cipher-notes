@@ -1,4 +1,5 @@
 import {SubscriptionType} from '../db/schema'
+import {hostingMode} from '../env'
 import {signJwt} from '../services/jwt'
 import {generateSalt, hashToken} from '../util/hash'
 
@@ -41,4 +42,7 @@ export const signSubscriptionToken = (
   userId: number,
   subscription: SubscriptionType,
   expiry: number
-) => signJwt({sub: userId.toString(), features: getFeaturesArr(subscription)}, expiry)
+) => {
+  const effectiveSubscription: SubscriptionType = hostingMode === 'self' ? 'pro' : subscription
+  return signJwt({sub: userId.toString(), features: getFeaturesArr(effectiveSubscription)}, expiry)
+}
