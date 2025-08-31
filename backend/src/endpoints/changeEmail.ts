@@ -7,6 +7,7 @@ import {eq} from 'drizzle-orm'
 import {generateLoginCode} from '../business/misc'
 import {sendConfirmCode} from '../services/mail'
 import {hostingMode} from '../env'
+import {verifyConfirmCodeOrThrow} from '../business/confirm'
 
 export const sendChangeEmailCodesEndpoint = endpointsFactory.build({
   method: 'post',
@@ -71,16 +72,8 @@ export const changeEmailEndpoint = endpointsFactory.build({
     if (!user.confirm_code || !user.new_email || !user.login_code) {
       throw createHttpError(400, 'No change email codes sent.')
     }
-    if (user.confirm_code_tries_left <= 0) {
-      throw createHttpError(400, 'Confirm code tries left exceeded')
-    }
-    if (
-      user.confirm_code_created_at &&
-      user.confirm_code_created_at + 10 * 60 * 1000 < Date.now()
-    ) {
-      throw createHttpError(400, 'Confirm code expired')
-    }
-    if (old_email_code !== user.confirm_code || new_email_code !== user.login_code) {
+    await verifyConfirmCodeOrThrow(db, user, old_email_code)
+    if (new_email_code !== user.login_code) {
       await db
         .update(usersTbl)
         .set({confirm_code_tries_left: user.confirm_code_tries_left - 1})

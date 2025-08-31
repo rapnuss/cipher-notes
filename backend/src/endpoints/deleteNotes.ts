@@ -6,7 +6,8 @@ import createHttpError from 'http-errors'
 import {eq} from 'drizzle-orm'
 import {s3DeletePrefix} from '../services/s3'
 import {hostingMode} from '../env'
-import {verifyPassword} from '../util/password.js'
+import {verifyPasswordWithRateLimitOrThrow} from '../business/password'
+import {verifyConfirmCodeOrThrow} from '../business/confirm'
 
 export const deleteNotesEndpoint = authEndpointsFactory.build({
   method: 'post',
@@ -21,58 +22,10 @@ export const deleteNotesEndpoint = authEndpointsFactory.build({
       throw createHttpError(500, 'User not found')
     }
     if (hostingMode === 'self') {
-      if (!user.password_hash) throw createHttpError(400, 'No password set')
-      if (!input.password) throw createHttpError(400, 'Password required')
-      if (
-        user.confirm_code_tries_left === 0 &&
-        user.confirm_code_created_at &&
-        Date.now() - user.confirm_code_created_at < 5 * 60_000
-      ) {
-        throw createHttpError(400, 'Too many login attempts, wait 5 minutes!')
-      }
-      const ok = await verifyPassword(input.password, user.password_hash)
-      if (!ok) {
-        await db
-          .update(usersTbl)
-          .set({
-            confirm_code_tries_left:
-              user.confirm_code_tries_left === 0
-                ? 2
-                : Math.max(0, user.confirm_code_tries_left - 1),
-            confirm_code_created_at:
-              user.confirm_code_tries_left === 3 || user.confirm_code_tries_left === 0
-                ? Date.now()
-                : undefined,
-          })
-          .where(eq(usersTbl.id, user.id))
-        throw createHttpError(400, 'Invalid password')
-      }
-      await db
-        .update(usersTbl)
-        .set({confirm_code_tries_left: 3, confirm_code_created_at: null})
-        .where(eq(usersTbl.id, user.id))
+      await verifyPasswordWithRateLimitOrThrow(db, user, input.password)
     } else {
       const {confirm} = input
-      if (!confirm) throw createHttpError(400, 'Confirm code required')
-      if (!user.confirm_code) {
-        throw createHttpError(400, 'Confirm code not set')
-      }
-      if (user.confirm_code_tries_left <= 0) {
-        throw createHttpError(400, 'Confirm code tries left exceeded')
-      }
-      if (
-        !user.confirm_code_created_at ||
-        user.confirm_code_created_at + 10 * 60 * 1000 < Date.now()
-      ) {
-        throw createHttpError(400, 'Confirm code expired')
-      }
-      if (confirm !== user.confirm_code) {
-        await db
-          .update(usersTbl)
-          .set({confirm_code_tries_left: user.confirm_code_tries_left - 1})
-          .where(eq(usersTbl.id, user.id))
-        throw createHttpError(400, 'Confirm code does not match')
-      }
+      await verifyConfirmCodeOrThrow(db, user, confirm)
       await db
         .update(usersTbl)
         .set({
@@ -113,58 +66,10 @@ export const deleteAccountEndpoint = authEndpointsFactory.build({
       throw createHttpError(500, 'User not found')
     }
     if (hostingMode === 'self') {
-      if (!user.password_hash) throw createHttpError(400, 'No password set')
-      if (!input.password) throw createHttpError(400, 'Password required')
-      if (
-        user.confirm_code_tries_left === 0 &&
-        user.confirm_code_created_at &&
-        Date.now() - user.confirm_code_created_at < 5 * 60_000
-      ) {
-        throw createHttpError(400, 'Too many login attempts, wait 5 minutes!')
-      }
-      const ok = await verifyPassword(input.password, user.password_hash)
-      if (!ok) {
-        await db
-          .update(usersTbl)
-          .set({
-            confirm_code_tries_left:
-              user.confirm_code_tries_left === 0
-                ? 2
-                : Math.max(0, user.confirm_code_tries_left - 1),
-            confirm_code_created_at:
-              user.confirm_code_tries_left === 3 || user.confirm_code_tries_left === 0
-                ? Date.now()
-                : undefined,
-          })
-          .where(eq(usersTbl.id, user.id))
-        throw createHttpError(400, 'Invalid password')
-      }
-      await db
-        .update(usersTbl)
-        .set({confirm_code_tries_left: 3, confirm_code_created_at: null})
-        .where(eq(usersTbl.id, user.id))
+      await verifyPasswordWithRateLimitOrThrow(db, user, input.password)
     } else {
       const {confirm} = input
-      if (!confirm) throw createHttpError(400, 'Confirm code required')
-      if (!user.confirm_code) {
-        throw createHttpError(400, 'Confirm code not set')
-      }
-      if (user.confirm_code_tries_left <= 0) {
-        throw createHttpError(400, 'Confirm code tries left exceeded')
-      }
-      if (
-        !user.confirm_code_created_at ||
-        user.confirm_code_created_at + 10 * 60 * 1000 < Date.now()
-      ) {
-        throw createHttpError(400, 'Confirm code expired')
-      }
-      if (confirm !== user.confirm_code) {
-        await db
-          .update(usersTbl)
-          .set({confirm_code_tries_left: user.confirm_code_tries_left - 1})
-          .where(eq(usersTbl.id, user.id))
-        throw createHttpError(400, 'Confirm code does not match')
-      }
+      await verifyConfirmCodeOrThrow(db, user, confirm)
     }
     await db.transaction(async (tx) => {
       await tx.delete(notesTbl).where(eq(notesTbl.user_id, user.id))
