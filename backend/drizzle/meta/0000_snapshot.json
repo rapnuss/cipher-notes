@@ -1,5 +1,5 @@
 {
-  "id": "30ed7634-b16d-4176-b067-561c5f6d48a9",
+  "id": "b828c258-78b3-4758-b8f7-9fda1add2a07",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -228,6 +228,19 @@
           "primaryKey": false,
           "notNull": true
         },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_admin": {
+          "name": "is_admin",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
         "login_code": {
           "name": "login_code",
           "type": "varchar(6)",
@@ -297,6 +310,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'free'"
+        },
+        "successful_login_at": {
+          "name": "successful_login_at",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},

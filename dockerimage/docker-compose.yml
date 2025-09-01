@@ -1,0 +1,17 @@
+version: '3.9'
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: dockerimage/Dockerfile
+    container_name: ciphernotes_app
+    env_file:
+      - .env
+    ports:
+      - "8080:80"
+    # To persist /data on host, uncomment the next line
+    # volumes:
+    #   - ./data:/data
+    restart: unless-stopped
+
+
