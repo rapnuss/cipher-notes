@@ -1,7 +1,7 @@
 ########################################
 # Keys stage: generate JWT keypair
 ########################################
-FROM alpine:3.20 AS keys
+FROM alpine:3 AS keys
 RUN apk add --no-cache openssl
 RUN openssl genrsa -out /tmp/private_rsa.pem 2048 \
   && openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in /tmp/private_rsa.pem -out /tmp/private_pkcs8.pem \

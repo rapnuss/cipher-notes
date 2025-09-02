@@ -60,10 +60,8 @@ DONE:
   on change encryption key
     delete all blobs with the old key
 FIRST:
-  confirm flow via password
-    three tries every 5 minutes
-      reset to 3 tries after 5 minutes
-  hcaptcha site code via env
 TODO:
+  error if minio password is not set or too short
+  make features pem optional
 LATER:
 MAYBE:

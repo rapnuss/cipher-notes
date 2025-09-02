@@ -9,9 +9,9 @@ services:
       - .env
     ports:
       - "8080:80"
-    # To persist /data on host, uncomment the next line
-    # volumes:
-    #   - ./data:/data
+    volumes:
+      - ciphernotes_data:/data
     restart: unless-stopped
 
-
+volumes:
+  ciphernotes_data:
