@@ -64,8 +64,7 @@ COPY --from=backend-build /app/backend/node_modules /app/backend/node_modules
 # Copy drizzle config and migrations
 COPY --from=backend-build /app/backend/drizzle /app/backend/drizzle
 COPY --from=backend-build /app/backend/drizzle.config.ts /app/backend/drizzle.config.ts
-# Copy backend source (for drizzle schema path)
-COPY --from=backend-build /app/backend/src /app/backend/src
+# Copy only what's needed for migrations (avoid shipping source)
 COPY --from=backend-build /app/backend/tsconfig.json /app/backend/tsconfig.json
 # Use generated private key (PKCS8) for backend JWT signing
 COPY --from=keys /tmp/private_pkcs8.pem /app/backend/jwt-private.pem
