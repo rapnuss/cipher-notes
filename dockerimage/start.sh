@@ -28,8 +28,19 @@ export DATABASE_URL=${DATABASE_URL:-postgresql://notes:notes@localhost:5432/note
 ############################################
 # MinIO/S3 defaults (internal MinIO)
 ############################################
+# If no password provided, read from file; if missing, generate and persist
+MINIO_ROOT_PASSWORD_FILE=${MINIO_ROOT_PASSWORD_FILE:-/data/minio_root_password}
+if [ -z "${MINIO_ROOT_PASSWORD:-}" ]; then
+  if [ -s "$MINIO_ROOT_PASSWORD_FILE" ]; then
+    MINIO_ROOT_PASSWORD="$(cat "$MINIO_ROOT_PASSWORD_FILE")"
+  else
+    MINIO_ROOT_PASSWORD="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32 || true)"
+    echo "$MINIO_ROOT_PASSWORD" > "$MINIO_ROOT_PASSWORD_FILE"
+    chmod 600 "$MINIO_ROOT_PASSWORD_FILE" || true
+  fi
+fi
 export MINIO_ROOT_USER=${MINIO_ROOT_USER:-minio-admin}
-export MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minio-admin}
+export MINIO_ROOT_PASSWORD
 export S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID:-$MINIO_ROOT_USER}
 export S3_ACCESS_KEY_SECRET=${S3_ACCESS_KEY_SECRET:-$MINIO_ROOT_PASSWORD}
 export S3_REGION=${S3_REGION:-EU-CENTRAL-1}
