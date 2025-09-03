@@ -40,17 +40,11 @@ RUN bun run build
 FROM oven/bun:1 AS app
 WORKDIR /app
 
-# Install nginx, Postgres and tools
+# Install nginx and curl
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
-     nginx postgresql postgresql-client curl ca-certificates \
+     nginx curl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
-
-# Install MinIO server and client (mc)
-RUN curl -sSL -o /usr/local/bin/minio https://dl.min.io/server/minio/release/linux-amd64/minio \
-  && chmod +x /usr/local/bin/minio \
-  && curl -sSL -o /usr/local/bin/mc https://dl.min.io/client/mc/release/linux-amd64/mc \
-  && chmod +x /usr/local/bin/mc
 
 # Overwrite frontend public key with generated one and then copy build output
 COPY --from=keys /tmp/public.pem /app/frontend/jwt-public.pub
@@ -75,9 +69,6 @@ COPY dockerimage/nginx.conf /etc/nginx/conf.d/default.conf
 # Entrypoint script to run both backend and nginx
 COPY dockerimage/start.sh /start.sh
 RUN chmod +x /start.sh
-
-# Persistent data location
-VOLUME ["/data"]
 
 EXPOSE 80
 
