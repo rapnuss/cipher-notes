@@ -116,10 +116,7 @@ const getUploadUrls = async (
         })
         return {
           note_id: note.clientside_id,
-          url:
-            hostingMode !== 'self'
-              ? url
-              : url.replace(/http:\/\/(localhost|127\.0\.0\.1|::1):9000/, '/s3'),
+          url: hostingMode !== 'self' ? url : url.replace(/http:\/\/[^\/]+\//, '/s3/'),
           fields,
         }
       })
@@ -154,10 +151,7 @@ const getDownloadUrls = async (note_ids: string[], user_id: number) => {
       )
       return {
         note_id: note.clientside_id,
-        url:
-          hostingMode !== 'self'
-            ? url
-            : url.replace(/http:\/\/(localhost|127\.0\.0\.1|::1):9000/, '/s3'),
+        url: hostingMode !== 'self' ? url : url.replace(/http:\/\/[^\/]+\//, '/s3/'),
       }
     })
   )

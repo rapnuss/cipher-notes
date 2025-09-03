@@ -12,7 +12,7 @@ services:
       db:
         condition: service_healthy
       minio:
-        condition: service_started
+        condition: service_healthy
       minio-setup:
         condition: service_completed_successfully
     restart: unless-stopped
@@ -40,6 +40,12 @@ services:
     env_file:
       - .env
     command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/ready || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -54,11 +60,11 @@ services:
       - .env
     depends_on:
       minio:
-        condition: service_started
+        condition: service_healthy
     entrypoint: ["/bin/sh", "-c"]
     command: >-
       "mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
-      (mc ls local/ciphernotes || mc mb -p local/ciphernotes)"
+      (mc ls local/ciphernotes || mc mb -p local/ciphernotes || true)"
     restart: "no"
 
 volumes:
