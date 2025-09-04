@@ -2,20 +2,7 @@ name: Build and publish Docker image to Docker Hub
 
 on:
   push:
-    branches: [ main, master ]
     tags: [ 'v*' ]
-    paths:
-      - 'dockerimage/**'
-      - 'backend/**'
-      - 'frontend/**'
-      - '.github/workflows/dockerhub-publish.yml'
-  pull_request:
-    branches: [ main, master ]
-    paths:
-      - 'dockerimage/**'
-      - 'backend/**'
-      - 'frontend/**'
-      - '.github/workflows/dockerhub-publish.yml'
 
 env:
   DOCKERHUB_REPO: rapnuss/ciphernotes
