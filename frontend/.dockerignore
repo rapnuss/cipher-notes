@@ -1,8 +1,9 @@
 dist
 node_modules
-.bun-version
 .dockerignore
 .env
 .env.example
-docker-compose.yml
+.nvmrc
+cert.pem
 Dockerfile
+key.pem

@@ -5,7 +5,7 @@ import {notesTbl} from '../db/schema'
 import {and, eq, gt, inArray, isNull} from 'drizzle-orm'
 import {s3} from '../services/s3'
 import {indexByProp} from '../util/misc'
-import {env} from '../env'
+import {env, hostingMode} from '../env'
 import {GetObjectCommand} from '@aws-sdk/client-s3'
 import {getSignedUrl} from '@aws-sdk/s3-request-presigner'
 import {createPresignedPost} from '@aws-sdk/s3-presigned-post'
@@ -21,7 +21,7 @@ export const getPresignedUrlsEndpoint = authEndpointsFactory.build({
     upload_urls: z.array(
       z.object({
         note_id: z.string().uuid(),
-        url: z.string().url(),
+        url: z.string(),
         fields: z.record(z.string(), z.string()),
       })
     ),
@@ -29,7 +29,7 @@ export const getPresignedUrlsEndpoint = authEndpointsFactory.build({
     download_urls: z.array(
       z.object({
         note_id: z.string().uuid(),
-        url: z.string().url(),
+        url: z.string(),
       })
     ),
   }),
@@ -116,7 +116,7 @@ const getUploadUrls = async (
         })
         return {
           note_id: note.clientside_id,
-          url,
+          url: hostingMode !== 'self' ? url : url.replace(/http:\/\/[^\/]+\//, '/s3/'),
           fields,
         }
       })
@@ -151,7 +151,7 @@ const getDownloadUrls = async (note_ids: string[], user_id: number) => {
       )
       return {
         note_id: note.clientside_id,
-        url,
+        url: hostingMode !== 'self' ? url : url.replace(/http:\/\/[^\/]+\//, '/s3/'),
       }
     })
   )

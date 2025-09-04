@@ -1,12 +1,12 @@
 {
-  "version": "5",
+  "version": "7",
   "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1732487460000,
-      "tag": "0001_migrate_to_bigint_ids",
+      "version": "7",
+      "when": 1756705234111,
+      "tag": "0000_warm_blink",
       "breakpoints": true
     }
   ]

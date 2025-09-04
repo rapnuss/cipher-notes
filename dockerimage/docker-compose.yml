@@ -1,0 +1,72 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: dockerimage/Dockerfile
+    container_name: ciphernotes_app
+    env_file:
+      - .env
+    ports:
+      - "13064:80"
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      minio-setup:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  db:
+    image: postgres:16
+    container_name: ciphernotes_db
+    environment:
+      POSTGRES_USER: notes
+      POSTGRES_PASSWORD: notes
+      POSTGRES_DB: notes
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notes"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: ciphernotes_minio
+    env_file:
+      - .env
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9000/minio/health/ready || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+  minio-setup:
+    image: minio/mc:latest
+    container_name: ciphernotes_minio_setup
+    env_file:
+      - .env
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: >-
+      "mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
+      (mc ls local/ciphernotes || mc mb -p local/ciphernotes || true)"
+    restart: "no"
+
+volumes:
+  db_data:
+  minio_data:
