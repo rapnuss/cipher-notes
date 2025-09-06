@@ -152,12 +152,11 @@ const FullScreenImport = () => {
   const anythingActive = useSelector(selectAnyModeOrDialogActive)
   return (
     <Dropzone.FullScreen
-      active={!anythingActive}
+      active={!anythingActive && !filesImporting}
       onDrop={async (files) => {
         if (files.length === 0) return
         await importFiles(files, activeLabel)
       }}
-      loading={filesImporting}
     >
       Drop Files anywhere to import them
     </Dropzone.FullScreen>

@@ -82,7 +82,9 @@ export const openStorageUsageDialog = () => {
     s.storageUsage.open = true
   })
   queueMicrotask(calcLocalStorageUsage)
-  queueMicrotask(fetchStorageUsage)
+  if (state.user.user.loggedIn) {
+    queueMicrotask(fetchStorageUsage)
+  }
 }
 
 export const closeStorageUsageDialog = () => {

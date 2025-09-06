@@ -17,6 +17,7 @@ const formatBytes = (bytes: number): string => {
 
 export const StorageUsageDialog = () => {
   const {open, fetching, calculating, local, remote} = useSelector((s) => s.storageUsage)
+  const loggedIn = useSelector((s) => s.user.user.loggedIn)
 
   useCloseOnBack({id: 'storage-usage-dialog', open, onClose: closeStorageUsageDialog})
 
@@ -48,43 +49,47 @@ export const StorageUsageDialog = () => {
           </Group>
         </Stack>
 
-        <Stack gap={4} style={{opacity: fetching ? 0.7 : 1}}>
-          <Group justify='space-between'>
-            <Text fw={500}>Remote files</Text>
-            <Text size='sm' c='dimmed'>
-              {remote
-                ? `${formatBytes(remote.files.used)} / ${formatBytes(remote.files.limit)}`
-                : '—'}
-            </Text>
-          </Group>
-          <Group gap='xs' align='center'>
-            <Progress style={{flex: 1}} value={remote ? filesPct : 0} color='cyan' />
-            {fetching && (
-              <Tooltip label='Fetching'>
-                <Loader size='xs' type='dots' />
-              </Tooltip>
-            )}
-          </Group>
-        </Stack>
+        {loggedIn && (
+          <>
+            <Stack gap={4} style={{opacity: fetching ? 0.7 : 1}}>
+              <Group justify='space-between'>
+                <Text fw={500}>Remote files</Text>
+                <Text size='sm' c='dimmed'>
+                  {remote
+                    ? `${formatBytes(remote.files.used)} / ${formatBytes(remote.files.limit)}`
+                    : '—'}
+                </Text>
+              </Group>
+              <Group gap='xs' align='center'>
+                <Progress style={{flex: 1}} value={remote ? filesPct : 0} color='cyan' />
+                {fetching && (
+                  <Tooltip label='Fetching'>
+                    <Loader size='xs' type='dots' />
+                  </Tooltip>
+                )}
+              </Group>
+            </Stack>
 
-        <Stack gap={4} style={{opacity: fetching ? 0.7 : 1}}>
-          <Group justify='space-between'>
-            <Text fw={500}>Remote notes</Text>
-            <Text size='sm' c='dimmed'>
-              {remote
-                ? `${formatBytes(remote.notes.used)} / ${formatBytes(remote.notes.limit)}`
-                : '—'}
-            </Text>
-          </Group>
-          <Group gap='xs' align='center'>
-            <Progress style={{flex: 1}} value={remote ? notesPct : 0} color='grape' />
-            {fetching && (
-              <Tooltip label='Fetching'>
-                <Loader size='xs' type='dots' />
-              </Tooltip>
-            )}
-          </Group>
-        </Stack>
+            <Stack gap={4} style={{opacity: fetching ? 0.7 : 1}}>
+              <Group justify='space-between'>
+                <Text fw={500}>Remote notes</Text>
+                <Text size='sm' c='dimmed'>
+                  {remote
+                    ? `${formatBytes(remote.notes.used)} / ${formatBytes(remote.notes.limit)}`
+                    : '—'}
+                </Text>
+              </Group>
+              <Group gap='xs' align='center'>
+                <Progress style={{flex: 1}} value={remote ? notesPct : 0} color='grape' />
+                {fetching && (
+                  <Tooltip label='Fetching'>
+                    <Loader size='xs' type='dots' />
+                  </Tooltip>
+                )}
+              </Group>
+            </Stack>
+          </>
+        )}
       </Stack>
     </Modal>
   )

@@ -142,7 +142,6 @@ export const CommandCenter = () => {
       id: 'storageUsage',
       label: 'Show storage limits',
       onClick: openStorageUsageDialog,
-      disabled: !loggedIn,
     },
     {
       id: 'imprint',
