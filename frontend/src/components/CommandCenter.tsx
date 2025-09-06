@@ -10,6 +10,7 @@ import {
   openChangeEmailDialog,
   openDeleteAccountDialog,
   removeAllSessions,
+  resetApp,
 } from '../state/user'
 import {hostingMode} from '../config'
 import {selectCommandCenterDisabled, setCommandCenterOpen, useSelector} from '../state/store'
@@ -214,6 +215,11 @@ export const CommandCenter = () => {
       id: 'licenses',
       label: 'Third Party Licenses',
       onClick: () => window.open('/licenses.html', '_blank'),
+    },
+    {
+      id: 'resetApp',
+      label: 'Reset App (delete all local data)',
+      onClick: resetApp,
     },
   ]
 

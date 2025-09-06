@@ -23,6 +23,7 @@ import {syncNotes} from './notes'
 import {Feature} from '../business/models'
 import {parseSubscriptionToken} from '../business/misc'
 import {hostingMode} from '../config'
+import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 
 export type UserState = {
   user: {
@@ -731,6 +732,22 @@ export const removeAllSessions = async () => {
     })
   }
 }
+
+export const resetApp = () =>
+  openConfirmModalWithBackHandler({
+    id: 'resetApp',
+    title: 'Reset App',
+    children: 'Are you sure you want to delete all local data?',
+    labels: {
+      confirm: 'Reset',
+      cancel: 'Cancel',
+    },
+    onConfirm: async () => {
+      await db.delete()
+      localStorage.clear()
+      window.location.reload()
+    },
+  })
 
 // subscriptions
 export const registerUserSubscriptions = () => {
