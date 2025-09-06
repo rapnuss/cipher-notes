@@ -80,7 +80,12 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
     email: z.string().email(),
     login_code: z.string().length(6),
   }),
-  output: z.object({access_token: z.string(), session_id: z.number(), jwt: z.string()}),
+  output: z.object({
+    access_token: z.string(),
+    session_id: z.number(),
+    jwt: z.string(),
+    user_id: z.number(),
+  }),
   handler: async ({input}) => {
     if (hostingMode === 'self') {
       throw createHttpError(400, 'Login via code disabled')
@@ -140,7 +145,12 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
           access_token_salt: salt,
         })
         .returning({session_id: sessionsTbl.id})
-      return {access_token: accessToken, session_id: session_id!, jwt: await jwtPromise}
+      return {
+        access_token: accessToken,
+        session_id: session_id!,
+        jwt: await jwtPromise,
+        user_id: user.id,
+      }
     })
   },
 })
@@ -155,6 +165,7 @@ export const loginWithPasswordEndpoint = endpointsFactory.build({
     access_token: z.string(),
     session_id: z.number(),
     jwt: z.string(),
+    user_id: z.number(),
     is_admin: z.boolean(),
   }),
   handler: async ({input}) => {
@@ -220,6 +231,7 @@ export const loginWithPasswordEndpoint = endpointsFactory.build({
         access_token: accessToken,
         session_id: session_id!,
         jwt: await jwtPromise,
+        user_id: user.id,
         is_admin: user.is_admin,
       }
     })

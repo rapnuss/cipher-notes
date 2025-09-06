@@ -386,6 +386,9 @@ const upDownloadBlobsAndSetState = nonConcurrent(async () => {
           color: 'red',
         })
       }
+      setState((state) => {
+        state.notes.sync.error = error?.message ?? 'Unknown error'
+      })
     })
     .finally(() => {
       setState((state) => {
