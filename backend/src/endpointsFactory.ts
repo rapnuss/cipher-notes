@@ -35,7 +35,7 @@ const resultHandler = new ResultHandler({
     } else if (remove_session_cookie) {
       response.clearCookie('session')
     }
-    response.status(200).json({success: true, data: output == null ? null : rest})
+    response.status(200).json({success: true, data: output == null ? null : (rest as any)})
   },
 })
 
