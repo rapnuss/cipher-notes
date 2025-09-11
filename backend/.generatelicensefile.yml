@@ -1,0 +1,10 @@
+inputs:
+  - ./package.json
+output: ./dist/THIRD-PARTY-LICENSES.txt
+overwrite: true
+eol: lf
+ci: true
+no-spinner: true
+omitVersions: false
+replace:
+  express-zod-api: ./node_modules/express-zod-api/LICENSE
