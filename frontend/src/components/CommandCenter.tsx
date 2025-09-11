@@ -94,7 +94,6 @@ export const CommandCenter = () => {
       label: 'Login',
       onClick: openLoginDialog,
       disabled: loggedIn,
-      shortcut: 'alt+shift+l',
     },
     {
       id: 'agb',
@@ -239,6 +238,7 @@ export const CommandCenter = () => {
             await delay(100)
             c.onClick()
           },
+          {preventDefault: true, usePhysicalKeys: true},
         ] as const
     )
 
