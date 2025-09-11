@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 ########################################
 # Keys stage: generate JWT keypair
 ########################################
@@ -12,9 +13,12 @@ RUN openssl genrsa -out /tmp/private_rsa.pem 2048 \
 ########################################
 FROM node:22-alpine AS frontend-build
 WORKDIR /app/frontend
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl git
+ENV YARN_CACHE_FOLDER=/root/.cache/yarn
+RUN yarn config set network-timeout 600000 \
+  && yarn config set registry https://registry.npmjs.org/
 COPY frontend/package.json frontend/yarn.lock ./
-RUN yarn install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.cache/yarn yarn install --frozen-lockfile --network-timeout 600000 --prefer-offline
 COPY frontend/ .
 # Use generated public key so the static bundle verifies backend JWTs
 COPY --from=keys /tmp/public.pem ./jwt-public.pub
