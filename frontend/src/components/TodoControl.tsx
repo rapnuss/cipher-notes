@@ -259,7 +259,7 @@ const TodoItem = ({
         readOnly={!onTodoChanged}
         onChange={(e) => onTodoChanged?.(todo.id, e.target.value)}
         autoFocus={autoFocus}
-        title={todo.done || ghost ? undefined : 'alt+shit+i to indent todo'}
+        title={todo.done || ghost ? undefined : 'alt+shift+i to indent todo'}
         onKeyDown={(e) => {
           const target = e.currentTarget
           if (
@@ -320,7 +320,7 @@ const TodoItem = ({
               .closest('.todo-list-item')
               ?.previousElementSibling?.querySelector('textarea')
               ?.focus()
-          } else if (e.key === 'I' && e.shiftKey && e.altKey) {
+          } else if (e.code === 'KeyI' && e.shiftKey && e.altKey) {
             e.preventDefault()
             onMoveTodo?.({
               dragId: todo.id,
