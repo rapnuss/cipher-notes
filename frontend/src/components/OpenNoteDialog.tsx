@@ -154,32 +154,30 @@ export const OpenNoteDialog = () => {
         onChange={(e) => openNoteTitleChanged(e.target.value)}
         onKeyDown={(e) => {
           if (
-            e.key === 'Enter' ||
-            (e.key === 'ArrowDown' && e.currentTarget.selectionEnd === openNote?.title.length)
+            !openNote ||
+            (e.key !== 'Enter' &&
+              (e.key !== 'ArrowDown' || e.currentTarget.selectionEnd !== openNote.title.length))
           ) {
-            e.preventDefault()
-            e.stopPropagation()
+            return
+          }
+          e.preventDefault()
+          e.stopPropagation()
+          if (openNote.type === 'todo') {
             const existingTextarea = (e.currentTarget.parentElement?.querySelector(
               'textarea:not(:disabled)'
             ) ?? null) as HTMLTextAreaElement | null
             const parent = e.currentTarget.parentElement
-            if (
-              e.key === 'ArrowDown' &&
-              openNote?.type === 'todo' &&
-              !openNote.todos.some((t) => !t.done)
-            ) {
+            if (e.key === 'ArrowDown' && !openNote.todos.some((t) => !t.done)) {
               insertTodo()
               queueMicrotask(() => parent?.querySelector('textarea')?.focus())
-            } else if (
-              e.key === 'Enter' &&
-              openNote?.type === 'todo' &&
-              (!existingTextarea || existingTextarea.value !== '')
-            ) {
+            } else if (e.key === 'Enter' && (!existingTextarea || existingTextarea.value !== '')) {
               insertTodo()
               queueMicrotask(() => parent?.querySelector('textarea')?.focus())
             } else if (existingTextarea) {
               queueMicrotask(() => existingTextarea.focus())
             }
+          } else if (openNote.type === 'note') {
+            viewRef.current?.focus()
           }
         }}
         data-autofocus={isNewNote ? true : undefined}

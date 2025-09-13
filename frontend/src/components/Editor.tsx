@@ -38,6 +38,7 @@ export const Editor = ({
   onChange,
   onUndo,
   onRedo,
+  onUp,
   id,
   placeholder,
   autoFocus,
@@ -146,11 +147,23 @@ export const Editor = ({
           run: addCursorDown,
           preventDefault: true,
         },
+        {
+          key: 'ArrowUp',
+          run: (view) => {
+            const sel = view.state.selection.main
+            if (sel.from === 0 && sel.to === 0) {
+              onUp()
+              return true
+            }
+            return false
+          },
+          preventDefault: true,
+        },
         {key: 'Mod-d', run: selectNextOccurrence, preventDefault: true},
         ...defaultKeymap,
         indentWithTab,
       ]),
-    [onUndo, onRedo]
+    [onUndo, onRedo, onUp]
   )
 
   const updates = useMemo<Extension>(
