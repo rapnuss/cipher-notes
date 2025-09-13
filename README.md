@@ -107,7 +107,7 @@ You can share the key via a QR code directly from app to app.
 1. Find your computer's local IP address:
    ```bash
    ipconfig # Windows
-   ifconfig # macOS/Linux
+   ifconfig | grep 'inet ' | grep -v 127.0.0.1 # macOS/Linux
    ```
 2. Generate new certificates including your IP:
    ```bash

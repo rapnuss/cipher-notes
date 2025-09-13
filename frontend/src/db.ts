@@ -107,3 +107,13 @@ export const hasUnsyncedBlobsObservable = liveQuery(() =>
     .first()
     .then((f) => f !== undefined)
 )
+
+declare global {
+  interface Window {
+    db: typeof db
+  }
+}
+
+if (import.meta.env.DEV && typeof window === 'object') {
+  window.db = db
+}

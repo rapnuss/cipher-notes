@@ -15,6 +15,7 @@ const isPreview = process.env.PREVIEW === 'true'
 export default defineConfig({
   base: './',
   server: {
+    host: true,
     https: {
       key: isDev || isPreview ? fs.readFileSync(path.resolve(__dirname, 'key.pem')) : undefined,
       cert: isDev || isPreview ? fs.readFileSync(path.resolve(__dirname, 'cert.pem')) : undefined,
