@@ -13,7 +13,7 @@ import {getCipherTextLength} from '../db/helpers'
 
 const typeSchema = z.enum(['note', 'todo', 'label', 'file'])
 const upsertSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuidv4(),
   type: typeSchema,
   created_at: z.number().int().positive(),
   updated_at: z.number().int().positive(),
@@ -23,7 +23,7 @@ const upsertSchema = z.object({
   deleted_at: z.null(),
 })
 const deleteSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuidv4(),
   type: typeSchema,
   created_at: z.number().int().positive(),
   updated_at: z.number().int().positive(),

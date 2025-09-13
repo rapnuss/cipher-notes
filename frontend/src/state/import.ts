@@ -4,8 +4,9 @@ import {
   keepNoteSchema,
   notesZipSchema,
   ImportFileMeta,
+  NotesZip,
 } from '../business/importNotesSchema'
-import {FileBlob, FileMeta, Label, Note, NoteCommon} from '../business/models'
+import {FileBlob, FileMeta, Hue, Label, Note, NoteCommon} from '../business/models'
 import {db} from '../db'
 import {downloadBlob, splitFilename} from '../util/misc'
 import {getState, RootState, setState} from './store'
@@ -92,9 +93,14 @@ export const exportNotes = async () => {
   const mapLabelIdsToNames = (ids?: string[]) =>
     ids?.map((id) => labelsCache[id]?.name).filter((v): v is string => !!v)
 
+  const labelColors = Object.values(labelsCache ?? {}).reduce((acc, label) => {
+    acc[label.name] = label.hue
+    return acc
+  }, {} as Record<string, Hue>)
+
   const idToBlob = Object.fromEntries(filesBlobs.map((b) => [b.id, b.blob]))
 
-  const payload = {
+  const payload: NotesZip = {
     notes: notes.map((n) => ({
       id: n.id,
       title: n.title,
@@ -120,6 +126,7 @@ export const exportNotes = async () => {
           labels: mapLabelIdsToNames(f.labels),
         } satisfies ImportFileMeta)
     ),
+    labelColors,
   }
 
   // validate payload
@@ -138,6 +145,7 @@ export const exportNotes = async () => {
   const blob = await zip.generateAsync({type: 'blob'})
   downloadBlob(blob, `${iso}_ciphernotes.zip`)
 }
+
 export const importNotes = async (): Promise<void> => {
   const state = getState()
   const file = state.import.importDialog.file
@@ -161,7 +169,7 @@ export const importNotes = async (): Promise<void> => {
     const newLabelNames = importLabelNames.without(existingLabels).toArray()
     const createdLabels: Label[] = []
     for (const name of newLabelNames) {
-      createdLabels.push(await createLabel(name))
+      createdLabels.push(await createLabel(name, parsed.labelColors?.[name] ?? null))
     }
     const nameToId = Object.fromEntries(
       [...cachedLabels, ...createdLabels].map((l) => [l.name, l.id])

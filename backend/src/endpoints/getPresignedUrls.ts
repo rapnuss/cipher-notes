@@ -14,13 +14,13 @@ import {bulkUpdateCommittedSize} from '../db/helpers'
 export const getPresignedUrlsEndpoint = authEndpointsFactory.build({
   method: 'post',
   input: z.object({
-    uploads: z.array(z.object({id: z.string().uuid(), size: z.number().int().positive()})),
-    download_ids: z.array(z.string().uuid()),
+    uploads: z.array(z.object({id: z.uuidv4(), size: z.number().int().positive()})),
+    download_ids: z.array(z.uuidv4()),
   }),
   output: z.object({
     upload_urls: z.array(
       z.object({
-        note_id: z.string().uuid(),
+        note_id: z.uuidv4(),
         url: z.string(),
         fields: z.record(z.string(), z.string()),
       })
@@ -28,7 +28,7 @@ export const getPresignedUrlsEndpoint = authEndpointsFactory.build({
     hit_storage_limit: z.boolean(),
     download_urls: z.array(
       z.object({
-        note_id: z.string().uuid(),
+        note_id: z.uuidv4(),
         url: z.string(),
       })
     ),

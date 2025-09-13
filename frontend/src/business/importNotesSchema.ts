@@ -1,20 +1,21 @@
 import {z} from 'zod'
+import {hueSchema} from './models'
 
 const importTodosSchema = z.array(
   z
     .object({
-      id: z.string().uuid().optional(),
+      id: z.uuidv4().optional(),
       updated_at: z.number().optional(),
       done: z.boolean(),
       txt: z.string(),
-      parent: z.string().uuid().optional(),
+      parent: z.uuidv4().optional(),
     })
     .strip()
 )
 export const importNotesSchema = z.array(
   z
     .object({
-      id: z.string().uuid().optional(),
+      id: z.uuidv4().optional(),
       title: z.string().optional(),
       txt: z.string().optional(),
       created_at: z.number().int().positive().optional(),
@@ -60,7 +61,7 @@ export type KeepNote = z.infer<typeof keepNoteSchema>
 export const importFilesMetaSchema = z.array(
   z
     .object({
-      id: z.string().uuid(),
+      id: z.uuidv4(),
       title: z.string(),
       ext: z.string(),
       mime: z.string(),
@@ -80,6 +81,7 @@ export const notesZipSchema = z
   .object({
     notes: importNotesSchema,
     files_meta: importFilesMetaSchema,
+    labelColors: z.record(z.string(), hueSchema).optional(),
   })
   .strip()
 export type NotesZip = z.infer<typeof notesZipSchema>

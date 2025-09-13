@@ -146,7 +146,7 @@ export type Label = {
 export const textPutTxtSchema = z.object({
   title: z.string(),
   txt: z.string(),
-  labels: z.array(z.string().uuid()).optional(),
+  labels: z.array(z.uuidv4()).optional(),
   archived: z.boolean().optional(),
 })
 export type TextPutTxt = z.infer<typeof textPutTxtSchema>
@@ -154,28 +154,30 @@ export type TextPutTxt = z.infer<typeof textPutTxtSchema>
 export const todoPutTxtSchema = z.object({
   title: z.string(),
   todos: todosSchema,
-  labels: z.array(z.string().uuid()).optional(),
+  labels: z.array(z.uuidv4()).optional(),
   archived: z.boolean().optional(),
 })
 export type TodoPutTxt = z.infer<typeof todoPutTxtSchema>
 
+export const hueSchema = z.union([
+  z.literal(null),
+  z.literal(0),
+  z.literal(30),
+  z.literal(60),
+  z.literal(90),
+  z.literal(120),
+  z.literal(150),
+  z.literal(180),
+  z.literal(210),
+  z.literal(240),
+  z.literal(270),
+  z.literal(300),
+  z.literal(330),
+])
+
 export const labelPutTxtSchema = z.object({
   name: z.string(),
-  hue: z.union([
-    z.literal(null),
-    z.literal(0),
-    z.literal(30),
-    z.literal(60),
-    z.literal(90),
-    z.literal(120),
-    z.literal(150),
-    z.literal(180),
-    z.literal(210),
-    z.literal(240),
-    z.literal(270),
-    z.literal(300),
-    z.literal(330),
-  ]),
+  hue: hueSchema,
 })
 export type LabelPutTxt = z.infer<typeof labelPutTxtSchema>
 
@@ -183,7 +185,7 @@ export const filePutTxtSchema = z.object({
   title: z.string(),
   ext: z.string(),
   mime: z.string(),
-  labels: z.array(z.string().uuid()),
+  labels: z.array(z.uuidv4()),
   archived: z.boolean(),
   size: z.number().int().positive(),
 })
