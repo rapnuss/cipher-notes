@@ -83,7 +83,9 @@ const Header = () => {
     <Flex gap='xs' mih='4rem' px='md' bg='rgba(0,0,0,.1)' justify='space-between' align='center'>
       {selectionActive ? (
         <>
-          <Text>{selectedCount} selected</Text>
+          <Text>
+            {selectedCount} {selectedCount === 1 ? 'note' : 'notes'}
+          </Text>
           <Flex gap='4'>
             <Popover
               opened={bulkLabelOpen}
