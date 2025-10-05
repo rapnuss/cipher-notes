@@ -7,12 +7,19 @@ import {getState, RootState, setState} from './store'
 export type SelectionState = {
   selected: {[id: string]: 'note' | 'file'}
   bulkLabelOpen: boolean
+  currentNotes: [(Note | FileMeta)[], (Note | FileMeta)[]]
 }
 
 export const selectionInit: SelectionState = {
   selected: {},
   bulkLabelOpen: false,
+  currentNotes: [[], []],
 }
+
+export const updateCurrentNotes = (active: (Note | FileMeta)[], archived: (Note | FileMeta)[]) =>
+  setState((state) => {
+    state.selection.currentNotes = [active, archived]
+  })
 
 export const toggleSelection = (id: string, type: 'note' | 'file') =>
   setState((state) => {
@@ -71,6 +78,19 @@ export const archiveSelected = () => {
     }
   }
 }
+
+export const selectAll = () =>
+  setState((state) => {
+    const selected: Record<string, 'note' | 'file'> = {}
+    const [active, archived] = state.selection.currentNotes
+    for (const note of active) {
+      selected[note.id] = note.type === 'file' ? 'file' : 'note'
+    }
+    for (const note of archived) {
+      selected[note.id] = note.type === 'file' ? 'file' : 'note'
+    }
+    state.selection.selected = selected
+  })
 
 export const unarchiveSelected = () => {
   const selected = Object.keys(getState().selection.selected)

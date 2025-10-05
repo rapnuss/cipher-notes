@@ -20,6 +20,7 @@ import {
   clearSelection,
   closeBulkLabelDropdown,
   deleteSelected,
+  selectAll,
   selectSelectionActive,
   toggleBulkLabelDropdown,
   unarchiveSelected,
@@ -30,6 +31,7 @@ import {IconArchiveOff} from './icons/IconArchiveOff'
 import {IconTrash} from './icons/IconTrash'
 import {BulkLabelDropdownContent} from './LabelDropdownContent'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
+import {IconChecks} from './icons/IconChecks'
 
 export const Main = () => (
   <>
@@ -83,10 +85,13 @@ const Header = () => {
     <Flex gap='xs' mih='4rem' px='md' bg='rgba(0,0,0,.1)' justify='space-between' align='center'>
       {selectionActive ? (
         <>
-          <Text>
+          <Text fz='sm' lh='1.2'>
             {selectedCount} {selectedCount === 1 ? 'note' : 'notes'}
           </Text>
           <Flex gap='4'>
+            <ActionIconWithText title='Select all' text='all' onClick={selectAll}>
+              <IconChecks />
+            </ActionIconWithText>
             <Popover
               opened={bulkLabelOpen}
               onDismiss={closeBulkLabelDropdown}

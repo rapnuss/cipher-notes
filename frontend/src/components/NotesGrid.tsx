@@ -13,7 +13,7 @@ import {IconDots} from './icons/IconDots'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import {deleteFile, fileOpened, setFileArchived} from '../state/files'
 import {FileIconWithExtension} from './FileIconWithExtension'
-import {selectSelectionActive, toggleSelection} from '../state/selection'
+import {selectSelectionActive, toggleSelection, updateCurrentNotes} from '../state/selection'
 import {IconSquareMinus} from './icons/IconSquareMinus'
 
 export const NotesGrid = () => {
@@ -46,6 +46,7 @@ export const NotesGrid = () => {
     return bisectBy(notes ?? [], (n) => n.archived === 1)
   }, [query, sort, activeLabel])
   const [archivedNotes = [], activeNotes = []] = notes ?? []
+  updateCurrentNotes(activeNotes, archivedNotes)
   return (
     <div
       style={{
