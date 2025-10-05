@@ -1,5 +1,4 @@
-/* eslint-disable react-compiler/react-compiler */
-import {RefObject, useEffect, useId, useMemo, useRef, useState} from 'react'
+import {useEffect, useId, useMemo, useRef, useState} from 'react'
 import {EditorState, EditorSelection, Extension} from '@codemirror/state'
 import {
   EditorView,
@@ -19,6 +18,7 @@ import {CMSelection} from '../business/models'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {isDesktop, isIOS} from '../helpers/bowser'
 import {hyperLinkStyle, TextToLink} from '../helpers/TextToLink'
+import {useCurrentCallback} from '../util/useCurrentCallback'
 
 export type EditorProps = {
   value: string
@@ -30,7 +30,7 @@ export type EditorProps = {
   placeholder?: string
   id?: string
   autoFocus?: boolean
-  viewRef: RefObject<EditorView | null>
+  viewCb: (view: EditorView) => void
 }
 export const Editor = ({
   value,
@@ -42,13 +42,14 @@ export const Editor = ({
   id,
   placeholder,
   autoFocus,
-  viewRef,
+  viewCb,
 }: EditorProps) => {
   const genId = useId()
   const hostRef = useRef<HTMLDivElement | null>(null)
   const applyingRef = useRef(false)
   const isDark = useMyColorScheme() === 'dark'
   const [hasFocus, setHasFocus] = useState(false)
+  const viewRef = useRef<EditorView | null>(null)
 
   if (!id) {
     id = genId
@@ -183,8 +184,8 @@ export const Editor = ({
     [onChange]
   )
 
-  useEffect(() => {
-    if (!hostRef.current) return
+  const onMount = useCurrentCallback(() => {
+    if (!hostRef.current) throw new Error('hostRef.current is null')
 
     const initialSelection = selections?.length
       ? EditorSelection.create(selections.map((s) => EditorSelection.range(s.anchor, s.head)))
@@ -198,6 +199,7 @@ export const Editor = ({
 
     const view = new EditorView({state, parent: hostRef.current})
     viewRef.current = view
+    viewCb(view)
 
     // Set initial focus state
     setHasFocus(view.hasFocus)
@@ -209,13 +211,18 @@ export const Editor = ({
       }, 100)
     }
 
+    return view
+  })
+
+  useEffect(() => {
+    const view = onMount()
+
     return () => {
       view.destroy()
       viewRef.current = null
       setHasFocus(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [baseExtensions])
+  }, [baseExtensions, onMount])
 
   useEffect(() => {
     const view = viewRef.current
@@ -245,7 +252,7 @@ export const Editor = ({
       view.dispatch(trSpec)
       applyingRef.current = false
     }
-  }, [value, selections, viewRef])
+  }, [value, selections])
 
   return (
     <div

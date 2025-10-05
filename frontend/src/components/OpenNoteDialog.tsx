@@ -193,7 +193,7 @@ export const OpenNoteDialog = () => {
           onUp={focusTitleInput}
           id='open-note-editor'
           autoFocus={isDesktop() && !isNewNote}
-          viewRef={viewRef}
+          viewCb={(view) => (viewRef.current = view)}
         />
       ) : openNote?.type === 'todo' ? (
         <TodoControl
