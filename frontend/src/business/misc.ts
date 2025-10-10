@@ -1,3 +1,4 @@
+import {isMac} from '../helpers/bowser'
 import {verifyJwt} from '../services/jwt'
 import {threeWayMerge} from '../util/merge'
 import {deepEquals} from '../util/misc'
@@ -25,7 +26,7 @@ import {Put} from './notesEncryption'
 
 export const monospaceStyle = {
   fontFamily: "'Cascadia Code', Monaco, Consolas, monospace",
-  fontWeight: '500',
+  fontWeight: isMac() ? '500' : '400',
   fontSize: 'var(--mantine-font-size-sm)',
 } as const
 
