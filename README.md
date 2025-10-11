@@ -27,7 +27,7 @@ You can share the key via a QR code directly from app to app.
 2. Initialize the database schema:
    ```bash
    cd backend
-   bun db:push    # Apply schema changes
+   bun db:migrate    # Apply schema changes
    ```
 
 ### Backend Setup
