@@ -20,7 +20,7 @@ Quick start
    - On first use:
      - Create `dockerimage/.env` (or copy from an example) with at least:
        - `COOKIE_SECRET` – strong random string
-       - Optional admin bootstrap (self‑hosted): `ADMIN_USERNAME`, `ADMIN_PASSWORD`
+       - admin bootstrap (self‑hosted): `ADMIN_USERNAME`, `ADMIN_PASSWORD`
 
 2) Run:
 ```
