@@ -1,0 +1,34 @@
+Categories:
+  - Writing
+  - Internet
+License: AGPL-3.0-only
+WebSite: https://ciphernotes.com
+SourceCode: https://github.com/rapnuss/cipher-notes
+IssueTracker: https://github.com/rapnuss/cipher-notes/issues
+Changelog: https://github.com/rapnuss/cipher-notes/tree/master/twa/fastlane/metadata/android/en-US/changelogs
+Summary: Client-side encrypted notebook that syncs via shareable keys.
+Description: |
+  Ciphernotes lets you capture and sync notes that are encrypted before they ever
+  leave your device. The Android app bundles the Progressive Web App in a Trusted
+  Web Activity so you can pin it to your launcher with a native splash screen.
+
+  Features:
+  * End-to-end encryption with keys kept in local storage on each device.
+  * Share keys across devices with QR codes to sync instantly.
+  * No login or password required for offline use.
+  * Built with open source client, server, and infrastructure so you can
+    self-host if you prefer.
+RepoType: git
+Repo: https://github.com/rapnuss/cipher-notes.git
+Builds:
+  - versionName: "2"
+    versionCode: 2
+    commit: <SET_COMMIT_OR_TAG>
+    subdir: twa
+    gradle:
+      - app:assembleRelease
+    output: app/build/outputs/apk/release/app-release-unsigned.apk
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: "2"
+CurrentVersionCode: 2
