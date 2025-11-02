@@ -23,7 +23,7 @@ Repo: https://github.com/rapnuss/cipher-notes.git
 Builds:
   - versionName: "2"
     versionCode: 2
-    commit: 6f0d83a95acdfa02a0a471bfeb8efa377f561fc8
+    commit: v2
     subdir: twa
     gradle:
       - app:assembleRelease
