@@ -10,7 +10,8 @@
     "preview": "cross-env PREVIEW=true vite preview",
     "test": "vitest",
     "test:run": "vitest --run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:twa": "yarn build && node ./scripts/sync-twa-dist.mjs"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.7.7",

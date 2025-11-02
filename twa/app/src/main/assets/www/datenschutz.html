@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <title>Datenschutzerklärung - ciphernotes</title>
+    <meta name="description" content="Datenschutzerklärung für die Nutzung der PWA ciphernotes" />
+    <meta name="author" content="Raphael Nußbaumer BSc" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8" />
+    <style>
+      .table-container {
+        overflow-x: auto;
+      }
+      table {
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid #000;
+      }
+      nav {
+        display: flex;
+        gap: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a href="/">Zurück zur App</a>
+        <a href="/privacy.html">English: Privacy Policy</a>
+      </nav>
+      <h1 id="datenschutz-title">Datenschutzerklärung</h1>
+    </header>
+    <main>
+      <section aria-labelledby="datenschutz-title">
+        <p><strong>Stand: 29.07.2025</strong></p>
+        <p>
+          <strong>Verantwortlicher</strong><br />
+          Raphael Nußbaumer BSc (Einzelunternehmer)<br />
+          Sohlstraße 3, 6845 Hohenems, Österreich<br />
+          E-Mail: raphaeln@outlook.com
+        </p>
+        <hr />
+        <h2 id="erhebung">1. Erhebung und Verwendung personenbezogener Daten</h2>
+        <p>Wir erheben und verarbeiten die folgenden personenbezogenen Daten:</p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Datenkategorie</th>
+                <th>Zweck</th>
+                <th>Rechtsgrundlage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>E-Mail-Adresse</strong></td>
+                <td>Anmeldung, Versand von Login-Codes (passwortloser Login)</td>
+                <td>Art. 6 Abs. 1 lit. b DSGVO (Vertrag)</td>
+              </tr>
+              <tr>
+                <td><strong>Zeitstempel (Erstellung, Synchronisation)</strong></td>
+                <td>
+                  Geräte-Synchronisation und Versionsverwaltung von Notizen, Dateien, Bildern und
+                  Videos
+                </td>
+                <td>Art. 6 Abs. 1 lit. b DSGVO (Vertrag)</td>
+              </tr>
+              <tr>
+                <td><strong>IP-Adresse</strong> (temporär, nicht persistent)</td>
+                <td>Rate-Limiting und Schutz vor Überlastung</td>
+                <td>Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse)</td>
+              </tr>
+              <tr>
+                <td><strong>Session-Cookie</strong> (nur bei Login)</td>
+                <td>Aufrechterhaltung der Sitzung</td>
+                <td>Art. 6 Abs. 1 lit. b DSGVO (Vertrag)</td>
+              </tr>
+              <tr>
+                <td><strong>hCaptcha-Daten</strong></td>
+                <td>
+                  Abwehr automatisierter Anmelde- und Login-Versuche; Erfassung von IP-Adresse,
+                  Interaktionsdaten (z. B. Mausbewegungen, Klickmuster) und HTTP-Headern
+                </td>
+                <td>Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse)</td>
+              </tr>
+              <tr>
+                <td><strong>Notizen, Dateien, Bilder, Videos</strong> (verschlüsselt)</td>
+                <td>
+                  Speicherung, Synchronisation und Anzeige in der PWA (Notizen: max. 1 MB,
+                  Render/AWS, Frankfurt; Dateien/Bilder/Videos: max. 100 MB, Wasabi Hot Cloud,
+                  Frankfurt)
+                </td>
+                <td>Art. 6 Abs. 1 lit. b DSGVO (Vertrag)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <blockquote>
+          <p>
+            <strong>Hinweis:</strong> Es findet kein Tracking, kein User-Agent-Logging, kein
+            Fehler-Reporting und kein Performance-Monitoring statt.
+          </p>
+        </blockquote>
+        <hr />
+        <h2 id="speicherdauer">2. Speicherdauer</h2>
+        <ul>
+          <li>
+            <strong>E-Mail-Adresse & Zeitstempel</strong>: Gespeichert bis zur Löschung durch den
+            Nutzer.
+          </li>
+          <li>
+            <strong>Notizen, Dateien, Bilder, Videos</strong>: Gespeichert bis zur Löschung durch
+            den Nutzer; Backups werden maximal 7 Tage gespeichert.
+          </li>
+          <li>
+            <strong>IP-Adresse</strong>: Wird sofort nach Verarbeitung (z. B. Rate-Limiting)
+            gelöscht.
+          </li>
+          <li>
+            <strong>hCaptcha-Daten</strong>: Werden nach Verarbeitung durch hCaptcha gemäß deren
+            Datenschutzrichtlinie gelöscht (max. 30 Tage).
+          </li>
+          <li>
+            <strong>Inaktive Accounts</strong>: Können nach 1 Jahr Inaktivität gelöscht werden.
+          </li>
+        </ul>
+        <hr />
+        <h2 id="auftragsverarbeiter">3. Weitergabe an Dritte & Auftragsverarbeiter</h2>
+        <p>
+          Wir nutzen folgende Auftragsverarbeiter, mit denen Verträge gemäß Art. 28 DSGVO bestehen:
+        </p>
+        <ol>
+          <li>
+            <strong>Hosting & Infrastruktur</strong>
+            <ul>
+              <li>
+                Render.com (AWS, Standort Frankfurt) für die Speicherung von Notizen (max. 2 MB).
+              </li>
+              <li>
+                Wasabi Hot Cloud (Standort Frankfurt) für die Speicherung von Dateien, Bildern und
+                Videos (max. 100 MB).
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong>E-Mail-Versand</strong>
+            <ul>
+              <li>Mailjet</li>
+            </ul>
+          </li>
+          <li>
+            <strong>Bot-Schutz</strong>
+            <ul>
+              <li>
+                hCaptcha Inc. (Erfassung von IP-Adresse, Interaktionsdaten wie Mausbewegungen und
+                Klickmuster sowie Browser-Header-Informationen zur Bot-Abwehr)
+              </li>
+            </ul>
+          </li>
+          <li><strong>Keine</strong> weiteren Auftragsverarbeiter im kostenlosen Basis-Service.</li>
+        </ol>
+        <hr />
+        <h2 id="cookies">4. Cookies & lokale Speicherung</h2>
+        <ul>
+          <li>
+            <strong>Cookies:</strong> Nur ein temporäres Session-Cookie beim Login, das nach
+            Sitzungsende gelöscht wird.
+          </li>
+          <li><strong>IndexedDB:</strong> Notizen im Klartext, lokal im Browser gespeichert.</li>
+          <li>
+            <strong>LocalStorage:</strong> AES-GCM-Schlüssel im Klartext, lokal im Browser
+            gespeichert.
+          </li>
+        </ul>
+        <hr />
+        <h2 id="sicherheit">5. Sicherheit & Verschlüsselung</h2>
+        <ul>
+          <li>
+            <strong>Transport:</strong> Alle Daten werden über HTTPS (TLS, aktueller Standard, HSTS)
+            übertragen.
+          </li>
+          <li>
+            <strong>Ende-zu-Ende-Verschlüsselung:</strong>
+            <ul>
+              <li>
+                Notizen, Dateien, Bilder und Videos werden clientseitig mit AES-GCM verschlüsselt,
+                bevor sie übertragen werden.
+              </li>
+              <li>
+                Der Verschlüsselungsschlüssel verbleibt ausschließlich im Browser-LocalStorage des
+                Nutzers.
+              </li>
+              <li>Der Betreiber hat keinen Zugriff auf unverschlüsselte Inhalte.</li>
+            </ul>
+          </li>
+        </ul>
+        <hr />
+        <h2 id="betroffenenrechte">6. Betroffenenrechte</h2>
+        <p>
+          Sie können jederzeit per E-Mail (raphaeln@outlook.com) folgende Rechte geltend machen:
+        </p>
+        <ul>
+          <li><strong>Auskunft</strong> (Art. 15 DSGVO)</li>
+          <li><strong>Berichtigung</strong> (Art. 16 DSGVO)</li>
+          <li><strong>Löschung</strong> (Art. 17 DSGVO)</li>
+          <li><strong>Einschränkung</strong> (Art. 18 DSGVO)</li>
+          <li><strong>Datenübertragbarkeit</strong> (Art. 20 DSGVO)</li>
+          <li><strong>Widerspruch</strong> (Art. 21 DSGVO)</li>
+        </ul>
+        <p>Wir bearbeiten Anfragen innerhalb der gesetzlichen Frist (in der Regel 1 Monat).</p>
+        <hr />
+        <h2 id="export-loeschung">7. Export & Löschung</h2>
+        <ul>
+          <li>
+            <strong>Export-Funktion:</strong> Nutzer können ihre Notizen, Dateien, Bilder und Videos
+            über die PWA exportieren.
+          </li>
+          <li>
+            <strong>Account-Löschung:</strong> Jederzeit über die PWA möglich, wodurch alle
+            personenbezogenen Daten gelöscht werden.
+          </li>
+        </ul>
+        <hr />
+        <h2 id="datenschutzvorfaelle">8. Benachrichtigung bei Datenschutzvorfällen</h2>
+        <p>
+          Bei einem Datenschutzvorfall (z. B. unbefugter Zugriff auf personenbezogene Daten)
+          informieren wir betroffene Nutzer unverzüglich per E-Mail über den Vorfall, seine
+          Auswirkungen und die ergriffenen Maßnahmen, gemäß Art. 34 DSGVO.
+        </p>
+        <hr />
+        <h2 id="datenschutzbehoerde">9. Österreichische Datenschutzbehörde</h2>
+        <p>
+          Sie haben das Recht, sich bei einer Aufsichtsbehörde zu beschweren. Zuständig ist:<br />
+          Österreichische Datenschutzbehörde<br />
+          Wickenburggasse 8, 1080 Wien, Österreich<br />
+          E-Mail: dsb@dsb.gv.at
+        </p>
+        <hr />
+        <h2 id="barrierefreiheit">10. Barrierefreiheit</h2>
+        <p>
+          Bei Fragen oder Problemen zur Barrierefreiheit dieser Datenschutzerklärung oder der PWA
+          „ciphernotes“ kontaktieren Sie uns bitte unter raphaeln@outlook.com.
+        </p>
+        <hr />
+        <h2 id="aenderungen">11. Änderungen dieser Datenschutzerklärung</h2>
+        <p>
+          Wir behalten uns vor, diese Datenschutzerklärung bei Bedarf anzupassen (z. B. bei neuen
+          Funktionen oder rechtlichen Änderungen). Nutzer werden über wesentliche Änderungen per
+          E-Mail oder durch einen Hinweis in der PWA informiert. Die aktuelle Version ist jederzeit
+          in der PWA unter „Datenschutz“ abrufbar.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

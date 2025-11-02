@@ -140,6 +140,10 @@ You can share the key via a QR code directly from app to app.
 ~\.bubblewrap\jdk\jdk-17.0.11+9\bin\keytool.exe -printcert -jarfile ".\app-release-signed.apk"
 ```
 
+### Bundle the frontend into the TWA
+
+From the `frontend/` directory you can run `yarn build:twa` to compile the web app and copy the generated assets into `twa/app/src/main/assets/www`. This is useful if you plan to distribute an offline bundle where the Android wrapper serves the PWA locally.
+
 ## Licensing
 
 The source in this repository (frontend, backend, infrastructure, and TWA wrapper) is released under the terms of the AGPL-3.0-only license; see `LICENSE` for the full text. Third-party components remain under their respective licenses, including React (MIT), Bun (MIT), Drizzle ORM (Apache-2.0), and Android Browser Helper (Apache-2.0). Review individual package documentation for complete notices when redistributing.

@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.ciphernotes.twa",
+      "sha256_cert_fingerprints": [
+        "A5:B0:08:84:DD:B5:42:F6:5A:0F:77:12:DB:E2:C9:41:65:1E:B0:FC:12:D6:3D:54:59:C3:86:F0:B9:90:8E:36",
+        "DE:A6:F8:D8:D1:72:8A:69:A4:32:78:07:F8:6E:F8:91:16:9E:BB:49:F4:F5:3F:1C:E4:E3:AC:C0:C5:DA:18:E5"
+      ]
+    }
+  }
+]
