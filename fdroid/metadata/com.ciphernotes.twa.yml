@@ -1,6 +1,7 @@
 Categories:
-  - Writing
-  - Internet
+  - Note
+AntiFeatures:
+  - NonFreeNet
 License: AGPL-3.0-only
 WebSite: https://ciphernotes.com
 SourceCode: https://github.com/rapnuss/cipher-notes
@@ -16,7 +17,7 @@ Description: |
   * End-to-end encryption with keys kept in local storage on each device.
   * Share keys across devices with QR codes to sync instantly.
   * No login or password required for offline use.
-  * Built with open source client, server, and infrastructure so you can
+  * Built with open source client and server so you can
     self-host if you prefer.
 RepoType: git
 Repo: https://github.com/rapnuss/cipher-notes.git

@@ -1,9 +1,23 @@
 Ciphernotes is an end-to-end encrypted notebook that keeps your text safe even when it syncs through the cloud. Every note is encrypted before it leaves your device, so the server only sees ciphertext.
 
 Key features:
-- Capture, edit, and read notes from any browser or device that knows the shared key.
-- Share the encryption key with trusted devices instantly using QR codes.
-- No account or password required; the key lives locally and can be exported whenever you need it.
 - Open source backend and frontend so you can self-host or review how your data is handled.
+- Works completely offline.
+- Text and files are encrypted before they're synced.
+- No ads, no trackers, no unnecessary cookies.
+- No account required for local use.
+- Synchs immediately across all platforms.
+- Dark- and Light-Mode.
+- Todo lists with sub-tasks.
+- Import and view images and videos.
+- Import files of any type.
+- Organize with labels.
+- Google Keep import.
+- Export notes as JSON.
+- Fully keyboard navigatable.
+- Keyboard shortcuts, open notes with cmd+k or ctrl+k.
+- Text-editor with multi-cursor support and other shortcuts.
+- Archive unused notes.
+- Share encryption key via QR-Code directly from app to app
 
 Ciphernotes runs on https://ciphernotes.com and the Android app wraps the same PWA using a Trusted Web Activity.
