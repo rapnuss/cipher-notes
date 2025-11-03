@@ -17,7 +17,7 @@
   "maskableIconUrl": "https://ciphernotes.com/web-app-manifest-512x512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
-    "path": "C:\\projects\\rap\\cipher-notes\\twa\\android.keystore",
+    "path": "./android.keystore",
     "alias": "android"
   },
   "appVersionName": "3",
