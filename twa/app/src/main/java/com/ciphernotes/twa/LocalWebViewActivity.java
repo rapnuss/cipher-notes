@@ -1,6 +1,8 @@
 package com.ciphernotes.twa;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.net.Uri;
@@ -17,6 +19,7 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.ValueCallback;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -34,8 +37,11 @@ import java.util.Locale;
 public class LocalWebViewActivity extends AppCompatActivity {
     private static final String LOCAL_INDEX_PATH = "https://appassets.androidplatform.net/index.html";
     private static final String LOCAL_HOST = "appassets.androidplatform.net";
+    private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
     private WebView webView;
     private WebViewAssetLoader assetLoader;
+    private ValueCallback<Uri[]> filePathCallback;
+    private ValueCallback<Uri> legacyFilePathCallback;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -90,7 +96,48 @@ public class LocalWebViewActivity extends AppCompatActivity {
         }
 
         view.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-        view.setWebChromeClient(new WebChromeClient());
+        view.setWebChromeClient(new WebChromeClient() {
+            // Android 5.0+ (API 21) path
+            @Override
+            public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+                LocalWebViewActivity.this.clearFileCallbacks();
+                LocalWebViewActivity.this.filePathCallback = filePathCallback;
+                Intent intent = buildFilePickerIntent(fileChooserParams != null && fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE,
+                        fileChooserParams != null ? fileChooserParams.getAcceptTypes() : null);
+                try {
+                    startActivityForResult(intent, FILE_CHOOSER_REQUEST_CODE);
+                } catch (ActivityNotFoundException e) {
+                    LocalWebViewActivity.this.clearFileCallbacks();
+                    return false;
+                }
+                return true;
+            }
+
+            // Android 4.1 - 4.4 path
+            @SuppressWarnings("unused")
+            public void openFileChooser(ValueCallback<Uri> uploadMsg, String acceptType, String capture) {
+                LocalWebViewActivity.this.clearFileCallbacks();
+                LocalWebViewActivity.this.legacyFilePathCallback = uploadMsg;
+                Intent intent = buildFilePickerIntent(false, acceptType != null ? new String[]{acceptType} : null);
+                try {
+                    startActivityForResult(intent, FILE_CHOOSER_REQUEST_CODE);
+                } catch (ActivityNotFoundException e) {
+                    LocalWebViewActivity.this.clearFileCallbacks();
+                }
+            }
+
+            // Android 3.0+ path
+            @SuppressWarnings("unused")
+            public void openFileChooser(ValueCallback<Uri> uploadMsg, String acceptType) {
+                openFileChooser(uploadMsg, acceptType, null);
+            }
+
+            // Android <3.0 path
+            @SuppressWarnings("unused")
+            public void openFileChooser(ValueCallback<Uri> uploadMsg) {
+                openFileChooser(uploadMsg, "*/*", null);
+            }
+        });
         view.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest request) {
@@ -113,6 +160,92 @@ public class LocalWebViewActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != FILE_CHOOSER_REQUEST_CODE) {
+            return;
+        }
+
+        Uri[] result = null;
+        if (resultCode == Activity.RESULT_OK) {
+            if (data == null) {
+                // capture outside this flow; nothing to do
+            } else if (data.getClipData() != null) {
+                int count = data.getClipData().getItemCount();
+                result = new Uri[count];
+                for (int i = 0; i < count; i++) {
+                    result[i] = data.getClipData().getItemAt(i).getUri();
+                    grantUriPermission(result[i]);
+                }
+            } else if (data.getData() != null) {
+                result = new Uri[]{data.getData()};
+                grantUriPermission(result[0]);
+            }
+        }
+
+        if (filePathCallback != null) {
+            filePathCallback.onReceiveValue(result);
+            filePathCallback = null;
+        } else if (legacyFilePathCallback != null) {
+            Uri single = result != null && result.length > 0 ? result[0] : null;
+            legacyFilePathCallback.onReceiveValue(single);
+            legacyFilePathCallback = null;
+        }
+    }
+
+    private void grantUriPermission(Uri uri) {
+        if (uri == null) {
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            try {
+                getContentResolver().takePersistableUriPermission(uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            } catch (SecurityException ignored) {
+                // Not all providers allow persistable permissions; ignore failures.
+            }
+        }
+    }
+
+    private void clearFileCallbacks() {
+        if (filePathCallback != null) {
+            filePathCallback.onReceiveValue(null);
+        }
+        if (legacyFilePathCallback != null) {
+            legacyFilePathCallback.onReceiveValue(null);
+        }
+        filePathCallback = null;
+        legacyFilePathCallback = null;
+    }
+
+    private Intent buildFilePickerIntent(boolean allowMultiple, @Nullable String[] acceptTypes) {
+        Intent intent = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
+                ? new Intent(Intent.ACTION_OPEN_DOCUMENT)
+                : new Intent(Intent.ACTION_GET_CONTENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+        String type = "*/*";
+        if (acceptTypes != null) {
+            for (String candidate : acceptTypes) {
+                if (candidate != null && !candidate.isEmpty() && !"*/*".equals(candidate)) {
+                    type = candidate;
+                    break;
+                }
+            }
+        }
+
+        intent.setType(type);
+        if (acceptTypes != null && acceptTypes.length > 1) {
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, acceptTypes);
+        }
+
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        return intent;
     }
 
     private void enableServiceWorker(WebViewAssetLoader loader) {
