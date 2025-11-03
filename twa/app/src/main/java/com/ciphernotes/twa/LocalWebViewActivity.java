@@ -35,8 +35,8 @@ import java.util.Locale;
  * Only API calls go out to the network; all static frontend assets are shipped with the APK.
  */
 public class LocalWebViewActivity extends AppCompatActivity {
-    private static final String LOCAL_INDEX_PATH = "https://appassets.androidplatform.net/index.html";
-    private static final String LOCAL_HOST = "appassets.androidplatform.net";
+    private static final String LOCAL_HOST = "ciphernotes.com";
+    private static final String LOCAL_INDEX_PATH = "https://" + LOCAL_HOST + "/index.html";
     private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
     private WebView webView;
     private WebViewAssetLoader assetLoader;
