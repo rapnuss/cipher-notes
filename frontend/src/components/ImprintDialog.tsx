@@ -23,6 +23,11 @@ export const ImprintDialog = () => {
         <br />
         <br />
         Version: {ENV_GIT_COMMIT}
+        <br />
+        Source Code:{' '}
+        <a href='https://github.com/rapnuss/cipher-notes' target='_blank' rel='noopener noreferrer'>
+          https://github.com/rapnuss/cipher-notes
+        </a>
       </Text>
     </Modal>
   )

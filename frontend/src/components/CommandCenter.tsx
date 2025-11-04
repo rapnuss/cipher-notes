@@ -136,7 +136,7 @@ export const CommandCenter = () => {
     {
       id: 'issues',
       label: 'Bug Reports & Feature Requests',
-      onClick: () => window.open('https://github.com/rapnuss/ciphernotes/issues', '_blank'),
+      onClick: () => window.open('https://github.com/rapnuss/cipher-notes/issues', '_blank'),
     },
     {
       id: 'storageUsage',
@@ -145,7 +145,7 @@ export const CommandCenter = () => {
     },
     {
       id: 'imprint',
-      label: 'Imprint',
+      label: 'Imprint & Source Code',
       onClick: toggleImprint,
     },
     {
