@@ -1,15 +1,18 @@
 package com.ciphernotes.twa;
 
 import android.annotation.SuppressLint;
+import android.Manifest;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.webkit.CookieManager;
+import android.webkit.PermissionRequest;
 import android.webkit.ServiceWorkerClient;
 import android.webkit.ServiceWorkerController;
 import android.webkit.ServiceWorkerWebSettings;
@@ -21,8 +24,11 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.ValueCallback;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.webkit.WebViewAssetLoader;
 
 import java.io.IOException;
@@ -38,10 +44,12 @@ public class LocalWebViewActivity extends AppCompatActivity {
     private static final String LOCAL_HOST = "ciphernotes.com";
     private static final String LOCAL_INDEX_PATH = "https://" + LOCAL_HOST + "/index.html";
     private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
+    private static final int CAMERA_PERMISSION_REQUEST_CODE = 2001;
     private WebView webView;
     private WebViewAssetLoader assetLoader;
     private ValueCallback<Uri[]> filePathCallback;
     private ValueCallback<Uri> legacyFilePathCallback;
+    private PermissionRequest pendingPermissionRequest;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -136,6 +144,23 @@ public class LocalWebViewActivity extends AppCompatActivity {
             @SuppressWarnings("unused")
             public void openFileChooser(ValueCallback<Uri> uploadMsg) {
                 openFileChooser(uploadMsg, "*/*", null);
+            }
+
+            @Override
+            public void onPermissionRequest(final PermissionRequest request) {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                    super.onPermissionRequest(request);
+                    return;
+                }
+                runOnUiThread(() -> handlePermissionRequest(request));
+            }
+
+            @Override
+            public void onPermissionRequestCanceled(PermissionRequest request) {
+                if (pendingPermissionRequest != null && pendingPermissionRequest == request) {
+                    pendingPermissionRequest = null;
+                }
+                super.onPermissionRequestCanceled(request);
             }
         });
         view.setWebViewClient(new WebViewClient() {
@@ -246,6 +271,49 @@ public class LocalWebViewActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
         return intent;
+    }
+
+    private void handlePermissionRequest(PermissionRequest request) {
+        boolean needsCamera = false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            for (String resource : request.getResources()) {
+                if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(resource)) {
+                    needsCamera = true;
+                    break;
+                }
+            }
+        }
+
+        if (!needsCamera) {
+            request.grant(request.getResources());
+            return;
+        }
+
+        if (hasCameraPermission()) {
+            request.grant(request.getResources());
+        } else {
+            pendingPermissionRequest = request;
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    private boolean hasCameraPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
+            if (pendingPermissionRequest != null) {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    pendingPermissionRequest.grant(pendingPermissionRequest.getResources());
+                } else {
+                    pendingPermissionRequest.deny();
+                }
+                pendingPermissionRequest = null;
+            }
+        }
     }
 
     private void enableServiceWorker(WebViewAssetLoader loader) {
