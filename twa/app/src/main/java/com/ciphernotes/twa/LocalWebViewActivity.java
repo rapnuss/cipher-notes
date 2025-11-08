@@ -106,6 +106,7 @@ public class LocalWebViewActivity extends AppCompatActivity {
 
     @SuppressLint({"SetJavaScriptEnabled"})
     private void configureWebView(WebView view) {
+        //WebView.setWebContentsDebuggingEnabled(true);
         WebSettings settings = view.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
