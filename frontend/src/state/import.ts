@@ -141,7 +141,7 @@ export const exportNotes = async () => {
     zip.file(filename, blob)
   }
 
-  const iso = new Date().toISOString().replace(/\..+/, '').replace(/:/g, '-')
+  const iso = new Date().toISOString().replace(/\.\d+/, '').replace(/:/g, '-')
   const blob = await zip.generateAsync({type: 'blob'})
   downloadBlob(blob, `${iso}_ciphernotes.zip`)
 }

@@ -4,14 +4,21 @@ import android.annotation.SuppressLint;
 import android.Manifest;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.util.Base64;
+import android.util.Log;
 import android.view.View;
 import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.ServiceWorkerClient;
 import android.webkit.ServiceWorkerController;
@@ -23,6 +30,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.ValueCallback;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -31,8 +39,12 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.webkit.WebViewAssetLoader;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.ref.WeakReference;
 import java.net.URLConnection;
 import java.util.Locale;
 
@@ -41,15 +53,18 @@ import java.util.Locale;
  * Only API calls go out to the network; all static frontend assets are shipped with the APK.
  */
 public class LocalWebViewActivity extends AppCompatActivity {
+    private static final String TAG = "LocalWebViewActivity";
     private static final String LOCAL_HOST = "ciphernotes.com";
     private static final String LOCAL_INDEX_PATH = "https://" + LOCAL_HOST + "/index.html";
     private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 2001;
+    private static final int STORAGE_PERMISSION_REQUEST_CODE = 2002;
     private WebView webView;
     private WebViewAssetLoader assetLoader;
     private ValueCallback<Uri[]> filePathCallback;
     private ValueCallback<Uri> legacyFilePathCallback;
     private PermissionRequest pendingPermissionRequest;
+    private PendingDownload pendingDownload;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -63,6 +78,7 @@ public class LocalWebViewActivity extends AppCompatActivity {
 
         webView = findViewById(R.id.webview);
         configureWebView(webView);
+        webView.addJavascriptInterface(new DownloadBridge(this), "AndroidDownloader");
         enableServiceWorker(assetLoader);
 
         loadInitialUrl(getIntent());
@@ -176,7 +192,11 @@ public class LocalWebViewActivity extends AppCompatActivity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                if (LOCAL_HOST.equals(uri.getHost())) {
+                String scheme = uri.getScheme();
+                if (LOCAL_HOST.equals(uri.getHost())
+                        || "blob".equalsIgnoreCase(scheme)
+                        || "data".equalsIgnoreCase(scheme)
+                        || "about".equalsIgnoreCase(scheme)) {
                     return false;
                 }
                 Intent external = new Intent(Intent.ACTION_VIEW, uri);
@@ -301,6 +321,80 @@ public class LocalWebViewActivity extends AppCompatActivity {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
     }
 
+    private boolean hasStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            return true;
+        }
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void handleDownloadRequest(String dataUrl, String filename) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q || hasStoragePermission()) {
+            new Thread(() -> saveDataUrlToDownloads(dataUrl, filename)).start();
+        } else {
+            pendingDownload = new PendingDownload(dataUrl, filename);
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, STORAGE_PERMISSION_REQUEST_CODE);
+        }
+    }
+
+    private void saveDataUrlToDownloads(String dataUrl, String filename) {
+        try {
+            int commaIndex = dataUrl.indexOf(',');
+            if (commaIndex == -1) throw new IllegalArgumentException("Invalid data URL");
+            String meta = dataUrl.substring(0, commaIndex);
+            String base64Data = dataUrl.substring(commaIndex + 1);
+            String mimeType = "application/octet-stream";
+            if (meta.startsWith("data:")) {
+                int semicolon = meta.indexOf(';');
+                if (semicolon > 5) {
+                    mimeType = meta.substring(5, semicolon);
+                }
+            }
+            byte[] bytes = Base64.decode(base64Data, Base64.DEFAULT);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                saveViaMediaStore(bytes, mimeType, filename);
+            } else {
+                saveLegacy(bytes, mimeType, filename);
+            }
+            runOnUiThread(() -> Toast.makeText(this, "Exported to Downloads", Toast.LENGTH_LONG).show());
+        } catch (Exception e) {
+            Log.e(TAG, "Export failed", e);
+            runOnUiThread(() -> Toast.makeText(this, "Export failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
+        }
+    }
+
+    private void saveViaMediaStore(byte[] bytes, String mimeType, String filename) throws IOException {
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Downloads.DISPLAY_NAME, filename);
+        values.put(MediaStore.Downloads.MIME_TYPE, mimeType);
+        values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/Ciphernotes");
+        values.put(MediaStore.Downloads.IS_PENDING, 1);
+
+        Uri collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
+        Uri item = getContentResolver().insert(collection, values);
+        if (item == null) throw new IOException("Unable to create download entry");
+        try (OutputStream out = getContentResolver().openOutputStream(item)) {
+            if (out == null) throw new IOException("Unable to open output stream");
+            out.write(bytes);
+        }
+        values.put(MediaStore.Downloads.IS_PENDING, 0);
+        getContentResolver().update(item, values, null, null);
+    }
+
+    private void saveLegacy(byte[] bytes, String mimeType, String filename) throws IOException {
+        File downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        File targetDir = new File(downloads, "Ciphernotes");
+        if (!targetDir.exists() && !targetDir.mkdirs()) {
+            throw new IOException("Unable to create download directory");
+        }
+        File outFile = new File(targetDir, filename);
+        try (FileOutputStream fos = new FileOutputStream(outFile)) {
+            fos.write(bytes);
+        }
+        MediaScannerConnection.scanFile(this, new String[]{outFile.getAbsolutePath()}, new String[]{mimeType}, null);
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -312,6 +406,17 @@ public class LocalWebViewActivity extends AppCompatActivity {
                     pendingPermissionRequest.deny();
                 }
                 pendingPermissionRequest = null;
+            }
+        } else if (requestCode == STORAGE_PERMISSION_REQUEST_CODE) {
+            if (pendingDownload != null) {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    PendingDownload download = pendingDownload;
+                    pendingDownload = null;
+                    new Thread(() -> saveDataUrlToDownloads(download.dataUrl, download.filename)).start();
+                } else {
+                    runOnUiThread(() -> Toast.makeText(this, "Storage permission denied", Toast.LENGTH_LONG).show());
+                    pendingDownload = null;
+                }
             }
         }
     }
@@ -434,5 +539,31 @@ public class LocalWebViewActivity extends AppCompatActivity {
                 || mimeType.equals("application/manifest+json")
                 || mimeType.equals("application/xml")
                 || mimeType.equals("image/svg+xml"));
+    }
+
+    private static class PendingDownload {
+        final String dataUrl;
+        final String filename;
+
+        PendingDownload(String dataUrl, String filename) {
+            this.dataUrl = dataUrl;
+            this.filename = filename;
+        }
+    }
+
+    private static class DownloadBridge {
+        private final WeakReference<LocalWebViewActivity> activityRef;
+
+        DownloadBridge(LocalWebViewActivity activity) {
+            this.activityRef = new WeakReference<>(activity);
+        }
+
+        @JavascriptInterface
+        public void saveBase64(String dataUrl, String filename) {
+            LocalWebViewActivity activity = activityRef.get();
+            if (activity != null) {
+                activity.handleDownloadRequest(dataUrl, filename);
+            }
+        }
     }
 }

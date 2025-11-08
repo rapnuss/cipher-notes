@@ -160,6 +160,19 @@ export const downloadJson = (data: JsonRoot, filename = 'data.json') => {
 }
 
 export const downloadBlob = (blob: Blob, filename: string) => {
+  const androidDownloader = (globalThis as any)?.AndroidDownloader
+  if (androidDownloader && typeof androidDownloader.saveBase64 === 'function') {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const result = reader.result
+      if (typeof result === 'string') {
+        androidDownloader.saveBase64(result, filename)
+      }
+    }
+    reader.readAsDataURL(blob)
+    return
+  }
+
   const url = URL.createObjectURL(blob)
 
   const a = document.createElement('a')
