@@ -27,8 +27,23 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 declare global {
   interface Window {
     store: typeof useSelector
+    __ciphernotesInitialPath?: string
   }
 }
+
+const params = new URLSearchParams(window.location.search)
+const initialPathParam = params.get('initialPath')
+if (initialPathParam) {
+  try {
+    const decoded = decodeURIComponent(initialPathParam)
+    const normalized = decoded.startsWith('/') ? decoded : `/${decoded}`
+    window.__ciphernotesInitialPath = normalized
+    window.history.replaceState(null, '', normalized)
+  } catch {
+    // ignore malformed values
+  }
+}
+
 if (import.meta.env.DEV) {
   window.store = useSelector
 }

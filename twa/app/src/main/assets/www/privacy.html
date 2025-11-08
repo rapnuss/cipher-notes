@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Privacy Policy - ciphernotes</title>
+    <meta name="description" content="Privacy Policy for the use of the PWA ciphernotes" />
+    <meta name="author" content="Raphael Nußbaumer BSc" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8" />
+    <style>
+      .table-container {
+        overflow-x: auto;
+      }
+      table {
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        border: 1px solid #000;
+      }
+      nav {
+        display: flex;
+        gap: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a href="/">Back to the App</a>
+        <a href="/datenschutz.html">Deutsch: Datenschutzerklärung</a>
+      </nav>
+      <h1 id="privacy-title">Privacy Policy</h1>
+    </header>
+    <main>
+      <section aria-labelledby="privacy-title">
+        <p><strong>Version: 29 July 2025</strong></p>
+        <p>
+          <strong>Data Controller</strong><br />
+          Raphael Nußbaumer BSc (Sole Proprietor)<br />
+          Sohlstraße 3, 6845 Hohenems, Austria<br />
+          Email: raphaeln@outlook.com
+        </p>
+        <hr />
+        <h2 id="data-collection">1. Collection and Use of Personal Data</h2>
+        <p>We collect and process the following personal data:</p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Data Category</th>
+                <th>Purpose</th>
+                <th>Legal Basis</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Email Address</strong></td>
+                <td>Registration, sending login codes (passwordless login)</td>
+                <td>Art. 6(1)(b) GDPR (Contract)</td>
+              </tr>
+              <tr>
+                <td><strong>Timestamps (Creation, Synchronization)</strong></td>
+                <td>
+                  Device synchronization and version management of notes, files, images, and videos
+                </td>
+                <td>Art. 6(1)(b) GDPR (Contract)</td>
+              </tr>
+              <tr>
+                <td><strong>IP Address</strong> (temporary, non-persistent)</td>
+                <td>Rate limiting and protection against overload</td>
+                <td>Art. 6(1)(f) GDPR (Legitimate Interest)</td>
+              </tr>
+              <tr>
+                <td><strong>Session Cookie</strong> (only during login)</td>
+                <td>Maintaining the session</td>
+                <td>Art. 6(1)(b) GDPR (Contract)</td>
+              </tr>
+              <tr>
+                <td><strong>hCaptcha Data</strong></td>
+                <td>
+                  Prevention of automated registration and login attempts; collection of IP address,
+                  interaction data (e.g., mouse movements, click patterns), and HTTP headers
+                </td>
+                <td>Art. 6(1)(f) GDPR (Legitimate Interest)</td>
+              </tr>
+              <tr>
+                <td><strong>Notes, Files, Images, Videos</strong> (encrypted)</td>
+                <td>
+                  Storage, synchronization, and display in the PWA (notes: max. 1 MB, Render/AWS,
+                  Frankfurt; files/images/videos: max. 100 MB, Wasabi Hot Cloud, Frankfurt)
+                </td>
+                <td>Art. 6(1)(b) GDPR (Contract)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <blockquote>
+          <p>
+            <strong>Note:</strong> No tracking, user-agent logging, error reporting, or performance
+            monitoring takes place.
+          </p>
+        </blockquote>
+        <hr />
+        <h2 id="retention">2. Data Retention Period</h2>
+        <ul>
+          <li><strong>Email Address & Timestamps</strong>: Stored until deletion by the user.</li>
+          <li>
+            <strong>Notes, Files, Images, Videos</strong>: Stored until deletion by the user;
+            backups are retained for a maximum of 7 days.
+          </li>
+          <li>
+            <strong>IP Address</strong>: Deleted immediately after processing (e.g., rate limiting).
+          </li>
+          <li>
+            <strong>hCaptcha Data</strong>: Deleted after processing by hCaptcha, in accordance with
+            their privacy policy (max. 30 days).
+          </li>
+          <li><strong>Inactive Accounts</strong>: May be deleted after 1 year of inactivity.</li>
+        </ul>
+        <hr />
+        <h2 id="data-processors">3. Data Sharing & Data Processors</h2>
+        <p>
+          We use the following data processors, with whom contracts pursuant to Art. 28 GDPR have
+          been concluded:
+        </p>
+        <ol>
+          <li>
+            <strong>Hosting & Infrastructure</strong>
+            <ul>
+              <li>Render.com (AWS, Frankfurt) for storing notes (max. 1 MB).</li>
+              <li>
+                Wasabi Hot Cloud (Frankfurt) for storing files, images, and videos (max. 100 MB).
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong>Email Delivery</strong>
+            <ul>
+              <li>Mailjet</li>
+            </ul>
+          </li>
+          <li>
+            <strong>Bot Protection</strong>
+            <ul>
+              <li>
+                hCaptcha Inc. (collection of IP address, interaction data such as mouse movements
+                and click patterns, and browser header information for bot prevention)
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong>No</strong> additional data processors are used in the free basic service.
+          </li>
+        </ol>
+        <hr />
+        <h2 id="cookies">4. Cookies & Local Storage</h2>
+        <ul>
+          <li>
+            <strong>Cookies:</strong> Only a temporary session cookie during login, deleted after
+            the session ends.
+          </li>
+          <li><strong>IndexedDB:</strong> Notes stored in plain text, locally in the browser.</li>
+          <li>
+            <strong>LocalStorage:</strong> AES-GCM encryption key stored in plain text, locally in
+            the browser.
+          </li>
+        </ul>
+        <hr />
+        <h2 id="security">5. Security & Encryption</h2>
+        <ul>
+          <li>
+            <strong>Transport:</strong> All data is transmitted via HTTPS (TLS, current standard,
+            HSTS).
+          </li>
+          <li>
+            <strong>End-to-End Encryption:</strong>
+            <ul>
+              <li>
+                Notes, files, images, and videos are client-side encrypted with AES-GCM before
+                transmission.
+              </li>
+              <li>The encryption key remains exclusively in the user’s browser LocalStorage.</li>
+              <li>The operator has no access to unencrypted content.</li>
+            </ul>
+          </li>
+        </ul>
+        <hr />
+        <h2 id="data-subject-rights">6. Data Subject Rights</h2>
+        <p>You may exercise the following rights at any time by emailing raphaeln@outlook.com:</p>
+        <ul>
+          <li><strong>Access</strong> (Art. 15 GDPR)</li>
+          <li><strong>Rectification</strong> (Art. 16 GDPR)</li>
+          <li><strong>Erasure</strong> (Art. 17 GDPR)</li>
+          <li><strong>Restriction of Processing</strong> (Art. 18 GDPR)</li>
+          <li><strong>Data Portability</strong> (Art. 20 GDPR)</li>
+          <li><strong>Objection</strong> (Art. 21 GDPR)</li>
+        </ul>
+        <p>We will process requests within the statutory period (generally 1 month).</p>
+        <hr />
+        <h2 id="export-deletion">7. Export & Deletion</h2>
+        <ul>
+          <li>
+            <strong>Export Function:</strong> Users can export their notes, files, images, and
+            videos via the PWA.
+          </li>
+          <li>
+            <strong>Account Deletion:</strong> Possible at any time via the PWA, resulting in the
+            deletion of all personal data.
+          </li>
+        </ul>
+        <hr />
+        <h2 id="data-breaches">8. Notification of Data Breaches</h2>
+        <p>
+          In the event of a data breach (e.g., unauthorized access to personal data), we will
+          promptly inform affected users via email about the incident, its impact, and the measures
+          taken, in accordance with Art. 34 GDPR.
+        </p>
+        <hr />
+        <h2 id="data-protection-authority">9. Austrian Data Protection Authority</h2>
+        <p>
+          You have the right to lodge a complaint with a supervisory authority. The competent
+          authority is:<br />
+          Austrian Data Protection Authority<br />
+          Wickenburggasse 8, 1080 Vienna, Austria<br />
+          Email: dsb@dsb.gv.at
+        </p>
+        <hr />
+        <h2 id="accessibility">10. Accessibility</h2>
+        <p>
+          If you have any questions or issues regarding the accessibility of this Privacy Policy or
+          the PWA “ciphernotes,” please contact us at raphaeln@outlook.com.
+        </p>
+        <hr />
+        <h2 id="amendments">11. Amendments to this Privacy Policy</h2>
+        <p>
+          We reserve the right to update this Privacy Policy as needed (e.g., due to new features or
+          legal changes). Users will be informed of significant changes via email or a notice in the
+          PWA. The current version is available at any time in the PWA under “Privacy.”
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
