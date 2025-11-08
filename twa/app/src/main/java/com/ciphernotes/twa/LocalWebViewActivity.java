@@ -37,6 +37,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.webkit.WebViewAssetLoader;
 
 import java.io.File;
@@ -59,12 +60,16 @@ public class LocalWebViewActivity extends AppCompatActivity {
     private static final int FILE_CHOOSER_REQUEST_CODE = 1001;
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 2001;
     private static final int STORAGE_PERMISSION_REQUEST_CODE = 2002;
+    private static final int FILE_CHOOSER_CAMERA_PERMISSION_REQUEST_CODE = 2003;
     private WebView webView;
     private WebViewAssetLoader assetLoader;
     private ValueCallback<Uri[]> filePathCallback;
     private ValueCallback<Uri> legacyFilePathCallback;
     private PermissionRequest pendingPermissionRequest;
     private PendingDownload pendingDownload;
+    private Uri cameraImageUri;
+    private boolean awaitingCameraPermissionForChooser;
+    private WebChromeClient.FileChooserParams pendingFileChooserParams;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -126,15 +131,15 @@ public class LocalWebViewActivity extends AppCompatActivity {
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
                 LocalWebViewActivity.this.clearFileCallbacks();
                 LocalWebViewActivity.this.filePathCallback = filePathCallback;
-                Intent intent = buildFilePickerIntent(fileChooserParams != null && fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE,
-                        fileChooserParams != null ? fileChooserParams.getAcceptTypes() : null);
-                try {
-                    startActivityForResult(intent, FILE_CHOOSER_REQUEST_CODE);
-                } catch (ActivityNotFoundException e) {
-                    LocalWebViewActivity.this.clearFileCallbacks();
-                    return false;
+                if (!hasCameraPermission()) {
+                    awaitingCameraPermissionForChooser = true;
+                    pendingFileChooserParams = fileChooserParams;
+                    ActivityCompat.requestPermissions(LocalWebViewActivity.this,
+                            new String[]{Manifest.permission.CAMERA},
+                            FILE_CHOOSER_CAMERA_PERMISSION_REQUEST_CODE);
+                    return true;
                 }
-                return true;
+                return launchFileChooser(fileChooserParams, true);
             }
 
             // Android 4.1 - 4.4 path
@@ -231,6 +236,10 @@ public class LocalWebViewActivity extends AppCompatActivity {
             }
         }
 
+        if (result == null && cameraImageUri != null && resultCode == Activity.RESULT_OK) {
+            result = new Uri[]{cameraImageUri};
+        }
+
         if (filePathCallback != null) {
             filePathCallback.onReceiveValue(result);
             filePathCallback = null;
@@ -239,6 +248,7 @@ public class LocalWebViewActivity extends AppCompatActivity {
             legacyFilePathCallback.onReceiveValue(single);
             legacyFilePathCallback = null;
         }
+        cameraImageUri = null;
     }
 
     private void grantUriPermission(Uri uri) {
@@ -291,6 +301,57 @@ public class LocalWebViewActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
         return intent;
+    }
+
+    private Intent createCameraIntent() {
+        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (cameraIntent.resolveActivity(getPackageManager()) == null) {
+            return null;
+        }
+        try {
+            File photoFile = createCameraImageFile();
+            cameraImageUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photoFile);
+            cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, cameraImageUri);
+            cameraIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            return cameraIntent;
+        } catch (IOException e) {
+            Log.e(TAG, "Unable to create camera temp file", e);
+            cameraImageUri = null;
+            return null;
+        }
+    }
+
+    private File createCameraImageFile() throws IOException {
+        File storageDir = new File(getCacheDir(), "camera");
+        if (!storageDir.exists() && !storageDir.mkdirs()) {
+            throw new IOException("Unable to create camera cache directory");
+        }
+        return File.createTempFile("ciphernotes_capture_", ".jpg", storageDir);
+    }
+
+    private boolean launchFileChooser(@Nullable WebChromeClient.FileChooserParams params, boolean includeCamera) {
+        boolean allowMultiple = params != null && params.getMode() == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE;
+        String[] acceptTypes = params != null ? params.getAcceptTypes() : null;
+        Intent pickerIntent = buildFilePickerIntent(allowMultiple, acceptTypes);
+        Intent cameraIntent = null;
+        if (includeCamera && hasCameraPermission()) {
+            cameraIntent = createCameraIntent();
+        }
+        Intent intent;
+        if (cameraIntent != null) {
+            intent = new Intent(Intent.ACTION_CHOOSER);
+            intent.putExtra(Intent.EXTRA_INTENT, pickerIntent);
+            intent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{cameraIntent});
+        } else {
+            intent = pickerIntent;
+        }
+        try {
+            startActivityForResult(intent, FILE_CHOOSER_REQUEST_CODE);
+            return true;
+        } catch (ActivityNotFoundException e) {
+            LocalWebViewActivity.this.clearFileCallbacks();
+            return false;
+        }
     }
 
     private void handlePermissionRequest(PermissionRequest request) {
@@ -417,6 +478,13 @@ public class LocalWebViewActivity extends AppCompatActivity {
                     runOnUiThread(() -> Toast.makeText(this, "Storage permission denied", Toast.LENGTH_LONG).show());
                     pendingDownload = null;
                 }
+            }
+        } else if (requestCode == FILE_CHOOSER_CAMERA_PERMISSION_REQUEST_CODE) {
+            if (awaitingCameraPermissionForChooser) {
+                boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                launchFileChooser(pendingFileChooserParams, granted);
+                awaitingCameraPermissionForChooser = false;
+                pendingFileChooserParams = null;
             }
         }
     }
