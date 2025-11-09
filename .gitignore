@@ -3,3 +3,4 @@ node_modules
 dist
 *.pem
 .DS_Store
+/twa/app/src/main/assets/www/
