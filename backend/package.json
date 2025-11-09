@@ -15,29 +15,29 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.886.0",
-    "@aws-sdk/s3-presigned-post": "^3.886.0",
-    "@aws-sdk/s3-request-presigner": "^3.886.0",
+    "@aws-sdk/client-s3": "^3.927.0",
+    "@aws-sdk/s3-presigned-post": "^3.927.0",
+    "@aws-sdk/s3-request-presigner": "^3.927.0",
     "cookie-parser": "^1.4.7",
-    "drizzle-orm": "^0.44.5",
+    "drizzle-orm": "^0.44.7",
     "express": "^5.1.0",
-    "express-rate-limit": "^8.1.0",
-    "express-zod-api": "^25.4.0",
+    "express-rate-limit": "^8.2.1",
+    "express-zod-api": "^25.6.0",
     "hcaptcha": "^0.2.0",
     "http-errors": "^2.0.0",
     "jose": "^6.1.0",
-    "node-mailjet": "^6.0.9",
+    "node-mailjet": "^6.0.11",
     "pg": "^8.16.3",
     "socket.io": "^4.8.1",
-    "zod": "^4.1.6"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@types/cookie-parser": "^1.4.9",
-    "@types/express": "^5.0.3",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.5",
     "@types/http-errors": "^2.0.5",
-    "@types/pg": "^8.15.5",
-    "bun-types": "1.2.21",
-    "drizzle-kit": "^0.31.4",
+    "@types/pg": "^8.15.6",
+    "bun-types": "1.3.2",
+    "drizzle-kit": "^0.31.6",
     "generate-license-file": "^4.1.0"
   }
 }
