@@ -11,6 +11,7 @@ import {historyInit, HistoryState} from './history'
 import {filesInit, FilesState, registerFilesSubscriptions} from './files'
 import {selectionInit, SelectionState, selectSelectionActive} from './selection'
 import {storageUsageInit, StorageUsageState} from './storageUsage'
+import {registerSettingsSubscriptions, settingsInit, SettingsState} from './settings'
 
 export type RootState = {
   notes: NotesState
@@ -24,6 +25,7 @@ export type RootState = {
   commandCenterOpen: boolean
   selection: SelectionState
   storageUsage: StorageUsageState
+  settings: SettingsState
 }
 const init: RootState = {
   notes: notesInit,
@@ -37,6 +39,7 @@ const init: RootState = {
   commandCenterOpen: false,
   selection: selectionInit,
   storageUsage: storageUsageInit,
+  settings: settingsInit,
 }
 export const useSelector = create<RootState>()(immer(subscribeWithSelector(() => init)))
 export const getState = useSelector.getState
@@ -52,6 +55,7 @@ registerUserSubscriptions()
 registerNotesSubscriptions()
 registerLabelsSubscriptions()
 registerFilesSubscriptions()
+registerSettingsSubscriptions()
 
 const selectAnyDialogExceptCommandCenterOpen = (state: RootState): boolean =>
   state.conflicts.conflicts.length > 0 ||
@@ -67,7 +71,8 @@ const selectAnyDialogExceptCommandCenterOpen = (state: RootState): boolean =>
   state.labels.labelSelectorOpen ||
   state.labels.dialog.open ||
   state.files.openFile !== null ||
-  state.storageUsage.open
+  state.storageUsage.open ||
+  state.settings.open
 
 export const selectCommandCenterDisabled = (state: RootState): boolean =>
   selectAnyDialogExceptCommandCenterOpen(state) || selectSelectionActive(state)

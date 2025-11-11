@@ -30,9 +30,9 @@ import {IconLabel} from './icons/IconLabel'
 import {LabelDropdownContent} from './LabelDropdownContent'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
-import {labelColor, todosToText} from '../business/misc'
+import {labelBgColor, labelBorderColor, todosToText} from '../business/misc'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
-import {useMyColorScheme} from '../helpers/useMyColorScheme'
+import {useThemeName} from '../helpers/useMyColorScheme'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import {ActionIconWithText} from './ActionIconWithText'
 import {useHotkeys} from '@mantine/hooks'
@@ -55,7 +55,7 @@ const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null =>
 }
 
 export const OpenNoteDialog = () => {
-  const colorScheme = useMyColorScheme()
+  const theme = useThemeName()
   const openNote = useSelector((state) => state.notes.openNote)
   const {labelDropdownOpen, moreMenuOpen} = useSelector((state) => state.notes.noteDialog)
   const labelsCache = useSelector((state) => state.labels.labelsCache)
@@ -65,6 +65,7 @@ export const OpenNoteDialog = () => {
   )
   const openNoteLabel = note?.labels?.[0]
   const hue: Hue = openNoteLabel ? labelsCache[openNoteLabel]?.hue ?? null : null
+  const borderColor = labelBorderColor(hue, theme)
   const historyItem = selectHistoryItem(openNote)
   const {undo, redo, canUndo, canRedo} = useUndoRedo<NoteHistoryItem | null>(
     historyItem,
@@ -123,7 +124,8 @@ export const OpenNoteDialog = () => {
           height: 'var(--viewport-height, 100dvh)',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: labelColor(hue, colorScheme === 'dark'),
+          backgroundColor: labelBgColor(hue, theme),
+          border: borderColor ? `2px solid ${borderColor}` : undefined,
         },
         body: {
           flex: '0 0 100%',

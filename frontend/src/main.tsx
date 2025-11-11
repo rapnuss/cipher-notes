@@ -13,11 +13,13 @@ import {useSelector} from './state/store.ts'
 import {App} from './components/App.tsx'
 import {theme} from './theme.ts'
 import './index.css'
+import {SideEffects} from './components/SideEffects.tsx'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <MantineProvider theme={theme} defaultColorScheme='auto'>
       <ModalsProvider>
+        <SideEffects />
         <App />
       </ModalsProvider>
     </MantineProvider>

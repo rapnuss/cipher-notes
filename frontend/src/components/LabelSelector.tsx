@@ -11,11 +11,16 @@ import {
 import {IconPencil} from './icons/IconPencil'
 import {IconTrash} from './icons/IconTrash'
 import {IconPlus} from './icons/IconPlus'
-import {darkColorsGradient, labelColor, lightColorsGradient} from '../business/misc'
+import {
+  darkColorsGradient,
+  labelBgColor,
+  labelBorderColor,
+  lightColorsGradient,
+} from '../business/misc'
 import {IconX} from './icons/IconX'
-import {Label} from '../business/models'
+import {Label, ThemeName} from '../business/models'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
-import {useMyColorScheme} from '../helpers/useMyColorScheme'
+import {useMyColorScheme, useThemeName} from '../helpers/useMyColorScheme'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import {ActionIconWithText} from './ActionIconWithText'
 import {UUID} from 'crypto'
@@ -23,6 +28,7 @@ import {UUID} from 'crypto'
 export const LabelSelector = () => {
   const {activeLabel, labelSelectorOpen} = useSelector((state) => state.labels)
   const labels = useSelector(selectCachedLabels)
+  const theme = useThemeName()
   const colorScheme = useMyColorScheme()
   useCloseOnBack({
     id: 'label-selector',
@@ -44,7 +50,7 @@ export const LabelSelector = () => {
           <LabelSelectorItem
             key={label.id}
             active={activeLabel === label.id}
-            darkMode={colorScheme === 'dark'}
+            theme={theme}
             {...label}
           />
         ))}
@@ -124,53 +130,74 @@ export const LabelSelector = () => {
 
 type LabelSelectorItemProps = Label & {
   active: boolean
-  darkMode: boolean
+  theme: ThemeName
 }
 
-const LabelSelectorItem = ({active, darkMode, ...label}: LabelSelectorItemProps) => (
-  <Flex
-    key={label.id}
-    align='center'
-    bd={active ? '2px solid var(--mantine-color-bright)' : 'none'}
-    p='xs'
-    style={{borderRadius: 'var(--mantine-radius-md)', outlineOffset: '2px'}}
-    bg={labelColor(label.hue, darkMode)}
-  >
-    <UnstyledButton
-      flex={1}
-      onClick={() => {
-        labelSelected(label.id as UUID)
-        toggleLabelSelector()
+const LabelSelectorItem = ({active, theme, ...label}: LabelSelectorItemProps) => {
+  const borderColor = labelBorderColor(label.hue, theme)
+  const bgColor = labelBgColor(label.hue, theme)
+  const themeHasBorder = theme === 'black' || theme === 'white'
+  return (
+    <Flex
+      key={label.id}
+      align='center'
+      bd={
+        themeHasBorder
+          ? `2px solid ${borderColor}`
+          : active
+          ? '2px solid var(--mantine-color-bright)'
+          : undefined
+      }
+      fw={themeHasBorder && active ? 'bold' : undefined}
+      p='xs'
+      style={{
+        borderRadius: themeHasBorder ? 0 : 'var(--mantine-radius-md)',
+        outlineOffset: '2px',
       }}
-      title={`Select label ${label.name}`}
+      bg={bgColor}
     >
-      {label.name}
-    </UnstyledButton>
-    <Group>
       <UnstyledButton
-        onClick={(e) => {
-          e.stopPropagation()
-          openEditLabelDialog(label.id)
+        flex={1}
+        onClick={() => {
+          labelSelected(label.id as UUID)
+          toggleLabelSelector()
         }}
-        title={`Edit label ${label.name}`}
-      >
-        <IconPencil />
-      </UnstyledButton>
-      <UnstyledButton
-        onClick={(e) => {
-          e.stopPropagation()
-          openConfirmModalWithBackHandler({
-            id: `delete-label-${label.id}`,
-            title: 'Delete Label',
-            children: 'Are you sure you want to delete this label?',
-            labels: {confirm: 'Delete', cancel: 'Cancel'},
-            onConfirm: () => deleteLabel(label.id),
-          })
+        title={`Select label ${label.name}`}
+        style={{
+          fontSize: themeHasBorder && active ? '1.2rem' : undefined,
+          textDecoration: themeHasBorder && active ? 'underline' : undefined,
+          textUnderlineOffset: '0.2rem',
+          textDecorationThickness: '0.1rem',
         }}
-        title={`Delete label ${label.name}`}
       >
-        <IconTrash />
+        {label.name}
       </UnstyledButton>
-    </Group>
-  </Flex>
-)
+      <Group>
+        <UnstyledButton
+          onClick={(e) => {
+            e.stopPropagation()
+            openEditLabelDialog(label.id)
+          }}
+          title={`Edit label ${label.name}`}
+        >
+          <IconPencil />
+        </UnstyledButton>
+        <UnstyledButton
+          onClick={(e) => {
+            e.stopPropagation()
+            openConfirmModalWithBackHandler({
+              id: `delete-label-${label.id}`,
+              title: 'Delete Label',
+              children: 'Are you sure you want to delete this label?',
+              labels: {confirm: 'Delete', cancel: 'Cancel'},
+              onConfirm: () => deleteLabel(label.id),
+            })
+          }}
+          title={`Delete label ${label.name}`}
+        >
+          <IconTrash />
+        </UnstyledButton>
+      </Group>
+    </Flex>
+  )
+}

@@ -200,3 +200,14 @@ export const jwtPayloadSchema = z.object({
 })
 
 export type MyJwtPayload = z.infer<typeof jwtPayloadSchema>
+
+export const lightThemeOptions = ['light', 'white'] as const
+export type LightTheme = (typeof lightThemeOptions)[number]
+export const darkThemeOptions = ['dark', 'black'] as const
+export type DarkTheme = (typeof darkThemeOptions)[number]
+export type ThemeName = LightTheme | DarkTheme
+export const settingsOptionsSchema = z.object({
+  lightTheme: z.enum(lightThemeOptions),
+  darkTheme: z.enum(darkThemeOptions),
+})
+export type SettingsOptions = z.infer<typeof settingsOptionsSchema>

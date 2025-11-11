@@ -1,6 +1,6 @@
 import {PWABadge} from './PWABadge.tsx'
 import {CommandCenter} from './CommandCenter.tsx'
-import {notifications, Notifications} from '@mantine/notifications'
+import {Notifications} from '@mantine/notifications'
 import {ImportNotesDialog} from './ImportNotesDialog.tsx'
 import {LoginDialog} from './LoginDialog.tsx'
 import {RegisterDialog} from './RegisterDialog.tsx'
@@ -13,78 +13,36 @@ import {ImprintDialog} from './ImprintDialog.tsx'
 import {DeleteAccountDialog, DeleteServerNotesDialog} from './DeleteServerNotesDialog'
 import {AdminPanel} from './AdminDialog.tsx'
 import {KeepImportDialog} from './KeepImportDialog.tsx'
-import {debounce, delay} from '../util/misc.ts'
 import {LabelSelector} from './LabelSelector.tsx'
 import {LabelDialog} from './LabelDialog.tsx'
 import {ChangeEmailDialog} from './ChangeEmailDialog.tsx'
-import {useHotkeys} from '@mantine/hooks'
 import {OpenFileDialog} from './OpenFileDialog.tsx'
 import {StorageUsageDialog} from './StorageUsageDialog.tsx'
-import {useSetColorSchemeAndListenForChange} from '../helpers/useMyColorScheme.ts'
+import {SettingsDialog} from './SettingsDialog.tsx'
 
-window.addEventListener(
-  'scroll',
-  debounce(() => scrollTo(0, 0), 0)
+export const App = () => (
+  <>
+    <Main />
+    <LabelSelector />
+    <LabelDialog />
+    <OpenNoteDialog />
+    <OpenFileDialog />
+    <CommandCenter />
+    <ImportNotesDialog />
+    <KeepImportDialog />
+    <RegisterDialog />
+    <LoginDialog />
+    <SyncDialog />
+    <StorageUsageDialog />
+    <AdminPanel />
+    <ConflictDialog />
+    <EncryptionKeyDialog />
+    <DeleteServerNotesDialog />
+    <DeleteAccountDialog />
+    <ChangeEmailDialog />
+    <ImprintDialog />
+    <SettingsDialog />
+    <PWABadge />
+    <Notifications autoClose={10_000} />
+  </>
 )
-
-if (window.visualViewport) {
-  window.visualViewport.addEventListener(
-    'resize',
-    debounce(() => {
-      document.documentElement.style.setProperty(
-        '--viewport-height',
-        `${window.visualViewport?.height}px`
-      )
-    }, 0)
-  )
-} else {
-  window.addEventListener(
-    'resize',
-    debounce(() => {
-      document.documentElement.style.setProperty('--viewport-height', `${window.innerHeight}px`)
-    }, 0)
-  )
-}
-
-document.addEventListener(
-  'focus',
-  async (e) => {
-    const target = e.target as HTMLElement
-    if (!(target instanceof HTMLTextAreaElement)) {
-      return
-    }
-    await delay(300)
-    target.scrollIntoView({behavior: 'smooth', block: 'nearest'})
-  },
-  true
-)
-
-export const App = () => {
-  useHotkeys([['Escape', () => notifications.clean()]], [], true)
-  useSetColorSchemeAndListenForChange()
-  return (
-    <>
-      <Main />
-      <LabelSelector />
-      <LabelDialog />
-      <OpenNoteDialog />
-      <OpenFileDialog />
-      <CommandCenter />
-      <ImportNotesDialog />
-      <KeepImportDialog />
-      <RegisterDialog />
-      <LoginDialog />
-      <SyncDialog />
-      <StorageUsageDialog />
-      <AdminPanel />
-      <ConflictDialog />
-      <EncryptionKeyDialog />
-      <DeleteServerNotesDialog />
-      <DeleteAccountDialog />
-      <ChangeEmailDialog />
-      <ImprintDialog />
-      <PWABadge />
-      <Notifications autoClose={10_000} />
-    </>
-  )
-}

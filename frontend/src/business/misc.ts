@@ -17,6 +17,7 @@ import {
   NoteCommon,
   TextPutTxt,
   textPutTxtSchema,
+  ThemeName,
   Todo,
   TodoPutTxt,
   todoPutTxtSchema,
@@ -561,8 +562,29 @@ export const darkColorsGradient = `linear-gradient(90deg,${Object.values(darkCol
   ','
 )})`
 
-export const labelColor = (hue: Hue, darkMode: boolean): string =>
-  hue === null ? `var(--mantine-color-body)` : darkMode ? darkColorByHue[hue] : lightColorByHue[hue]
+export const labelBgColor = (hue: Hue, theme: ThemeName): string =>
+  theme === 'black'
+    ? 'black'
+    : theme === 'white'
+    ? 'white'
+    : hue === null
+    ? 'var(--mantine-color-body)'
+    : theme === 'dark'
+    ? darkColorByHue[hue]
+    : theme === 'light'
+    ? lightColorByHue[hue]
+    : 'var(--mantine-color-body)'
+
+export const labelBorderColor = (hue: Hue, theme: ThemeName): string | null =>
+  theme === 'black' && hue === null
+    ? 'var(--mantine-color-dark-2)'
+    : theme === 'white' && hue === null
+    ? 'var(--mantine-color-dark-1)'
+    : theme === 'black' && hue !== null
+    ? darkColorByHue[hue]
+    : theme === 'white' && hue !== null
+    ? lightColorByHue[hue]
+    : null
 
 export const deriveTodosData = (todos: Todo[]) => {
   const parentToChildIds: Record<string, string[]> = {}

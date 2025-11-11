@@ -7,8 +7,8 @@ import {bisectBy, byProp, truncateWithEllipsis} from '../util/misc'
 import {IconSquare} from './icons/IconSquare'
 import {IconCheckbox} from './icons/IconCheckbox'
 import {activeLabelIsUuid, FileMeta, Note, Todo} from '../business/models'
-import {deriveTodosData, getFilename, labelColor} from '../business/misc'
-import {useMyColorScheme} from '../helpers/useMyColorScheme'
+import {deriveTodosData, getFilename, labelBgColor, labelBorderColor} from '../business/misc'
+import {useThemeName} from '../helpers/useMyColorScheme'
 import {IconDots} from './icons/IconDots'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import {deleteFile, fileOpened, setFileArchived} from '../state/files'
@@ -94,12 +94,13 @@ export const NotesGrid = () => {
 }
 
 const NotePreview = ({note}: {note: Note | FileMeta}) => {
-  const colorScheme = useMyColorScheme()
+  const theme = useThemeName()
   const labelsCache = useSelector((state) => state.labels.labelsCache)
   const label = note.labels?.[0] ? labelsCache[note.labels[0]] : null
   const selected = useSelector((state) => !!state.selection.selected[note.id])
   const selectionActive = useSelector(selectSelectionActive)
   const activeLabelArchived = useSelector((state) => state.labels.activeLabel === 'archived')
+  const borderColor = labelBorderColor(label?.hue ?? null, theme)
   return (
     <Paper
       style={{
@@ -110,7 +111,8 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
         outline: selected ? '2px solid var(--mantine-color-bright)' : undefined,
       }}
       shadow='sm'
-      bg={labelColor(label?.hue ?? null, colorScheme === 'dark')}
+      bg={labelBgColor(label?.hue ?? null, theme)}
+      bd={borderColor ? `2px solid ${borderColor}` : undefined}
     >
       <UnstyledButton
         style={{

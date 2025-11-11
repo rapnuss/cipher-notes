@@ -1,6 +1,8 @@
 import {useMantineColorScheme} from '@mantine/core'
 import {getColorScheme} from '../util/misc'
 import {useEffect} from 'react'
+import {ThemeName} from '../business/models'
+import {useSelector} from '../state/store'
 
 const matcher = window.matchMedia('(prefers-color-scheme: dark)')
 
@@ -34,4 +36,13 @@ export const useMyColorScheme = (): 'dark' | 'light' => {
     return systemScheme
   }
   return colorScheme
+}
+
+export const useThemeName = (): ThemeName => {
+  const cs = useMyColorScheme()
+  const options = useSelector((state) => state.settings.options)
+  if (cs === 'dark') {
+    return options.darkTheme
+  }
+  return options.lightTheme
 }

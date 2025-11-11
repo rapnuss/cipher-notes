@@ -1,6 +1,7 @@
-import {ActiveLabel} from '../business/models'
+import {ActiveLabel, SettingsOptions, settingsOptionsSchema} from '../business/models'
 import {NotesState} from '../state/notes'
 import {UserState} from '../state/user'
+import {zodParseString} from '../util/zod'
 
 export const storeUser = (user: UserState['user']): Promise<void> =>
   Promise.resolve().then(() => {
@@ -56,7 +57,7 @@ export const loadOpenFileId = (): Promise<string | null> =>
     return openNoteId ? null : openFileId
   })
 
-export const storeActiveLabelId = (labelId: string | false | null): Promise<void> =>
+export const storeActiveLabelId = (labelId: ActiveLabel): Promise<void> =>
   Promise.resolve().then(() => {
     localStorage.setItem('activeLabelId', JSON.stringify(labelId))
   })
@@ -64,12 +65,24 @@ export const storeActiveLabelId = (labelId: string | false | null): Promise<void
 export const loadActiveLabelId = (): Promise<ActiveLabel> =>
   Promise.resolve().then(() => {
     const labelIdStr = localStorage.getItem('activeLabelId')
-    const legacyActiveLabel = labelIdStr ? JSON.parse(labelIdStr) : 'all'
+    const legacyActiveLabel = labelIdStr ? (JSON.parse(labelIdStr) as unknown) : 'all'
     const activeLabel: ActiveLabel =
       legacyActiveLabel === null
         ? 'all'
         : legacyActiveLabel === false
         ? 'unlabeled'
-        : legacyActiveLabel
+        : typeof legacyActiveLabel === 'string'
+        ? (legacyActiveLabel as ActiveLabel)
+        : 'all'
     return activeLabel
+  })
+
+export const storeSettingsOptions = (options: SettingsOptions): Promise<void> =>
+  Promise.resolve().then(() => {
+    localStorage.setItem('settingsOptions', JSON.stringify(options))
+  })
+
+export const loadSettingsOptions = (): Promise<SettingsOptions | null> =>
+  Promise.resolve().then(() => {
+    return zodParseString(settingsOptionsSchema, localStorage.getItem('settingsOptions')) ?? null
   })

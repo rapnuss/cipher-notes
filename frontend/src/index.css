@@ -15,6 +15,16 @@ html[data-mantine-color-scheme='dark'] .mantine-Drawer-content,
 html[data-mantine-color-scheme='dark'] .mantine-Popover-dropdown {
   background-color: var(--mantine-color-dark-8);
 }
+html[data-theme-name='white'] body,
+html[data-theme-name='white'] .mantine-Drawer-content,
+html[data-theme-name='white'] .mantine-Popover-dropdown {
+  background-color: white;
+}
+html[data-theme-name='black'] body,
+html[data-theme-name='black'] .mantine-Drawer-content,
+html[data-theme-name='black'] .mantine-Popover-dropdown {
+  background-color: black;
+}
 .x-textarea textarea:focus {
   outline: none;
 }

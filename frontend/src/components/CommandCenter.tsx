@@ -26,6 +26,7 @@ import {exportNotes, openImportDialog, openKeepImportDialog} from '../state/impo
 import {labelSelected, selectCachedLabels} from '../state/labels'
 import {delay} from '../util/misc'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
+import {openSettings} from '../state/settings'
 
 type Command = SpotlightActionData & {shortcut?: string; onClick: () => void}
 
@@ -132,6 +133,11 @@ export const CommandCenter = () => {
       label: 'Manual server sync (and view sync error)',
       onClick: openSyncDialogAndSync,
       disabled: !loggedIn,
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      onClick: openSettings,
     },
     {
       id: 'issues',

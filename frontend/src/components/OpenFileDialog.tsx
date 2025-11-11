@@ -14,8 +14,8 @@ import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
 import {ImageViewer} from './ImageViewer'
 import {Hue} from '../business/models'
-import {useMyColorScheme} from '../helpers/useMyColorScheme'
-import {getFilename, labelColor} from '../business/misc'
+import {useThemeName} from '../helpers/useMyColorScheme'
+import {getFilename, labelBgColor, labelBorderColor} from '../business/misc'
 import {TextViewer} from './TextViewer'
 import {ActionIconWithText} from './ActionIconWithText'
 import {IconX} from './icons/IconX'
@@ -40,7 +40,7 @@ import {IconClockEdit} from './icons/IconClockEdit'
 const fileNotFound = Symbol('file not found')
 
 export const OpenFileDialog = () => {
-  const colorScheme = useMyColorScheme()
+  const theme = useThemeName()
   const openFile = useSelector((state) => state.files.openFile)
   const {moreMenuOpen, labelDropdownOpen} = useSelector((state) => state.files.fileDialog)
   const labelsCache = useSelector((state) => state.labels.labelsCache)
@@ -84,6 +84,7 @@ export const OpenFileDialog = () => {
   if (!file || file === fileNotFound) return null
   const openNoteLabel = file.labels[0]
   const hue: Hue = openNoteLabel ? labelsCache[openNoteLabel]?.hue ?? null : null
+  const borderColor = labelBorderColor(hue, theme)
   const src = `/files/${file.id}`
   return (
     <Drawer
@@ -98,8 +99,9 @@ export const OpenFileDialog = () => {
           height: 'var(--viewport-height, 100dvh)',
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: labelColor(hue, colorScheme === 'dark'),
+          backgroundColor: labelBgColor(hue, theme),
           overflow: 'hidden',
+          border: borderColor ? `2px solid ${borderColor}` : undefined,
         },
         body: {
           flex: '0 0 100%',
