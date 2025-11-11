@@ -1,9 +1,9 @@
 import {Divider, Flex, Menu, Paper, UnstyledButton} from '@mantine/core'
-import {useSelector} from '../state/store'
+import {getState, useSelector} from '../state/store'
 import {deleteNote, noteOpened, setNoteArchived} from '../state/notes'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
-import {bisectBy, byProp, truncateWithEllipsis} from '../util/misc'
+import {bisectBy, byProp, deepEquals, truncateWithEllipsis} from '../util/misc'
 import {IconSquare} from './icons/IconSquare'
 import {IconCheckbox} from './icons/IconCheckbox'
 import {activeLabelIsUuid, FileMeta, Note, Todo} from '../business/models'
@@ -15,6 +15,7 @@ import {deleteFile, fileOpened, setFileArchived} from '../state/files'
 import {FileIconWithExtension} from './FileIconWithExtension'
 import {selectSelectionActive, toggleSelection, updateCurrentNotes} from '../state/selection'
 import {IconSquareMinus} from './icons/IconSquareMinus'
+import {useEffect} from 'react'
 
 export const NotesGrid = () => {
   const query = useSelector((state) => state.notes.query)
@@ -46,7 +47,14 @@ export const NotesGrid = () => {
     return bisectBy(notes ?? [], (n) => n.archived === 1)
   }, [query, sort, activeLabel])
   const [archivedNotes = [], activeNotes = []] = notes ?? []
-  updateCurrentNotes(activeNotes, archivedNotes)
+  useEffect(() => {
+    if (
+      deepEquals(activeNotes, getState().selection.currentNotes[0]) &&
+      deepEquals(archivedNotes, getState().selection.currentNotes[1])
+    )
+      return
+    updateCurrentNotes(activeNotes, archivedNotes)
+  }, [activeNotes, archivedNotes])
   return (
     <div
       style={{
