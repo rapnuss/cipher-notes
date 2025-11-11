@@ -194,8 +194,8 @@ export const safeJsonParse = (str: string): unknown => {
 }
 
 /**
- * Value types are compared with ===.
- * For Objects and Arrays the properties are compared with ===.
+ * Value types are compared with Object.is.
+ * For Objects and Arrays the properties are compared with deepEquals.
  * deepEquals({ 0: 'a', 1: 'b' }, [ 'a', 'b' ]) returns true
  */
 export const deepEquals = (
@@ -214,12 +214,18 @@ export const deepEquals = (
     typeof a !== 'object' ||
     typeof b !== 'object'
   ) {
-    return a === b
+    return Object.is(a, b)
   }
   const ak = Object.keys(a)
   const bk = Object.keys(b)
   if (ak.length !== bk.length) return false
-  return ak.every((k) => deepEquals((a as any)[k], (b as any)[k], ignoreProps, k))
+
+  for (const k of ak) {
+    if (!deepEquals((a as any)[k], (b as any)[k], ignoreProps, k)) {
+      return false
+    }
+  }
+  return true
 }
 
 export const truncateWithEllipsis = (txt: string, maxLines = 5, maxChars = 200) => {
