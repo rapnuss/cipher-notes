@@ -15,10 +15,20 @@
     <meta name="apple-mobile-web-app-title" content="ciphernotes" />
 
     <title>ciphernotes</title>
-    <meta name="description" content="A end-to-end encrypted note taking alternative to Google Keep. Offline and cloud synchronized." />
+    <meta
+      name="description"
+      content="A end-to-end encrypted note taking alternative to Google Keep. Offline and cloud synchronized."
+    />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+        try {
+          window.BarcodeDetector = {getSupportedFormats: async () => []}
+        } catch (e) {
+          console.error('Error setting BarcodeDetector:', e)
+        }
+    </script>
   </body>
 </html>
