@@ -29,7 +29,7 @@ export const EncryptionKeyDialog = () => {
       {!hasStoredKeyTokenPair && (
         <Text mb='md'>Generate a new key or import from a different device to sync notes.</Text>
       )}
-      <Flex align='start'>
+      <Flex align='start' gap='.25rem'>
         <PasswordInput
           size='md'
           flex={1}

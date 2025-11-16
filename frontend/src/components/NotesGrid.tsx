@@ -121,6 +121,7 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
       shadow='sm'
       bg={labelBgColor(label?.hue ?? null, theme)}
       bd={borderColor ? `2px solid ${borderColor}` : undefined}
+      className='note-preview'
     >
       <UnstyledButton
         style={{

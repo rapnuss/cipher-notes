@@ -47,23 +47,8 @@ export const SideEffects = () => {
   useSetColorSchemeAndListenForChange()
   const themeName = useThemeName()
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme-name', themeName)
-    const isMinimalTheme = themeName === 'white' || themeName === 'black'
-    if (isMinimalTheme) {
-      document.documentElement.style.setProperty('--mantine-radius-xs', '0')
-      document.documentElement.style.setProperty('--mantine-radius-sm', '0')
-      document.documentElement.style.setProperty('--mantine-radius-md', '0')
-      document.documentElement.style.setProperty('--mantine-radius-lg', '0')
-      document.documentElement.style.setProperty('--mantine-radius-xl', '0')
-      document.documentElement.style.setProperty('--mantine-radius-default', '0')
-    } else {
-      document.documentElement.style.removeProperty('--mantine-radius-xs')
-      document.documentElement.style.removeProperty('--mantine-radius-sm')
-      document.documentElement.style.removeProperty('--mantine-radius-md')
-      document.documentElement.style.removeProperty('--mantine-radius-lg')
-      document.documentElement.style.removeProperty('--mantine-radius-xl')
-      document.documentElement.style.removeProperty('--mantine-radius-default')
-    }
+    const doc = document.documentElement
+    doc.setAttribute('data-theme-name', themeName)
   }, [themeName])
   return null
 }

@@ -1,4 +1,4 @@
-import {Box, Divider, Drawer, Flex, Group, Paper, Stack, UnstyledButton} from '@mantine/core'
+import {Divider, Drawer, Flex, Group, Paper, Stack, UnstyledButton} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {
   deleteLabel,
@@ -68,7 +68,8 @@ export const LabelSelector = () => {
       </div>
       <Divider mb='md' mt='xs' />
       <Flex gap='xs'>
-        <Box
+        <Paper
+          shadow='md'
           ta='left'
           bd={activeLabel === 'all' ? '2px solid var(--mantine-color-bright)' : 'none'}
           p='xs'
@@ -81,9 +82,10 @@ export const LabelSelector = () => {
           }}
           component='button'
           title='Show all notes'
+          className='special-label-selector-item'
         >
           All notes
-        </Box>
+        </Paper>
         <Paper
           shadow='md'
           ta='left'
@@ -98,6 +100,7 @@ export const LabelSelector = () => {
           bg='var(--mantine-color-body)'
           component='button'
           title='Show unlabeled notes'
+          className='special-label-selector-item'
         >
           Unlabeled
         </Paper>
@@ -114,6 +117,7 @@ export const LabelSelector = () => {
           bg='var(--mantine-color-body)'
           component='button'
           title='Show archived notes'
+          className='special-label-selector-item'
         >
           Archived
         </Paper>
@@ -151,10 +155,10 @@ const LabelSelectorItem = ({active, theme, ...label}: LabelSelectorItemProps) =>
       fw={themeHasBorder && active ? 'bold' : undefined}
       p='xs'
       style={{
-        borderRadius: themeHasBorder ? 0 : 'var(--mantine-radius-md)',
         outlineOffset: '2px',
       }}
       bg={bgColor}
+      className='label-selector-item'
     >
       <UnstyledButton
         flex={1}

@@ -14,7 +14,7 @@ export const StatusBar = () => {
   const numDirtyNotes = useLiveQuery(() => db.notes.where('state').equals('dirty').count())
   if (!registered) return null
   return (
-    <Flex px='xs' py='.25rem' justify='space-between' align='center' bg='rgba(0,0,0,.1)'>
+    <Flex px='xs' py='.25rem' justify='space-between' align='center' className='status-bar'>
       <Text size='xs'>
         {email}{' '}
         {connected === true

@@ -82,7 +82,7 @@ const Header = () => {
     true
   )
   return (
-    <Flex gap='xs' mih='4rem' px='md' bg='rgba(0,0,0,.1)' justify='space-between' align='center'>
+    <Flex gap='xs' mih='4rem' px='md' className='header' justify='space-between' align='center'>
       {selectionActive ? (
         <>
           <Text fz='sm' lh='1.2'>
@@ -111,7 +111,7 @@ const Header = () => {
             <ActionIconWithText title='Unarchive' text='unarch' onClick={unarchiveSelected}>
               <IconArchiveOff />
             </ActionIconWithText>
-            <ActionIconWithText title='Archive' text='archive' onClick={archiveSelected}>
+            <ActionIconWithText title='Archive' text='arch.' onClick={archiveSelected}>
               <IconArchive />
             </ActionIconWithText>
             <ActionIconWithText title='Delete' text='delete' onClick={deleteSelected}>

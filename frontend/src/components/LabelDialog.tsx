@@ -8,13 +8,14 @@ import {
   updateLabel,
 } from '../state/labels'
 import {hueOptions} from '../business/models'
-import {labelBgColor} from '../business/misc'
+import {labelBgColor, labelBorderColor} from '../business/misc'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
 import {useThemeName} from '../helpers/useMyColorScheme'
 
 export const LabelDialog = () => {
   const {hue, name, open, id} = useSelector((state) => state.labels.dialog)
   const theme = useThemeName()
+  const isMinimalTheme = theme === 'white' || theme === 'black'
   useCloseOnBack({
     id: 'label-dialog',
     open,
@@ -34,7 +35,16 @@ export const LabelDialog = () => {
             size='lg'
             variant={'default'}
             style={{
-              border: h === hue ? '2px solid var(--mantine-color-bright)' : 'none',
+              border: !isMinimalTheme
+                ? h === hue
+                  ? '2px solid var(--mantine-color-bright)'
+                  : undefined
+                : `2px solid ${labelBorderColor(h, theme)}`,
+              outline: !isMinimalTheme
+                ? undefined
+                : h === hue
+                ? `2px solid ${labelBorderColor(h, theme)}`
+                : undefined,
             }}
             id={String(h)}
             onClick={() => labelDialogHueChanged(h)}
