@@ -127,7 +127,7 @@ public class LocalWebViewActivity extends AppCompatActivity {
     settings.setUseWideViewPort(true);
     settings.setSupportMultipleWindows(false);
     settings.setMediaPlaybackRequiresUserGesture(false);
-    settings.setUserAgentString(settings.getUserAgentString() + " CiphernotesTwa/3");
+    settings.setUserAgentString(settings.getUserAgentString() + " CiphernotesAndroid/" + BuildConfig.VERSION_NAME);
 
     CookieManager cookieManager = CookieManager.getInstance();
     cookieManager.setAcceptCookie(true);
