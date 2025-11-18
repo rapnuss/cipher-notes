@@ -2,6 +2,15 @@ plugins {
     id 'com.android.application'
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
+def keystorePropertiesFile = file('keystore.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace 'com.ciphernotes.twa'
     compileSdk 35
@@ -14,6 +23,15 @@ android {
         versionName '3.2'
     }
 
+    signingConfigs {
+        play {
+            storeFile keystorePropertiesFile.exists() ? file(keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
@@ -21,6 +39,10 @@ android {
         }
         debug {
             minifyEnabled false
+        }
+        play {
+            initWith release
+            signingConfig signingConfigs.play
         }
     }
 
