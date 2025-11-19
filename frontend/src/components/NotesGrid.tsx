@@ -6,7 +6,7 @@ import {db} from '../db'
 import {bisectBy, byProp, deepEquals, truncateWithEllipsis} from '../util/misc'
 import {IconSquare} from './icons/IconSquare'
 import {IconCheckbox} from './icons/IconCheckbox'
-import {activeLabelIsUuid, FileMeta, Note, Todo} from '../business/models'
+import {activeLabelIsUuid, FileMeta, Note, ThemeName, Todo} from '../business/models'
 import {deriveTodosData, getFilename, labelBgColor, labelBorderColor} from '../business/misc'
 import {useThemeName} from '../helpers/useMyColorScheme'
 import {IconDots} from './icons/IconDots'
@@ -101,6 +101,18 @@ export const NotesGrid = () => {
   )
 }
 
+const getGlowColor = (theme: ThemeName, borderColor: string | null): string | undefined => {
+  if (theme !== 'black') return undefined
+  if (!borderColor) return 'rgba(255, 255, 255, 0.3)'
+  if (borderColor.startsWith('hsl(')) {
+    return borderColor.replace(/hsl\(([^)]+)\)/, 'hsla($1, 0.7)')
+  }
+  if (borderColor.startsWith('var(')) {
+    return 'rgba(255, 255, 255, 0.3)'
+  }
+  return borderColor
+}
+
 const NotePreview = ({note}: {note: Note | FileMeta}) => {
   const theme = useThemeName()
   const labelsCache = useSelector((state) => state.labels.labelsCache)
@@ -109,6 +121,7 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
   const selectionActive = useSelector(selectSelectionActive)
   const activeLabelArchived = useSelector((state) => state.labels.activeLabel === 'archived')
   const borderColor = labelBorderColor(label?.hue ?? null, theme)
+  const glowColor = getGlowColor(theme, borderColor)
   return (
     <Paper
       style={{
@@ -117,8 +130,9 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
         color: 'var(--mantine-color-text)',
         opacity: note.archived && !selected && !activeLabelArchived ? 0.5 : 1,
         outline: selected ? '2px solid var(--mantine-color-bright)' : undefined,
+        ...(glowColor ? {'--note-glow-color': glowColor} : {}),
       }}
-      shadow='sm'
+      shadow='lg'
       bg={labelBgColor(label?.hue ?? null, theme)}
       bd={borderColor ? `2px solid ${borderColor}` : undefined}
       className='note-preview'

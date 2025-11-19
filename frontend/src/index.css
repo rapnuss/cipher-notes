@@ -103,6 +103,11 @@ textarea {
     border: 1px solid white;
     background-color: black;
   }
+  .note-preview {
+    box-shadow: 0 0 15px var(--note-glow-color, rgba(255, 255, 255, 0.3)),
+      0 0 30px var(--note-glow-color, rgba(255, 255, 255, 0.2)),
+      0 0 45px var(--note-glow-color, rgba(255, 255, 255, 0.1));
+  }
 }
 
 :root[data-theme-name='white'] {
