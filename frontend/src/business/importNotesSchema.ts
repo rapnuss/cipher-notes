@@ -23,6 +23,9 @@ export const importNotesSchema = z.array(
       todos: importTodosSchema.optional(),
       labels: z.array(z.string()).optional(),
       archived: z.boolean().optional(),
+      protected: z.boolean().optional(),
+      protected_iv: z.string().optional(),
+      protected_type: z.enum(['note', 'todo']).optional(),
     })
     .strip()
 )
@@ -82,6 +85,7 @@ export const notesZipSchema = z
     notes: importNotesSchema,
     files_meta: importFilesMetaSchema,
     labelColors: z.record(z.string(), hueSchema).optional(),
+    protected_notes_salt: z.string().optional(),
   })
   .strip()
 export type NotesZip = z.infer<typeof notesZipSchema>

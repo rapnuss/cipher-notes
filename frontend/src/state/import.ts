@@ -21,6 +21,12 @@ export type ImportState = {
     open: boolean
     file: File | null
     error: string | null
+    hasProtectedNotes: boolean
+    protectedNotesPassword: string
+    protectedNotesLoading: boolean
+    protectedNotesError: string
+    parsedZip: JSZip | null
+    parsedData: NotesZip | null
   }
   keepImportDialog: {
     open: boolean
@@ -30,22 +36,34 @@ export type ImportState = {
   }
 }
 
+const importDialogInit: ImportState['importDialog'] = {
+  open: false,
+  file: null,
+  error: null,
+  hasProtectedNotes: false,
+  protectedNotesPassword: '',
+  protectedNotesLoading: false,
+  protectedNotesError: '',
+  parsedZip: null,
+  parsedData: null,
+}
+
 export const importInit: ImportState = {
-  importDialog: {open: false, file: null, error: null},
+  importDialog: importDialogInit,
   keepImportDialog: {open: false, file: null, error: null, importArchived: false},
 }
 
 // actions
 export const openImportDialog = () =>
   setState((state) => {
-    state.import.importDialog = {open: true, file: null, error: null}
+    state.import.importDialog = {...importDialogInit, open: true}
   })
 export const closeImportDialog = (state?: WritableDraft<RootState>) => {
   if (state) {
-    state.import.importDialog = importInit.importDialog
+    state.import.importDialog = {...importDialogInit}
   } else {
     setState((state) => {
-      state.import.importDialog = importInit.importDialog
+      state.import.importDialog = {...importDialogInit}
     })
   }
 }
@@ -53,6 +71,14 @@ export const importFileChanged = (file: File | null) =>
   setState((state) => {
     state.import.importDialog.file = file
     state.import.importDialog.error = null
+    state.import.importDialog.hasProtectedNotes = false
+    state.import.importDialog.parsedZip = null
+    state.import.importDialog.parsedData = null
+  })
+export const setProtectedNotesPassword = (password: string) =>
+  setState((state) => {
+    state.import.importDialog.protectedNotesPassword = password
+    state.import.importDialog.protectedNotesError = ''
   })
 export const openKeepImportDialog = () =>
   setState((state) => {
@@ -82,10 +108,11 @@ export const exportNotes = async () => {
   // Export all notes and files_meta into notes.json and add file blobs as separate files
   const zip = new JSZip()
 
-  const [notes, filesMeta, filesBlobs] = await Promise.all([
+  const [notes, filesMeta, filesBlobs, protectedNotesConfig] = await Promise.all([
     db.notes.toArray(),
     db.files_meta.toArray(),
     db.files_blob.toArray(),
+    db.protected_notes_config.get('config'),
   ])
 
   // map label ids to names for export
@@ -99,18 +126,35 @@ export const exportNotes = async () => {
   }, {} as Record<string, Hue>)
 
   const idToBlob = Object.fromEntries(filesBlobs.map((b) => [b.id, b.blob]))
+  const hasProtectedNotes = notes.some((n) => n.protected === 1)
 
   const payload: NotesZip = {
-    notes: notes.map((n) => ({
-      id: n.id,
-      title: n.title,
-      txt: n.type === 'note' ? n.txt : undefined,
-      todos: n.type === 'todo' ? n.todos : undefined,
-      created_at: n.created_at,
-      updated_at: n.updated_at,
-      archived: n.archived === 1,
-      labels: mapLabelIdsToNames(n.labels),
-    })),
+    notes: notes.map((n) => {
+      if (n.protected === 1 && n.protected_iv) {
+        return {
+          id: n.id,
+          title: '',
+          txt: n.type === 'note' ? n.txt : n.todos[0]?.id,
+          created_at: n.created_at,
+          updated_at: n.updated_at,
+          archived: n.archived === 1,
+          labels: mapLabelIdsToNames(n.labels),
+          protected: true,
+          protected_iv: n.protected_iv,
+          protected_type: n.type,
+        }
+      }
+      return {
+        id: n.id,
+        title: n.title,
+        txt: n.type === 'note' ? n.txt : undefined,
+        todos: n.type === 'todo' ? n.todos : undefined,
+        created_at: n.created_at,
+        updated_at: n.updated_at,
+        archived: n.archived === 1,
+        labels: mapLabelIdsToNames(n.labels),
+      }
+    }),
     files_meta: filesMeta.map(
       (f) =>
         ({
@@ -127,6 +171,8 @@ export const exportNotes = async () => {
         } satisfies ImportFileMeta)
     ),
     labelColors,
+    protected_notes_salt:
+      hasProtectedNotes && protectedNotesConfig ? protectedNotesConfig.master_salt : undefined,
   }
 
   // validate payload
@@ -157,151 +203,316 @@ export const importNotes = async (): Promise<void> => {
     if (!notesJson) throw new Error('notes.json not found in archive')
     const parsed = notesZipSchema.parse(JSON.parse(await notesJson.async('string')))
 
-    const now = Date.now()
-    const {labelsCache} = getState().labels
-    const cachedLabels = Object.values(labelsCache)
-    const existingLabels = XSet.fromItr(cachedLabels, (l) => l.name)
-    // Collect label names used in notes and files
-    const importLabelNames = XSet.fromItr([
-      ...parsed.notes.flatMap((n) => n.labels ?? []),
-      ...parsed.files_meta.flatMap((f) => f.labels ?? []),
-    ])
-    const newLabelNames = importLabelNames.without(existingLabels).toArray()
-    const createdLabels: Label[] = []
-    for (const name of newLabelNames) {
-      createdLabels.push(await createLabel(name, parsed.labelColors?.[name] ?? null))
-    }
-    const nameToId = Object.fromEntries(
-      [...cachedLabels, ...createdLabels].map((l) => [l.name, l.id])
-    )
+    const hasProtectedNotes = parsed.notes.some((n) => n.protected)
 
-    // Prepare notes to upsert similar to previous import logic, resolving label names
-    const notesToUpsert: Note[] = []
-    for (const importedNote of parsed.notes ?? []) {
-      const id = importedNote.id ?? crypto.randomUUID()
-      const existing = await db.notes.get(id)
-      const shouldInsertOrUpdate =
-        !existing ||
-        existing.deleted_at !== 0 ||
-        (importedNote.updated_at ?? 0) > existing.updated_at
-      if (!shouldInsertOrUpdate) continue
-
-      const updated_at = Math.max(importedNote.updated_at ?? 0, existing?.updated_at ?? 0)
-      const created_at = existing?.created_at ?? importedNote.created_at ?? now
-      const version = !existing
-        ? 1
-        : existing.state === 'dirty'
-        ? existing.version
-        : existing.version + 1
-
-      const labels = (importedNote.labels ?? [])
-        .map((name) => nameToId[name])
-        .filter((x): x is string => !!x)
-
-      const todos = importedNote.todos
-      const txt = importedNote.txt
-      if (todos !== undefined) {
-        const todoIds = XSet.fromItr(todos, (t) => t.id)
-        notesToUpsert.push({
-          id,
-          title: importedNote.title ?? '',
-          type: 'todo',
-          todos: todos?.map((t) => ({
-            ...t,
-            id: t.id ?? crypto.randomUUID(),
-            updated_at: t.updated_at ?? updated_at,
-            parent: todoIds.has(t.parent) ? t.parent : undefined,
-          })),
-          created_at,
-          updated_at,
-          version,
-          state: 'dirty',
-          deleted_at: 0,
-          archived: importedNote.archived ? 1 : 0,
-          labels,
-          protected: 0,
-        })
-      } else if (txt !== undefined) {
-        notesToUpsert.push({
-          id,
-          title: importedNote.title ?? '',
-          type: 'note',
-          txt: txt,
-          created_at,
-          updated_at,
-          version,
-          state: 'dirty',
-          deleted_at: 0,
-          archived: importedNote.archived ? 1 : 0,
-          labels,
-          protected: 0,
-        })
-      }
-    }
-
-    const filesMetaToUpsert: FileMeta[] = []
-    const blobsToPut: {id: string; blob: Blob}[] = []
-    for (const meta of parsed.files_meta ?? []) {
-      const existing = await db.files_meta.get(meta.id)
-      const shouldInsertOrUpdate =
-        !existing || existing.deleted_at !== 0 || (meta.updated_at ?? 0) > existing.updated_at
-      if (!shouldInsertOrUpdate) continue
-
-      const version = !existing
-        ? 1
-        : existing.state === 'dirty'
-        ? existing.version
-        : existing.version + 1
-
-      const entry = zip.file(`${meta.id}${meta.ext ?? ''}`)
-      const blob = entry ? await entry!.async('blob') : null
-      if (blob) {
-        blobsToPut.push({id: meta.id, blob: new Blob([blob], {type: meta.mime})})
-      } else {
-        continue
-      }
-
-      filesMetaToUpsert.push({
-        id: meta.id,
-        type: 'file',
-        title: meta.title,
-        ext: meta.ext,
-        mime: meta.mime,
-        size: blob.size,
-        created_at: meta.created_at ?? now,
-        updated_at: meta.updated_at ?? now,
-        deleted_at: meta.deleted_at ?? 0,
-        labels: (meta.labels ?? []).map((name) => nameToId[name]).filter((x): x is string => !!x),
-        archived: meta.archived ? 1 : 0,
-        has_thumb: 0,
-        state: 'dirty',
-        version,
-        blob_state: 'local',
-        protected: 0,
+    if (hasProtectedNotes) {
+      setState((state) => {
+        state.import.importDialog.hasProtectedNotes = true
+        state.import.importDialog.parsedZip = zip
+        state.import.importDialog.parsedData = parsed
       })
+      return
     }
 
-    await db.transaction('rw', db.notes, db.files_meta, db.files_blob, async (tx) => {
-      if (notesToUpsert.length) await tx.notes.bulkPut(notesToUpsert)
-      if (filesMetaToUpsert.length) await tx.files_meta.bulkPut(filesMetaToUpsert)
-      if (blobsToPut.length) await tx.files_blob.bulkPut(blobsToPut)
-    })
-
-    comlink
-      .generateThumbnails()
-      .then(() => console.log('thumbnails generated'))
-      .catch(console.error)
-
-    setState((state) => {
-      closeImportDialog(state)
-    })
-    notifications.show({title: 'Success', message: 'Backup imported'})
+    await doImportNotes(zip, parsed)
   } catch (e) {
     console.error(e)
     setState((state) => {
       state.import.importDialog.error = e instanceof Error ? e.message : 'Invalid file format'
     })
   }
+}
+
+export const importNotesWithPassword = async (): Promise<void> => {
+  const state = getState()
+  const {parsedZip, parsedData, protectedNotesPassword} = state.import.importDialog
+  if (!parsedZip || !parsedData) return
+
+  setState((s) => {
+    s.import.importDialog.protectedNotesLoading = true
+    s.import.importDialog.protectedNotesError = ''
+  })
+
+  try {
+    const {deriveKey} = await import('../util/pbkdf2')
+    const {decryptNotePlainData, encryptNoteForStorage} = await import(
+      '../business/protectedNotesEncryption'
+    )
+
+    const protectedNotes = parsedData.notes.filter((n) => n.protected)
+    if (protectedNotes.length === 0) {
+      await doImportNotes(parsedZip, parsedData)
+      return
+    }
+
+    const importSalt = parsedData.protected_notes_salt ?? ''
+    const importKey = await deriveKey(protectedNotesPassword, importSalt)
+
+    const firstProtected = protectedNotes[0]!
+    try {
+      await decryptNotePlainData(
+        importKey,
+        firstProtected.txt ?? '',
+        firstProtected.protected_iv ?? ''
+      )
+    } catch {
+      setState((s) => {
+        s.import.importDialog.protectedNotesLoading = false
+        s.import.importDialog.protectedNotesError = 'Incorrect password'
+      })
+      return
+    }
+
+    const currentConfig = await db.protected_notes_config.get('config')
+    const currentKey = currentConfig
+      ? await deriveKey(protectedNotesPassword, currentConfig.master_salt)
+      : null
+
+    const processedNotes = await Promise.all(
+      parsedData.notes.map(async (n) => {
+        if (!n.protected || !n.protected_iv || !n.txt) return n
+
+        try {
+          const plainData = await decryptNotePlainData(importKey, n.txt, n.protected_iv)
+          if (currentKey) {
+            const tempNote: Note =
+              n.protected_type === 'todo'
+                ? {
+                    id: n.id ?? crypto.randomUUID(),
+                    title: plainData.title,
+                    type: 'todo',
+                    todos: plainData.todos ?? [],
+                    created_at: n.created_at ?? Date.now(),
+                    updated_at: n.updated_at ?? Date.now(),
+                    version: 1,
+                    state: 'dirty',
+                    deleted_at: 0,
+                    archived: n.archived ? 1 : 0,
+                    labels: n.labels,
+                    protected: 1,
+                  }
+                : {
+                    id: n.id ?? crypto.randomUUID(),
+                    title: plainData.title,
+                    type: 'note',
+                    txt: plainData.txt ?? '',
+                    created_at: n.created_at ?? Date.now(),
+                    updated_at: n.updated_at ?? Date.now(),
+                    version: 1,
+                    state: 'dirty',
+                    deleted_at: 0,
+                    archived: n.archived ? 1 : 0,
+                    labels: n.labels,
+                    protected: 1,
+                  }
+            const encrypted = await encryptNoteForStorage(tempNote, currentKey)
+            return {
+              ...n,
+              title: '',
+              txt: encrypted.type === 'note' ? encrypted.txt : encrypted.todos[0]?.id,
+              todos: undefined,
+              protected: true,
+              protected_iv: encrypted.protected_iv,
+              protected_type: n.protected_type,
+            }
+          } else {
+            return {
+              ...n,
+              title: plainData.title,
+              txt: n.protected_type === 'note' ? plainData.txt : undefined,
+              todos: n.protected_type === 'todo' ? plainData.todos : undefined,
+              protected: false,
+              protected_iv: undefined,
+              protected_type: undefined,
+            }
+          }
+        } catch (e) {
+          console.error('Failed to decrypt note during import:', e)
+          return n
+        }
+      })
+    )
+
+    await doImportNotes(parsedZip, {...parsedData, notes: processedNotes})
+  } catch (e) {
+    console.error(e)
+    setState((s) => {
+      s.import.importDialog.protectedNotesLoading = false
+      s.import.importDialog.protectedNotesError =
+        e instanceof Error ? e.message : 'Failed to import'
+    })
+  }
+}
+
+const doImportNotes = async (zip: JSZip, parsed: NotesZip): Promise<void> => {
+  const now = Date.now()
+  const {labelsCache} = getState().labels
+  const cachedLabels = Object.values(labelsCache)
+  const existingLabels = XSet.fromItr(cachedLabels, (l) => l.name)
+  const importLabelNames = XSet.fromItr([
+    ...parsed.notes.flatMap((n) => n.labels ?? []),
+    ...parsed.files_meta.flatMap((f) => f.labels ?? []),
+  ])
+  const newLabelNames = importLabelNames.without(existingLabels).toArray()
+  const createdLabels: Label[] = []
+  for (const name of newLabelNames) {
+    createdLabels.push(await createLabel(name, parsed.labelColors?.[name] ?? null))
+  }
+  const nameToId = Object.fromEntries(
+    [...cachedLabels, ...createdLabels].map((l) => [l.name, l.id])
+  )
+
+  const notesToUpsert: Note[] = []
+  for (const importedNote of parsed.notes ?? []) {
+    const id = importedNote.id ?? crypto.randomUUID()
+    const existing = await db.notes.get(id)
+    const shouldInsertOrUpdate =
+      !existing || existing.deleted_at !== 0 || (importedNote.updated_at ?? 0) > existing.updated_at
+    if (!shouldInsertOrUpdate) continue
+
+    const updated_at = Math.max(importedNote.updated_at ?? 0, existing?.updated_at ?? 0)
+    const created_at = existing?.created_at ?? importedNote.created_at ?? now
+    const version = !existing
+      ? 1
+      : existing.state === 'dirty'
+      ? existing.version
+      : existing.version + 1
+
+    const labels = (importedNote.labels ?? [])
+      .map((name) => nameToId[name])
+      .filter((x): x is string => !!x)
+
+    if (importedNote.protected && importedNote.protected_iv && importedNote.txt) {
+      const noteType = importedNote.protected_type ?? 'note'
+      if (noteType === 'todo') {
+        notesToUpsert.push({
+          id,
+          title: '',
+          type: 'todo',
+          todos: [{id: importedNote.txt, done: false, txt: ''}],
+          created_at,
+          updated_at,
+          version,
+          state: 'dirty',
+          deleted_at: 0,
+          archived: importedNote.archived ? 1 : 0,
+          labels,
+          protected: 1,
+          protected_iv: importedNote.protected_iv,
+        })
+      } else {
+        notesToUpsert.push({
+          id,
+          title: '',
+          type: 'note',
+          txt: importedNote.txt,
+          created_at,
+          updated_at,
+          version,
+          state: 'dirty',
+          deleted_at: 0,
+          archived: importedNote.archived ? 1 : 0,
+          labels,
+          protected: 1,
+          protected_iv: importedNote.protected_iv,
+        })
+      }
+    } else if (importedNote.todos !== undefined) {
+      const todoIds = XSet.fromItr(importedNote.todos, (t) => t.id)
+      notesToUpsert.push({
+        id,
+        title: importedNote.title ?? '',
+        type: 'todo',
+        todos: importedNote.todos.map((t) => ({
+          ...t,
+          id: t.id ?? crypto.randomUUID(),
+          updated_at: t.updated_at ?? updated_at,
+          parent: todoIds.has(t.parent) ? t.parent : undefined,
+        })),
+        created_at,
+        updated_at,
+        version,
+        state: 'dirty',
+        deleted_at: 0,
+        archived: importedNote.archived ? 1 : 0,
+        labels,
+        protected: 0,
+      })
+    } else if (importedNote.txt !== undefined) {
+      notesToUpsert.push({
+        id,
+        title: importedNote.title ?? '',
+        type: 'note',
+        txt: importedNote.txt,
+        created_at,
+        updated_at,
+        version,
+        state: 'dirty',
+        deleted_at: 0,
+        archived: importedNote.archived ? 1 : 0,
+        labels,
+        protected: 0,
+      })
+    }
+  }
+
+  const filesMetaToUpsert: FileMeta[] = []
+  const blobsToPut: {id: string; blob: Blob}[] = []
+  for (const meta of parsed.files_meta ?? []) {
+    const existing = await db.files_meta.get(meta.id)
+    const shouldInsertOrUpdate =
+      !existing || existing.deleted_at !== 0 || (meta.updated_at ?? 0) > existing.updated_at
+    if (!shouldInsertOrUpdate) continue
+
+    const version = !existing
+      ? 1
+      : existing.state === 'dirty'
+      ? existing.version
+      : existing.version + 1
+
+    const entry = zip.file(`${meta.id}${meta.ext ?? ''}`)
+    const blob = entry ? await entry!.async('blob') : null
+    if (blob) {
+      blobsToPut.push({id: meta.id, blob: new Blob([blob], {type: meta.mime})})
+    } else {
+      continue
+    }
+
+    filesMetaToUpsert.push({
+      id: meta.id,
+      type: 'file',
+      title: meta.title,
+      ext: meta.ext,
+      mime: meta.mime,
+      size: blob.size,
+      created_at: meta.created_at ?? now,
+      updated_at: meta.updated_at ?? now,
+      deleted_at: meta.deleted_at ?? 0,
+      labels: (meta.labels ?? []).map((name) => nameToId[name]).filter((x): x is string => !!x),
+      archived: meta.archived ? 1 : 0,
+      has_thumb: 0,
+      state: 'dirty',
+      version,
+      blob_state: 'local',
+      protected: 0,
+    })
+  }
+
+  await db.transaction('rw', db.notes, db.files_meta, db.files_blob, async (tx) => {
+    if (notesToUpsert.length) await tx.notes.bulkPut(notesToUpsert)
+    if (filesMetaToUpsert.length) await tx.files_meta.bulkPut(filesMetaToUpsert)
+    if (blobsToPut.length) await tx.files_blob.bulkPut(blobsToPut)
+  })
+
+  comlink
+    .generateThumbnails()
+    .then(() => console.log('thumbnails generated'))
+    .catch(console.error)
+
+  setState((state) => {
+    closeImportDialog(state)
+  })
+  notifications.show({title: 'Success', message: 'Backup imported'})
 }
 
 export const keepImportNotes = async (): Promise<void> => {
