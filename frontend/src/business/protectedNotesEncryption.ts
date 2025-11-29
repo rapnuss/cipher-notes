@@ -73,29 +73,45 @@ export const decryptNotePlainData = async (
   return JSON.parse(json)
 }
 
-export const encryptNoteForStorage = async (note: Note, key: CryptoKey): Promise<Note> => {
+export type EncryptedNote = {
+  id: string
+  type: 'note'
+  title: ''
+  txt: string
+  created_at: number
+  updated_at: number
+  version: number
+  state: 'dirty' | 'synced'
+  deleted_at: number
+  labels?: string[]
+  archived: 0 | 1
+  protected: 1
+  protected_iv: string
+  protected_type: 'note' | 'todo'
+}
+
+export const encryptNoteForStorage = async (note: Note, key: CryptoKey): Promise<EncryptedNote> => {
   const plainData: PlainNoteData = {
     title: note.title,
     ...(note.type === 'note' ? {txt: note.txt} : {todos: note.todos}),
   }
   const {encrypted, iv} = await encryptNotePlainData(key, plainData)
 
-  if (note.type === 'note') {
-    return {
-      ...note,
-      title: '',
-      txt: encrypted,
-      protected: 1,
-      protected_iv: iv,
-    }
-  } else {
-    return {
-      ...note,
-      title: '',
-      todos: [{id: encrypted, done: false, txt: ''}],
-      protected: 1,
-      protected_iv: iv,
-    }
+  return {
+    id: note.id,
+    type: 'note',
+    title: '',
+    txt: encrypted,
+    created_at: note.created_at,
+    updated_at: note.updated_at,
+    version: note.version,
+    state: note.state,
+    deleted_at: note.deleted_at,
+    labels: note.labels,
+    archived: note.archived,
+    protected: 1,
+    protected_iv: iv,
+    protected_type: note.type,
   }
 }
 
@@ -104,20 +120,43 @@ export const decryptNoteFromStorage = async (note: Note, key: CryptoKey): Promis
     return note
   }
 
-  const encrypted = note.type === 'note' ? note.txt : note.todos[0]?.id ?? ''
+  const encrypted = note.txt ?? ''
   const plainData = await decryptNotePlainData(key, encrypted, note.protected_iv)
+  const originalType = note.protected_type ?? note.type
 
-  if (note.type === 'note') {
+  if (originalType === 'todo') {
     return {
-      ...note,
+      id: note.id,
+      type: 'todo',
       title: plainData.title,
-      txt: plainData.txt ?? '',
+      todos: plainData.todos ?? [],
+      created_at: note.created_at,
+      updated_at: note.updated_at,
+      version: note.version,
+      state: note.state,
+      deleted_at: note.deleted_at,
+      labels: note.labels,
+      archived: note.archived,
+      protected: 1,
+      protected_iv: note.protected_iv,
+      protected_type: 'todo',
     }
   } else {
     return {
-      ...note,
+      id: note.id,
+      type: 'note',
       title: plainData.title,
-      todos: plainData.todos ?? [],
+      txt: plainData.txt ?? '',
+      created_at: note.created_at,
+      updated_at: note.updated_at,
+      version: note.version,
+      state: note.state,
+      deleted_at: note.deleted_at,
+      labels: note.labels,
+      archived: note.archived,
+      protected: 1,
+      protected_iv: note.protected_iv,
+      protected_type: 'note',
     }
   }
 }

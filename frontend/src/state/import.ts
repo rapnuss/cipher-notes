@@ -134,14 +134,14 @@ export const exportNotes = async () => {
         return {
           id: n.id,
           title: '',
-          txt: n.type === 'note' ? n.txt : n.todos[0]?.id,
+          txt: n.txt,
           created_at: n.created_at,
           updated_at: n.updated_at,
           archived: n.archived === 1,
           labels: mapLabelIdsToNames(n.labels),
           protected: true,
           protected_iv: n.protected_iv,
-          protected_type: n.type,
+          protected_type: n.protected_type ?? n.type,
         }
       }
       return {
@@ -309,11 +309,11 @@ export const importNotesWithPassword = async (): Promise<void> => {
             return {
               ...n,
               title: '',
-              txt: encrypted.type === 'note' ? encrypted.txt : encrypted.todos[0]?.id,
+              txt: encrypted.txt,
               todos: undefined,
               protected: true,
               protected_iv: encrypted.protected_iv,
-              protected_type: n.protected_type,
+              protected_type: encrypted.protected_type,
             }
           } else {
             return {
@@ -383,40 +383,22 @@ const doImportNotes = async (zip: JSZip, parsed: NotesZip): Promise<void> => {
       .filter((x): x is string => !!x)
 
     if (importedNote.protected && importedNote.protected_iv && importedNote.txt) {
-      const noteType = importedNote.protected_type ?? 'note'
-      if (noteType === 'todo') {
-        notesToUpsert.push({
-          id,
-          title: '',
-          type: 'todo',
-          todos: [{id: importedNote.txt, done: false, txt: ''}],
-          created_at,
-          updated_at,
-          version,
-          state: 'dirty',
-          deleted_at: 0,
-          archived: importedNote.archived ? 1 : 0,
-          labels,
-          protected: 1,
-          protected_iv: importedNote.protected_iv,
-        })
-      } else {
-        notesToUpsert.push({
-          id,
-          title: '',
-          type: 'note',
-          txt: importedNote.txt,
-          created_at,
-          updated_at,
-          version,
-          state: 'dirty',
-          deleted_at: 0,
-          archived: importedNote.archived ? 1 : 0,
-          labels,
-          protected: 1,
-          protected_iv: importedNote.protected_iv,
-        })
-      }
+      notesToUpsert.push({
+        id,
+        title: '',
+        type: 'note',
+        txt: importedNote.txt,
+        created_at,
+        updated_at,
+        version,
+        state: 'dirty',
+        deleted_at: 0,
+        archived: importedNote.archived ? 1 : 0,
+        labels,
+        protected: 1,
+        protected_iv: importedNote.protected_iv,
+        protected_type: importedNote.protected_type ?? 'note',
+      })
     } else if (importedNote.todos !== undefined) {
       const todoIds = XSet.fromItr(importedNote.todos, (t) => t.id)
       notesToUpsert.push({

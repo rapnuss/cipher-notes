@@ -19,6 +19,7 @@ export type NoteCommon = {
   archived: 0 | 1
   protected: 0 | 1
   protected_iv?: string
+  protected_type?: 'note' | 'todo'
 }
 export type TextNote = NoteCommon & {type: 'note'; txt: string}
 export type TodoNote = NoteCommon & {type: 'todo'; todos: Todos}

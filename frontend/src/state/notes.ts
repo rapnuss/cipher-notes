@@ -979,7 +979,7 @@ const storeOpenNote = nonConcurrent(async () => {
         }
         const encrypted = await encryptNoteForStorage(noteToEncrypt, key)
         await db.notes.update(openNote.id, {
-          type: 'note',
+          type: encrypted.type,
           title: encrypted.title,
           txt: encrypted.txt,
           updated_at: openNote.updatedAt,
@@ -988,6 +988,7 @@ const storeOpenNote = nonConcurrent(async () => {
           archived: openNote.archived ? 1 : 0,
           protected: 1,
           protected_iv: encrypted.protected_iv,
+          protected_type: encrypted.protected_type,
         })
       } else {
         const {txt: _txt, ...noteBase} = note
@@ -1000,15 +1001,16 @@ const storeOpenNote = nonConcurrent(async () => {
         }
         const encrypted = await encryptNoteForStorage(noteToEncrypt, key)
         await db.notes.update(openNote.id, {
-          type: 'todo',
+          type: encrypted.type,
           title: encrypted.title,
-          todos: encrypted.todos,
+          txt: encrypted.txt,
           updated_at: openNote.updatedAt,
           state: 'dirty',
           version: note.state === 'dirty' ? note.version : note.version + 1,
           archived: openNote.archived ? 1 : 0,
           protected: 1,
           protected_iv: encrypted.protected_iv,
+          protected_type: encrypted.protected_type,
         })
       }
     } else {
