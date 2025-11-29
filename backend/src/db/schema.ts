@@ -36,6 +36,16 @@ export const sessionsTbl = pgTable('sessions', {
   created_at: bigint({mode: 'number'}).$default(Date.now).notNull(),
 })
 
+export const protectedNotesConfigTbl = pgTable('protected_notes_config', {
+  user_id: bigint({mode: 'number'})
+    .references(() => usersTbl.id)
+    .primaryKey(),
+  master_salt: varchar({length: 24}).notNull(),
+  verifier: text().notNull(),
+  verifier_iv: varchar({length: 16}).notNull(),
+  updated_at: bigint({mode: 'number'}).notNull(),
+})
+
 export const noteTypeEnum = pgEnum('note_type', ['note', 'todo', 'label', 'file'])
 
 export const notesTbl = pgTable(

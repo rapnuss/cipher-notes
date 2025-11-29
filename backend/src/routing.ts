@@ -14,6 +14,10 @@ import {changeEmailEndpoint, sendChangeEmailCodesEndpoint} from './endpoints/cha
 import {getPresignedUrlsEndpoint} from './endpoints/getPresignedUrls'
 import {storageUsageEndpoint} from './endpoints/storageUsage'
 import {adminCreateUserEndpoint, adminSetPasswordEndpoint} from './endpoints/admin'
+import {
+  getProtectedNotesConfigEndpoint,
+  putProtectedNotesConfigEndpoint,
+} from './endpoints/protectedNotesConfig'
 
 export const routing: Routing = {
   hello: helloEndpoint,
@@ -33,4 +37,6 @@ export const routing: Routing = {
   storageUsage: storageUsageEndpoint,
   adminCreateUser: adminCreateUserEndpoint,
   adminSetPassword: adminSetPasswordEndpoint,
+  getProtectedNotesConfig: getProtectedNotesConfigEndpoint,
+  putProtectedNotesConfig: putProtectedNotesConfigEndpoint,
 }

@@ -16,6 +16,7 @@ import {
   setLabelDropdownOpen,
   openNoteArchivedToggled,
   setMoreMenuOpen,
+  openNoteProtectedToggled,
 } from '../state/notes'
 import {IconArrowBackUp} from './icons/IconArrowBackUp'
 import {IconArrowForwardUp} from './icons/IconArrowForwardUp'
@@ -46,6 +47,7 @@ import {useRef} from 'react'
 import {IconClockPlus} from './icons/IconClockPlus'
 import {IconClockEdit} from './icons/IconClockEdit'
 import {formatDateTime} from '../util/misc'
+import {IconLock, IconLockOpen} from './icons/IconLock'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
@@ -59,6 +61,7 @@ export const OpenNoteDialog = () => {
   const openNote = useSelector((state) => state.notes.openNote)
   const {labelDropdownOpen, moreMenuOpen} = useSelector((state) => state.notes.noteDialog)
   const labelsCache = useSelector((state) => state.labels.labelsCache)
+  const protectedNotesUnlocked = useSelector((state) => state.protectedNotes.unlocked)
   const note = useLiveQuery(
     () => (!openNote ? undefined : db.notes.get(openNote.id)),
     [openNote?.id]
@@ -140,50 +143,58 @@ export const OpenNoteDialog = () => {
         },
       }}
     >
-      <input
-        id='open-note-title'
-        style={{
-          border: 'none',
-          fontSize: '1.5rem',
-          fontWeight: 'bold',
-          outline: 'none',
-          background: 'transparent',
-        }}
-        autoComplete='off'
-        placeholder='Title'
-        type='text'
-        value={openNote?.title ?? ''}
-        onChange={(e) => openNoteTitleChanged(e.target.value)}
-        onKeyDown={(e) => {
-          if (
-            !openNote ||
-            (e.key !== 'Enter' &&
-              (e.key !== 'ArrowDown' || e.currentTarget.selectionEnd !== openNote.title.length))
-          ) {
-            return
-          }
-          e.preventDefault()
-          e.stopPropagation()
-          if (openNote.type === 'todo') {
-            const existingTextarea = (e.currentTarget.parentElement?.querySelector(
-              'textarea:not(:disabled)'
-            ) ?? null) as HTMLTextAreaElement | null
-            const parent = e.currentTarget.parentElement
-            if (e.key === 'ArrowDown' && !openNote.todos.some((t) => !t.done)) {
-              insertTodo()
-              queueMicrotask(() => parent?.querySelector('textarea')?.focus())
-            } else if (e.key === 'Enter' && (!existingTextarea || existingTextarea.value !== '')) {
-              insertTodo()
-              queueMicrotask(() => parent?.querySelector('textarea')?.focus())
-            } else if (existingTextarea) {
-              queueMicrotask(() => existingTextarea.focus())
+      <Flex align='center' gap='xs'>
+        {openNote?.protected && <IconLock style={{flex: '0 0 auto', opacity: 0.6}} />}
+        <input
+          id='open-note-title'
+          style={{
+            border: 'none',
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            outline: 'none',
+            background: 'transparent',
+            flex: '1 1 auto',
+            minWidth: 0,
+          }}
+          autoComplete='off'
+          placeholder='Title'
+          type='text'
+          value={openNote?.title ?? ''}
+          onChange={(e) => openNoteTitleChanged(e.target.value)}
+          onKeyDown={(e) => {
+            if (
+              !openNote ||
+              (e.key !== 'Enter' &&
+                (e.key !== 'ArrowDown' || e.currentTarget.selectionEnd !== openNote.title.length))
+            ) {
+              return
             }
-          } else if (openNote.type === 'note') {
-            viewRef.current?.focus()
-          }
-        }}
-        data-autofocus={isNewNote ? true : undefined}
-      />
+            e.preventDefault()
+            e.stopPropagation()
+            if (openNote.type === 'todo') {
+              const existingTextarea = (e.currentTarget.parentElement?.querySelector(
+                'textarea:not(:disabled)'
+              ) ?? null) as HTMLTextAreaElement | null
+              const parent = e.currentTarget.parentElement
+              if (e.key === 'ArrowDown' && !openNote.todos.some((t) => !t.done)) {
+                insertTodo()
+                queueMicrotask(() => parent?.querySelector('textarea')?.focus())
+              } else if (
+                e.key === 'Enter' &&
+                (!existingTextarea || existingTextarea.value !== '')
+              ) {
+                insertTodo()
+                queueMicrotask(() => parent?.querySelector('textarea')?.focus())
+              } else if (existingTextarea) {
+                queueMicrotask(() => existingTextarea.focus())
+              }
+            } else if (openNote.type === 'note') {
+              viewRef.current?.focus()
+            }
+          }}
+          data-autofocus={isNewNote ? true : undefined}
+        />
+      </Flex>
       {openNote?.type === 'note' ? (
         <Editor
           placeholder='Note text'
@@ -276,6 +287,17 @@ export const OpenNoteDialog = () => {
             >
               {openNote?.archived ? 'Unarchive note' : 'Archive note'}
             </Menu.Item>
+            {protectedNotesUnlocked && (
+              <Menu.Item
+                leftSection={openNote?.protected ? <IconLockOpen /> : <IconLock />}
+                onClick={() => {
+                  setMoreMenuOpen(false)
+                  openNoteProtectedToggled()
+                }}
+              >
+                {openNote?.protected ? 'Unprotect note' : 'Protect note'}
+              </Menu.Item>
+            )}
           </Menu.Dropdown>
         </Menu>
         <div style={{flex: '1 1 0'}} />

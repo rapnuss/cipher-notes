@@ -237,6 +237,7 @@ export const importFiles = async (files: Iterable<File>, activeLabel: ActiveLabe
         archived: 0,
         has_thumb: 0,
         size: file.size,
+        protected: 0,
       }
       const blob: FileBlob = {
         id,

@@ -219,6 +219,7 @@ export const importNotes = async (): Promise<void> => {
           deleted_at: 0,
           archived: importedNote.archived ? 1 : 0,
           labels,
+          protected: 0,
         })
       } else if (txt !== undefined) {
         notesToUpsert.push({
@@ -233,6 +234,7 @@ export const importNotes = async (): Promise<void> => {
           deleted_at: 0,
           archived: importedNote.archived ? 1 : 0,
           labels,
+          protected: 0,
         })
       }
     }
@@ -275,6 +277,7 @@ export const importNotes = async (): Promise<void> => {
         state: 'dirty',
         version,
         blob_state: 'local',
+        protected: 0,
       })
     }
 
@@ -358,6 +361,7 @@ export const keepImportNotes = async (): Promise<void> => {
         version: 1,
         labels: importNote.labels?.map((l) => nameToId[l.name]!),
         archived: importNote.isArchived ? 1 : 0,
+        protected: 0,
       }
       const filesMeta: FileMeta[] =
         importNote.attachments?.map((a) => ({
@@ -370,13 +374,14 @@ export const keepImportNotes = async (): Promise<void> => {
           version: noteCommon.version,
           labels: noteCommon.labels ?? [],
           archived: noteCommon.archived,
+          protected: 0 as const,
 
-          type: 'file',
+          type: 'file' as const,
           ext: splitFilename(a.filePath)[1],
           mime: a.mimetype,
-          has_thumb: 0,
+          has_thumb: 0 as const,
           size: 0,
-          blob_state: 'local',
+          blob_state: 'local' as const,
         })) ?? []
       for (let i = filesMeta.length - 1; i >= 0; --i) {
         const fileMeta = filesMeta[i]!

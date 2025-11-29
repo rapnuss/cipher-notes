@@ -37,6 +37,7 @@ export const CommandCenter = () => {
   const isAdmin = useSelector((state) => state.user.user.isAdmin)
   const email = useSelector((state) => state.user.user.email)
   const commandCenterDisabled = useSelector(selectCommandCenterDisabled)
+  const protectedNotesUnlocked = useSelector((state) => state.protectedNotes.unlocked)
   const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
   const labels = useSelector(selectCachedLabels)
   const activeLabel = useSelector((state) => state.labels.activeLabel)
@@ -51,8 +52,14 @@ export const CommandCenter = () => {
     {
       id: 'newNote',
       label: 'New note',
-      onClick: addNote,
+      onClick: () => addNote(),
       shortcut: 'alt+shift+n',
+    },
+    {
+      id: 'newProtectedNote',
+      label: 'New protected note',
+      onClick: () => addNote(true),
+      disabled: !protectedNotesUnlocked,
     },
     {
       id: 'searchContent',

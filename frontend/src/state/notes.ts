@@ -59,6 +59,8 @@ import XSet from '../util/XSet'
 import {notifications} from '@mantine/notifications'
 import {UserState} from './user'
 import {setOpenFile, upDownloadBlobsAndSetStateDebounced} from './files'
+import {tryDecryptNote, encryptNoteForStorage} from '../business/protectedNotesEncryption'
+import {getProtectedNotesKey} from './protectedNotes'
 
 export type NotesState = {
   query: string
@@ -127,8 +129,17 @@ export const setMoreMenuOpen = (open: boolean) =>
     state.notes.noteDialog.moreMenuOpen = open
   })
 export const noteOpened = async (id: string) => {
-  const note = await db.notes.get(id)
+  let note = await db.notes.get(id)
   if (!note || note.deleted_at !== 0) return
+
+  if (note.protected === 1) {
+    const decrypted = await tryDecryptNote(note)
+    if (!decrypted) {
+      return
+    }
+    note = decrypted
+  }
+
   setState((state) => {
     if (note.type === 'todo') {
       state.notes.openNote = {
@@ -138,6 +149,7 @@ export const noteOpened = async (id: string) => {
         title: note.title,
         updatedAt: note.updated_at,
         archived: note.archived === 1,
+        protected: note.protected === 1,
       }
     } else {
       state.notes.openNote = {
@@ -147,11 +159,11 @@ export const noteOpened = async (id: string) => {
         title: note.title,
         updatedAt: note.updated_at,
         archived: note.archived === 1,
+        protected: note.protected === 1,
         selections: [defaultSelection],
       }
     }
   })
-  // TODO: remove this; second set state triggers storeOpenNote which triggers a sync
   if (note.type === 'todo' && !todosHaveIdsAndUpdatedAt(note.todos)) {
     setState((state) => {
       if (!state.notes.openNote) return
@@ -188,7 +200,7 @@ export const noteClosed = async () => {
     }
   })
 }
-export const addNote = async () => {
+export const addNote = async (isProtected = false) => {
   const now = Date.now()
   const id = crypto.randomUUID()
   const {activeLabel} = getState().labels
@@ -204,6 +216,7 @@ export const addNote = async () => {
     title: '',
     labels: activeLabelIsUuid(activeLabel) ? [activeLabel] : undefined,
     archived: 0,
+    protected: isProtected ? 1 : 0,
   }
   await db.notes.add(note)
 
@@ -215,6 +228,7 @@ export const addNote = async () => {
       title: '',
       updatedAt: now,
       archived: false,
+      protected: isProtected,
       selections: [defaultSelection],
     }
   })
@@ -243,6 +257,7 @@ export const openNoteTypeToggled = () =>
         title: state.notes.openNote.title,
         updatedAt: Date.now(),
         archived: state.notes.openNote.archived,
+        protected: state.notes.openNote.protected,
       }
     } else {
       state.notes.openNote = {
@@ -252,6 +267,7 @@ export const openNoteTypeToggled = () =>
         title: state.notes.openNote.title,
         updatedAt: Date.now(),
         archived: state.notes.openNote.archived,
+        protected: state.notes.openNote.protected,
         selections: [defaultSelection],
       }
     }
@@ -260,6 +276,13 @@ export const openNoteArchivedToggled = () =>
   setState((state) => {
     if (!state.notes.openNote) return
     state.notes.openNote.archived = !state.notes.openNote.archived
+    state.notes.openNote.updatedAt = Date.now()
+  })
+
+export const openNoteProtectedToggled = () =>
+  setState((state) => {
+    if (!state.notes.openNote) return
+    state.notes.openNote.protected = !state.notes.openNote.protected
     state.notes.openNote.updatedAt = Date.now()
   })
 
@@ -862,12 +885,12 @@ export const syncNotes = nonConcurrent(async () => {
   }
 })
 
-const setOpenNote = (syncedNotes: Record<string, Note>) => {
+const setOpenNote = async (syncedNotes: Record<string, Note>) => {
   const openNote = getState().notes.openNote
   if (!openNote) {
     return
   }
-  const note = syncedNotes[openNote.id]
+  let note = syncedNotes[openNote.id]
   if (!note) {
     return
   }
@@ -876,7 +899,15 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
       state.notes.openNote = null
     })
   }
-  // TODO: handle clock differences between clients
+
+  if (note.protected === 1) {
+    const decrypted = await tryDecryptNote(note)
+    if (!decrypted) {
+      return
+    }
+    note = decrypted
+  }
+
   if (note.updated_at > openNote.updatedAt) {
     setState((state) => {
       state.notes.openNote =
@@ -888,8 +919,9 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
               txt: note.txt,
               updatedAt: note.updated_at,
               archived: note.archived === 1,
+              protected: note.protected === 1,
               selections:
-                'selections' in openNote && openNote.selections // TODO: check if we need to clamp selections
+                'selections' in openNote && openNote.selections
                   ? openNote.selections
                   : [defaultSelection],
             }
@@ -900,6 +932,7 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
               todos: note.todos,
               updatedAt: note.updated_at,
               archived: note.archived === 1,
+              protected: note.protected === 1,
             }
     })
   }
@@ -910,25 +943,101 @@ const storeOpenNote = nonConcurrent(async () => {
   if (!openNote) return
 
   const note = await db.notes.get(openNote.id)
+  if (!note) return
 
-  if (
-    note &&
-    (note.title !== openNote.title ||
-      note.type !== openNote.type ||
-      !!note.archived !== openNote.archived ||
+  const hasChanges =
+    note.type !== openNote.type ||
+    !!note.archived !== openNote.archived ||
+    !!note.protected !== openNote.protected
+
+  let contentChanged = false
+  if (note.protected === 1) {
+    contentChanged = true
+  } else {
+    contentChanged =
+      note.title !== openNote.title ||
       (note.type === 'note' && note.txt !== openNote.txt) ||
-      (note.type === 'todo' && !deepEquals(note.todos, openNote.todos)))
-  ) {
-    await db.notes.update(openNote.id, {
-      type: openNote.type,
-      title: openNote.title,
-      txt: openNote.type === 'note' ? openNote.txt : undefined,
-      todos: openNote.type === 'todo' ? openNote.todos : undefined,
-      updated_at: openNote.updatedAt,
-      state: 'dirty',
-      version: note.state === 'dirty' ? note.version : note.version + 1,
-      archived: openNote.archived ? 1 : 0,
-    })
+      (note.type === 'todo' && !deepEquals(note.todos, openNote.todos))
+  }
+
+  if (hasChanges || contentChanged) {
+    if (openNote.protected) {
+      const key = getProtectedNotesKey()
+      if (!key) {
+        console.error('Cannot store protected note: no key available')
+        return
+      }
+
+      if (openNote.type === 'note') {
+        const {todos: _todos, ...noteBase} = note
+        const noteToEncrypt: Note = {
+          ...noteBase,
+          type: 'note',
+          title: openNote.title,
+          txt: openNote.txt,
+          protected: 1,
+        }
+        const encrypted = await encryptNoteForStorage(noteToEncrypt, key)
+        await db.notes.update(openNote.id, {
+          type: 'note',
+          title: encrypted.title,
+          txt: encrypted.txt,
+          updated_at: openNote.updatedAt,
+          state: 'dirty',
+          version: note.state === 'dirty' ? note.version : note.version + 1,
+          archived: openNote.archived ? 1 : 0,
+          protected: 1,
+          protected_iv: encrypted.protected_iv,
+        })
+      } else {
+        const {txt: _txt, ...noteBase} = note
+        const noteToEncrypt: Note = {
+          ...noteBase,
+          type: 'todo',
+          title: openNote.title,
+          todos: openNote.todos,
+          protected: 1,
+        }
+        const encrypted = await encryptNoteForStorage(noteToEncrypt, key)
+        await db.notes.update(openNote.id, {
+          type: 'todo',
+          title: encrypted.title,
+          todos: encrypted.todos,
+          updated_at: openNote.updatedAt,
+          state: 'dirty',
+          version: note.state === 'dirty' ? note.version : note.version + 1,
+          archived: openNote.archived ? 1 : 0,
+          protected: 1,
+          protected_iv: encrypted.protected_iv,
+        })
+      }
+    } else {
+      if (openNote.type === 'note') {
+        await db.notes.update(openNote.id, {
+          type: 'note',
+          title: openNote.title,
+          txt: openNote.txt,
+          updated_at: openNote.updatedAt,
+          state: 'dirty',
+          version: note.state === 'dirty' ? note.version : note.version + 1,
+          archived: openNote.archived ? 1 : 0,
+          protected: 0,
+          protected_iv: undefined,
+        })
+      } else {
+        await db.notes.update(openNote.id, {
+          type: 'todo',
+          title: openNote.title,
+          todos: openNote.todos,
+          updated_at: openNote.updatedAt,
+          state: 'dirty',
+          version: note.state === 'dirty' ? note.version : note.version + 1,
+          archived: openNote.archived ? 1 : 0,
+          protected: 0,
+          protected_iv: undefined,
+        })
+      }
+    }
   }
 })
 

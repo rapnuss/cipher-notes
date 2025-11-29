@@ -16,16 +16,43 @@ import {FileIconWithExtension} from './FileIconWithExtension'
 import {selectSelectionActive, toggleSelection, updateCurrentNotes} from '../state/selection'
 import {IconSquareMinus} from './icons/IconSquareMinus'
 import {useEffect} from 'react'
+import {tryDecryptNote} from '../business/protectedNotesEncryption'
 
 export const NotesGrid = () => {
   const query = useSelector((state) => state.notes.query)
   const sort = useSelector((state) => state.notes.sort)
   const activeLabel = useSelector((state) => state.labels.activeLabel)
+  const protectedNotesUnlocked = useSelector((state) => state.protectedNotes.unlocked)
   const notes = useLiveQuery(async () => {
     const queryLower = query.toLocaleLowerCase()
     const allNotes = await db.notes.where('deleted_at').equals(0).toArray()
     const allFiles = await db.files_meta.where('deleted_at').equals(0).toArray()
-    const notes = [...allNotes, ...allFiles]
+
+    // TODO: decrypt all notes in parallel using Promise.all
+
+    const decryptedNotes: Note[] = []
+    for (const note of allNotes) {
+      if (note.protected === 1) {
+        if (!protectedNotesUnlocked) {
+          continue
+        }
+        const decrypted = await tryDecryptNote(note)
+        if (decrypted) {
+          decryptedNotes.push(decrypted)
+        }
+      } else {
+        decryptedNotes.push(note)
+      }
+    }
+
+    const visibleFiles = allFiles.filter((f) => {
+      if (f.protected === 1) {
+        return protectedNotesUnlocked
+      }
+      return true
+    })
+
+    const notes = [...decryptedNotes, ...visibleFiles]
       .filter(
         (n) =>
           (activeLabel === 'archived'
@@ -45,7 +72,7 @@ export const NotesGrid = () => {
       )
       .sort(byProp(sort.prop, sort.desc))
     return bisectBy(notes ?? [], (n) => n.archived === 1)
-  }, [query, sort, activeLabel])
+  }, [query, sort, activeLabel, protectedNotesUnlocked])
   const [archivedNotes = [], activeNotes = []] = notes ?? []
   useEffect(() => {
     if (

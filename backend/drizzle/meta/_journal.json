@@ -8,6 +8,13 @@
       "when": 1756705234111,
       "tag": "0000_warm_blink",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1732924800000,
+      "tag": "0001_protected_notes_config",
+      "breakpoints": true
     }
   ]
 }

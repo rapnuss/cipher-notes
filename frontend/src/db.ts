@@ -1,6 +1,15 @@
 import Dexie, {EntityTable, liveQuery} from 'dexie'
 import {FileBlob, FileMeta, FileThumb, Label, Note} from './business/models'
 
+export type ProtectedNotesConfig = {
+  id: 'config'
+  master_salt: string
+  verifier: string
+  verifier_iv: string
+  updated_at: number
+  state: 'dirty' | 'synced'
+}
+
 export const db = new Dexie('DexieDB') as Dexie & {
   notes: EntityTable<Note, 'id'>
   note_base_versions: EntityTable<Note, 'id'>
@@ -8,6 +17,7 @@ export const db = new Dexie('DexieDB') as Dexie & {
   files_meta: EntityTable<FileMeta, 'id'>
   files_blob: EntityTable<FileBlob, 'id'>
   files_thumb: EntityTable<FileThumb, 'id'>
+  protected_notes_config: EntityTable<ProtectedNotesConfig, 'id'>
 }
 
 db.version(1).stores({
@@ -72,6 +82,28 @@ db.version(7).stores({
   files_blob: 'id',
   files_thumb: 'id',
 })
+
+db.version(8)
+  .stores({
+    notes: 'id, created_at, updated_at, version, state, deleted_at, type, archived, protected',
+    files_meta:
+      'id, created_at, updated_at, deleted_at, state, ext, mime, archived, has_thumb, size, blob_state, protected',
+    protected_notes_config: 'id',
+  })
+  .upgrade(async (tx) => {
+    await tx
+      .table('notes')
+      .toCollection()
+      .modify((note) => {
+        note.protected = 0
+      })
+    await tx
+      .table('files_meta')
+      .toCollection()
+      .modify((file) => {
+        file.protected = 0
+      })
+  })
 
 export const hasDirtyNotesObservable = liveQuery(() =>
   db.notes

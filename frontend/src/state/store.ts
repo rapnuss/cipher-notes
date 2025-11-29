@@ -12,6 +12,7 @@ import {filesInit, FilesState, registerFilesSubscriptions} from './files'
 import {selectionInit, SelectionState, selectSelectionActive} from './selection'
 import {storageUsageInit, StorageUsageState} from './storageUsage'
 import {registerSettingsSubscriptions, settingsInit, SettingsState} from './settings'
+import {protectedNotesInit, ProtectedNotesState} from './protectedNotes'
 
 export type RootState = {
   notes: NotesState
@@ -26,6 +27,7 @@ export type RootState = {
   selection: SelectionState
   storageUsage: StorageUsageState
   settings: SettingsState
+  protectedNotes: ProtectedNotesState
 }
 const init: RootState = {
   notes: notesInit,
@@ -40,6 +42,7 @@ const init: RootState = {
   selection: selectionInit,
   storageUsage: storageUsageInit,
   settings: settingsInit,
+  protectedNotes: protectedNotesInit,
 }
 export const useSelector = create<RootState>()(immer(subscribeWithSelector(() => init)))
 export const getState = useSelector.getState
@@ -72,7 +75,10 @@ const selectAnyDialogExceptCommandCenterOpen = (state: RootState): boolean =>
   state.labels.dialog.open ||
   state.files.openFile !== null ||
   state.storageUsage.open ||
-  state.settings.open
+  state.settings.open ||
+  state.protectedNotes.setupDialogOpen ||
+  state.protectedNotes.unlockDialogOpen ||
+  state.protectedNotes.changePasswordDialogOpen
 
 export const selectCommandCenterDisabled = (state: RootState): boolean =>
   selectAnyDialogExceptCommandCenterOpen(state) || selectSelectionActive(state)

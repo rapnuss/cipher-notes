@@ -17,6 +17,8 @@ export type NoteCommon = {
   deleted_at: number
   labels?: string[]
   archived: 0 | 1
+  protected: 0 | 1
+  protected_iv?: string
 }
 export type TextNote = NoteCommon & {type: 'note'; txt: string}
 export type TodoNote = NoteCommon & {type: 'todo'; todos: Todos}
@@ -39,6 +41,8 @@ export type FileMeta = {
   archived: 0 | 1
   has_thumb: 0 | 1
   size: number
+  protected: 0 | 1
+  protected_iv?: string
 }
 export type FileBlob = {
   id: string
@@ -73,6 +77,8 @@ const filePullDefExtraKeysEnum: {[K in FilePullDefExtraKeys]: K} = {
   labels: 'labels',
   archived: 'archived',
   size: 'size',
+  protected: 'protected',
+  protected_iv: 'protected_iv',
 }
 type FilePullDefExtraKeys = Exclude<keyof FilePullDef, FilePullDellKeys>
 export const filePullDefExtraKeys: Readonly<FilePullDefExtraKeys[]> = Object.freeze(
@@ -114,6 +120,7 @@ export type TextOpenNote = {
   txt: string
   updatedAt: number
   archived: boolean
+  protected: boolean
   selections: CMSelection[]
 }
 export type TodoOpenNote = {
@@ -123,6 +130,7 @@ export type TodoOpenNote = {
   todos: Todos
   updatedAt: number
   archived: boolean
+  protected: boolean
 }
 export type OpenNote = XOR<TextOpenNote, TodoOpenNote>
 

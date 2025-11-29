@@ -185,3 +185,19 @@ export const reqStorageUsage = () =>
     '/storageUsage',
     {method: 'GET'}
   )
+
+export type ProtectedNotesConfig = {
+  master_salt: string
+  verifier: string
+  verifier_iv: string
+  updated_at: number
+}
+
+export const reqGetProtectedNotesConfig = () =>
+  request<{config: ProtectedNotesConfig | null}>('/getProtectedNotesConfig', {method: 'GET'})
+
+export const reqPutProtectedNotesConfig = (config: ProtectedNotesConfig) =>
+  request<{success: boolean}>('/putProtectedNotesConfig', {
+    method: 'POST',
+    body: config,
+  })

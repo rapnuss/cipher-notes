@@ -119,6 +119,7 @@ export const putToNote = (put: Put): Note => {
     state: 'synced',
     title: '',
     archived: 0,
+    protected: 0,
   }
   if (txt === null && type === 'note') {
     return {
@@ -199,6 +200,7 @@ export const putToFile = (put: Put): FilePull => {
     mime,
     labels,
     size,
+    protected: 0,
   }
 }
 
@@ -401,6 +403,7 @@ export const mergeTodoNoteConflict = (
     // TODO: merge labels
     labels:
       dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.labels : serverConflict.labels,
+    protected: 0,
   }
 }
 
@@ -438,6 +441,7 @@ export const mergeTextNoteConflict = (
     // TODO: merge labels
     labels:
       dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.labels : serverConflict.labels,
+    protected: 0,
   }
 }
 
@@ -495,6 +499,7 @@ export const fileMetaToPull = (file: FileMeta): FilePull => {
       labels,
       title,
       size,
+      protected: file.protected,
     }
   }
 }

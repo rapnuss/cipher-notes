@@ -19,6 +19,11 @@ import {ChangeEmailDialog} from './ChangeEmailDialog.tsx'
 import {OpenFileDialog} from './OpenFileDialog.tsx'
 import {StorageUsageDialog} from './StorageUsageDialog.tsx'
 import {SettingsDialog} from './SettingsDialog.tsx'
+import {
+  SetupProtectedNotesDialog,
+  UnlockProtectedNotesDialog,
+  ChangePasswordDialog,
+} from './ProtectedNotesDialog.tsx'
 
 export const App = () => (
   <>
@@ -42,6 +47,9 @@ export const App = () => (
     <ChangeEmailDialog />
     <ImprintDialog />
     <SettingsDialog />
+    <SetupProtectedNotesDialog />
+    <UnlockProtectedNotesDialog />
+    <ChangePasswordDialog />
     <PWABadge />
     <Notifications autoClose={10_000} />
   </>
