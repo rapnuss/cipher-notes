@@ -134,18 +134,31 @@ export const putToNote = (put: Put): Note => {
       todos: [],
     }
   } else if (typeof txt === 'string' && type === 'note') {
-    const {title, txt, labels, archived} = zodParseString(textPutTxtSchema, put.txt) ?? {
+    const parsed = zodParseString(textPutTxtSchema, put.txt) ?? {
       title: '',
-      txt: put.txt,
+      txt: put.txt ?? '',
       archived: false,
+    }
+    if (parsed.protected && parsed.protected_iv && parsed.protected_type) {
+      return {
+        ...common,
+        type: 'note',
+        txt: parsed.txt,
+        title: parsed.title,
+        labels: parsed.labels,
+        archived: parsed.archived ? 1 : 0,
+        protected: 1,
+        protected_iv: parsed.protected_iv,
+        protected_type: parsed.protected_type,
+      }
     }
     return {
       ...common,
       type: 'note',
-      txt,
-      title,
-      labels,
-      archived: archived ? 1 : 0,
+      txt: parsed.txt,
+      title: parsed.title,
+      labels: parsed.labels,
+      archived: parsed.archived ? 1 : 0,
     }
   } else if (typeof txt === 'string' && type === 'todo') {
     const {title, todos, labels, archived} = zodParseString(todoPutTxtSchema, put.txt) ?? {
@@ -214,6 +227,25 @@ export const noteToPut = (n: Note): Put => {
       version: n.version,
       deleted_at: n.deleted_at,
       type: n.type,
+    }
+  } else if (n.protected === 1 && n.protected_iv && n.protected_type) {
+    const txtObj: TextPutTxt = {
+      title: n.title,
+      txt: n.txt ?? '',
+      labels: n.labels,
+      archived: !!n.archived,
+      protected: true,
+      protected_iv: n.protected_iv,
+      protected_type: n.protected_type,
+    }
+    return {
+      id: n.id,
+      created_at: n.created_at,
+      txt: JSON.stringify(txtObj),
+      updated_at: n.updated_at,
+      version: n.version,
+      deleted_at: null,
+      type: 'note',
     }
   } else if (n.type === 'todo') {
     const txtObj: TodoPutTxt = {
@@ -385,6 +417,7 @@ export const mergeTodoNoteConflict = (
     // TODO: merge todos, be careful with child/parent relations
     return null
   }
+  const newer = dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote : serverConflict
   return {
     type: 'todo',
     id: baseVersion.id,
@@ -393,17 +426,13 @@ export const mergeTodoNoteConflict = (
     deleted_at: 0,
     version: Math.max(dirtyNote.version, serverConflict.version) + 1,
     state: 'dirty',
-    title:
-      dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.title : serverConflict.title,
-    archived:
-      dirtyNote.updated_at > serverConflict.updated_at
-        ? dirtyNote.archived
-        : serverConflict.archived,
+    title: newer.title,
+    archived: newer.archived,
     todos,
-    // TODO: merge labels
-    labels:
-      dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.labels : serverConflict.labels,
-    protected: 0,
+    labels: newer.labels,
+    protected: newer.protected,
+    protected_iv: newer.protected_iv,
+    protected_type: newer.protected_type,
   }
 }
 
@@ -423,25 +452,22 @@ export const mergeTextNoteConflict = (
   } else {
     txt = threeWayMerge(baseVersion.txt, dirtyNote.txt, serverConflict.txt)
   }
+  const newer = dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote : serverConflict
   return {
     type: 'note',
     id: baseVersion.id,
     created_at: baseVersion.created_at,
     updated_at: Date.now(),
     txt,
-    title:
-      dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.title : serverConflict.title,
-    archived:
-      dirtyNote.updated_at > serverConflict.updated_at
-        ? dirtyNote.archived
-        : serverConflict.archived,
+    title: newer.title,
+    archived: newer.archived,
     version: Math.max(dirtyNote.version, serverConflict.version) + 1,
     state: 'dirty',
     deleted_at: 0,
-    // TODO: merge labels
-    labels:
-      dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.labels : serverConflict.labels,
-    protected: 0,
+    labels: newer.labels,
+    protected: newer.protected,
+    protected_iv: newer.protected_iv,
+    protected_type: newer.protected_type,
   }
 }
 

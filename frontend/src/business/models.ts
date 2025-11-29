@@ -157,6 +157,9 @@ export const textPutTxtSchema = z.object({
   txt: z.string(),
   labels: z.array(z.uuidv4()).optional(),
   archived: z.boolean().optional(),
+  protected: z.boolean().optional(),
+  protected_iv: z.string().optional(),
+  protected_type: z.enum(['note', 'todo']).optional(),
 })
 export type TextPutTxt = z.infer<typeof textPutTxtSchema>
 
