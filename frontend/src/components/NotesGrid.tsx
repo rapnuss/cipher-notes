@@ -28,22 +28,17 @@ export const NotesGrid = () => {
     const allNotes = await db.notes.where('deleted_at').equals(0).toArray()
     const allFiles = await db.files_meta.where('deleted_at').equals(0).toArray()
 
-    // TODO: decrypt all notes in parallel using Promise.all
-
-    const decryptedNotes: Note[] = []
-    for (const note of allNotes) {
-      if (note.protected === 1) {
-        if (!protectedNotesUnlocked) {
-          continue
-        }
-        const decrypted = await tryDecryptNote(note)
-        if (decrypted) {
-          decryptedNotes.push(decrypted)
-        }
-      } else {
-        decryptedNotes.push(note)
-      }
-    }
+    const decryptedNotes = (
+      await Promise.all(
+        allNotes.map(async (note) => {
+          if (note.protected === 1) {
+            if (!protectedNotesUnlocked) return null
+            return tryDecryptNote(note)
+          }
+          return note
+        })
+      )
+    ).filter((n): n is Note => n !== null)
 
     const visibleFiles = allFiles.filter((f) => {
       if (f.protected === 1) {

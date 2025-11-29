@@ -42,10 +42,10 @@ export const getProtectedNotesConfigEndpoint = authEndpointsFactory.build({
 export const putProtectedNotesConfigEndpoint = authEndpointsFactory.build({
   method: 'post',
   input: z.object({
-    master_salt: z.string(),
-    verifier: z.string(),
-    verifier_iv: z.string(),
-    updated_at: z.number(),
+    master_salt: z.string().max(24),
+    verifier: z.string().max(128),
+    verifier_iv: z.string().max(16),
+    updated_at: z.number().int().positive(),
   }),
   output: z.object({
     success: z.boolean(),

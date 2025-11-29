@@ -76,9 +76,9 @@ const selectAnyDialogExceptCommandCenterOpen = (state: RootState): boolean =>
   state.files.openFile !== null ||
   state.storageUsage.open ||
   state.settings.open ||
-  state.protectedNotes.setupDialogOpen ||
-  state.protectedNotes.unlockDialogOpen ||
-  state.protectedNotes.changePasswordDialogOpen
+  state.protectedNotes.setupDialog.open ||
+  state.protectedNotes.unlockDialog.open ||
+  state.protectedNotes.changePasswordDialog.open
 
 export const selectCommandCenterDisabled = (state: RootState): boolean =>
   selectAnyDialogExceptCommandCenterOpen(state) || selectSelectionActive(state)

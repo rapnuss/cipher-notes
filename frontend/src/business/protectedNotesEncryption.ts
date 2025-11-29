@@ -89,11 +89,10 @@ export const encryptNoteForStorage = async (note: Note, key: CryptoKey): Promise
       protected_iv: iv,
     }
   } else {
-    // !! todos are not encrypted yet !!
     return {
       ...note,
       title: '',
-      todos: [],
+      todos: [{id: encrypted, done: false, txt: ''}],
       protected: 1,
       protected_iv: iv,
     }
@@ -105,7 +104,7 @@ export const decryptNoteFromStorage = async (note: Note, key: CryptoKey): Promis
     return note
   }
 
-  const encrypted = note.type === 'note' ? note.txt : JSON.stringify(note.todos)
+  const encrypted = note.type === 'note' ? note.txt : note.todos[0]?.id ?? ''
   const plainData = await decryptNotePlainData(key, encrypted, note.protected_iv)
 
   if (note.type === 'note') {

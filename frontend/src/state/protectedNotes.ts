@@ -3,14 +3,62 @@ import {createVerifier, deriveKey, generateMasterSalt, verifyPassword} from '../
 import {getState, setState} from './store'
 import {reqGetProtectedNotesConfig, reqPutProtectedNotesConfig} from '../services/backend'
 
+export type SetupDialogState = {
+  open: boolean
+  password: string
+  confirmPassword: string
+  loading: boolean
+  error: string
+}
+
+export type UnlockDialogState = {
+  open: boolean
+  password: string
+  loading: boolean
+  error: string
+}
+
+export type ChangePasswordDialogState = {
+  open: boolean
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+  loading: boolean
+  error: string
+}
+
 export type ProtectedNotesState = {
   unlocked: boolean
   derivedKey: CryptoKey | null
   configLoaded: boolean
   hasConfig: boolean
-  setupDialogOpen: boolean
-  unlockDialogOpen: boolean
-  changePasswordDialogOpen: boolean
+  setupDialog: SetupDialogState
+  unlockDialog: UnlockDialogState
+  changePasswordDialog: ChangePasswordDialogState
+}
+
+const setupDialogInit: SetupDialogState = {
+  open: false,
+  password: '',
+  confirmPassword: '',
+  loading: false,
+  error: '',
+}
+
+const unlockDialogInit: UnlockDialogState = {
+  open: false,
+  password: '',
+  loading: false,
+  error: '',
+}
+
+const changePasswordDialogInit: ChangePasswordDialogState = {
+  open: false,
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+  loading: false,
+  error: '',
 }
 
 export const protectedNotesInit: ProtectedNotesState = {
@@ -18,39 +66,69 @@ export const protectedNotesInit: ProtectedNotesState = {
   derivedKey: null,
   configLoaded: false,
   hasConfig: false,
-  setupDialogOpen: false,
-  unlockDialogOpen: false,
-  changePasswordDialogOpen: false,
+  setupDialog: setupDialogInit,
+  unlockDialog: unlockDialogInit,
+  changePasswordDialog: changePasswordDialogInit,
 }
 
 export const openSetupDialog = () =>
   setState((state) => {
-    state.protectedNotes.setupDialogOpen = true
+    state.protectedNotes.setupDialog.open = true
   })
 
 export const closeSetupDialog = () =>
   setState((state) => {
-    state.protectedNotes.setupDialogOpen = false
+    state.protectedNotes.setupDialog = {...setupDialogInit}
+  })
+
+export const setSetupDialogPassword = (password: string) =>
+  setState((state) => {
+    state.protectedNotes.setupDialog.password = password
+  })
+
+export const setSetupDialogConfirmPassword = (confirmPassword: string) =>
+  setState((state) => {
+    state.protectedNotes.setupDialog.confirmPassword = confirmPassword
   })
 
 export const openUnlockDialog = () =>
   setState((state) => {
-    state.protectedNotes.unlockDialogOpen = true
+    state.protectedNotes.unlockDialog.open = true
   })
 
 export const closeUnlockDialog = () =>
   setState((state) => {
-    state.protectedNotes.unlockDialogOpen = false
+    state.protectedNotes.unlockDialog = {...unlockDialogInit}
+  })
+
+export const setUnlockDialogPassword = (password: string) =>
+  setState((state) => {
+    state.protectedNotes.unlockDialog.password = password
   })
 
 export const openChangePasswordDialog = () =>
   setState((state) => {
-    state.protectedNotes.changePasswordDialogOpen = true
+    state.protectedNotes.changePasswordDialog.open = true
   })
 
 export const closeChangePasswordDialog = () =>
   setState((state) => {
-    state.protectedNotes.changePasswordDialogOpen = false
+    state.protectedNotes.changePasswordDialog = {...changePasswordDialogInit}
+  })
+
+export const setChangePasswordCurrentPassword = (currentPassword: string) =>
+  setState((state) => {
+    state.protectedNotes.changePasswordDialog.currentPassword = currentPassword
+  })
+
+export const setChangePasswordNewPassword = (newPassword: string) =>
+  setState((state) => {
+    state.protectedNotes.changePasswordDialog.newPassword = newPassword
+  })
+
+export const setChangePasswordConfirmPassword = (confirmPassword: string) =>
+  setState((state) => {
+    state.protectedNotes.changePasswordDialog.confirmPassword = confirmPassword
   })
 
 export const lockProtectedNotes = () =>
@@ -92,7 +170,27 @@ export const loadProtectedNotesConfig = async () => {
   return localConfig
 }
 
-export const setupProtectedNotes = async (password: string): Promise<boolean> => {
+export const submitSetupDialog = async () => {
+  const {password, confirmPassword} = getState().protectedNotes.setupDialog
+
+  if (password.length < 4) {
+    setState((state) => {
+      state.protectedNotes.setupDialog.error = 'Password must be at least 4 characters'
+    })
+    return
+  }
+  if (password !== confirmPassword) {
+    setState((state) => {
+      state.protectedNotes.setupDialog.error = 'Passwords do not match'
+    })
+    return
+  }
+
+  setState((state) => {
+    state.protectedNotes.setupDialog.loading = true
+    state.protectedNotes.setupDialog.error = ''
+  })
+
   try {
     const masterSalt = generateMasterSalt()
     const key = await deriveKey(password, masterSalt)
@@ -127,40 +225,57 @@ export const setupProtectedNotes = async (password: string): Promise<boolean> =>
       state.protectedNotes.hasConfig = true
       state.protectedNotes.unlocked = true
       state.protectedNotes.derivedKey = key
-      state.protectedNotes.setupDialogOpen = false
+      state.protectedNotes.setupDialog = {...setupDialogInit}
     })
-
-    return true
   } catch (e) {
     console.error('Failed to setup protected notes:', e)
-    return false
+    setState((state) => {
+      state.protectedNotes.setupDialog.loading = false
+      state.protectedNotes.setupDialog.error = 'Failed to setup protected notes'
+    })
   }
 }
 
-export const unlockProtectedNotes = async (password: string): Promise<boolean> => {
+export const submitUnlockDialog = async () => {
+  const {password} = getState().protectedNotes.unlockDialog
+
+  setState((state) => {
+    state.protectedNotes.unlockDialog.loading = true
+    state.protectedNotes.unlockDialog.error = ''
+  })
+
   try {
     const config = await db.protected_notes_config.get('config')
     if (!config) {
-      return false
+      setState((state) => {
+        state.protectedNotes.unlockDialog.loading = false
+        state.protectedNotes.unlockDialog.error = 'No config found'
+      })
+      return
     }
 
     const key = await deriveKey(password, config.master_salt)
     const isValid = await verifyPassword(key, config.verifier, config.verifier_iv)
 
     if (!isValid) {
-      return false
+      setState((state) => {
+        state.protectedNotes.unlockDialog.loading = false
+        state.protectedNotes.unlockDialog.error = 'Incorrect password'
+      })
+      return
     }
 
     setState((state) => {
       state.protectedNotes.unlocked = true
       state.protectedNotes.derivedKey = key
-      state.protectedNotes.unlockDialogOpen = false
+      state.protectedNotes.unlockDialog = {...unlockDialogInit}
     })
-
-    return true
   } catch (e) {
     console.error('Failed to unlock protected notes:', e)
-    return false
+    setState((state) => {
+      state.protectedNotes.unlockDialog.loading = false
+      state.protectedNotes.unlockDialog.error = 'Failed to unlock'
+    })
   }
 }
 
@@ -172,21 +287,47 @@ export const isProtectedNotesUnlocked = (): boolean => {
   return getState().protectedNotes.unlocked
 }
 
-export const changePassword = async (
-  currentPassword: string,
-  newPassword: string
-): Promise<{success: boolean; error?: string}> => {
+export const submitChangePasswordDialog = async () => {
+  const {currentPassword, newPassword, confirmPassword} =
+    getState().protectedNotes.changePasswordDialog
+
+  if (newPassword.length < 4) {
+    setState((state) => {
+      state.protectedNotes.changePasswordDialog.error = 'New password must be at least 4 characters'
+    })
+    return
+  }
+  if (newPassword !== confirmPassword) {
+    setState((state) => {
+      state.protectedNotes.changePasswordDialog.error = 'New passwords do not match'
+    })
+    return
+  }
+
+  setState((state) => {
+    state.protectedNotes.changePasswordDialog.loading = true
+    state.protectedNotes.changePasswordDialog.error = ''
+  })
+
   try {
     const config = await db.protected_notes_config.get('config')
     if (!config) {
-      return {success: false, error: 'No protected notes config found'}
+      setState((state) => {
+        state.protectedNotes.changePasswordDialog.loading = false
+        state.protectedNotes.changePasswordDialog.error = 'No protected notes config found'
+      })
+      return
     }
 
     const oldKey = await deriveKey(currentPassword, config.master_salt)
     const isValid = await verifyPassword(oldKey, config.verifier, config.verifier_iv)
 
     if (!isValid) {
-      return {success: false, error: 'Current password is incorrect'}
+      setState((state) => {
+        state.protectedNotes.changePasswordDialog.loading = false
+        state.protectedNotes.changePasswordDialog.error = 'Current password is incorrect'
+      })
+      return
     }
 
     const {decryptNoteFromStorage, encryptNoteForStorage} = await import(
@@ -249,13 +390,14 @@ export const changePassword = async (
 
     setState((state) => {
       state.protectedNotes.derivedKey = newKey
-      state.protectedNotes.changePasswordDialogOpen = false
+      state.protectedNotes.changePasswordDialog = {...changePasswordDialogInit}
     })
-
-    return {success: true}
   } catch (e) {
     console.error('Failed to change password:', e)
-    return {success: false, error: 'Failed to change password'}
+    setState((state) => {
+      state.protectedNotes.changePasswordDialog.loading = false
+      state.protectedNotes.changePasswordDialog.error = 'Failed to change password'
+    })
   }
 }
 

@@ -27,6 +27,12 @@ import {labelSelected, selectCachedLabels} from '../state/labels'
 import {delay} from '../util/misc'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import {openSettings} from '../state/settings'
+import {
+  openSetupDialog,
+  openUnlockDialog,
+  openChangePasswordDialog,
+  lockProtectedNotes,
+} from '../state/protectedNotes'
 
 type Command = SpotlightActionData & {shortcut?: string; onClick: () => void}
 
@@ -38,6 +44,7 @@ export const CommandCenter = () => {
   const email = useSelector((state) => state.user.user.email)
   const commandCenterDisabled = useSelector(selectCommandCenterDisabled)
   const protectedNotesUnlocked = useSelector((state) => state.protectedNotes.unlocked)
+  const hasProtectedNotesConfig = useSelector((state) => state.protectedNotes.hasConfig)
   const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
   const labels = useSelector(selectCachedLabels)
   const activeLabel = useSelector((state) => state.labels.activeLabel)
@@ -59,6 +66,30 @@ export const CommandCenter = () => {
       id: 'newProtectedNote',
       label: 'New protected note',
       onClick: () => addNote(true),
+      disabled: !protectedNotesUnlocked,
+    },
+    {
+      id: 'setupProtectedNotes',
+      label: 'Set up protected notes',
+      onClick: openSetupDialog,
+      disabled: hasProtectedNotesConfig,
+    },
+    {
+      id: 'unlockProtectedNotes',
+      label: 'Unlock protected notes',
+      onClick: openUnlockDialog,
+      disabled: !hasProtectedNotesConfig || protectedNotesUnlocked,
+    },
+    {
+      id: 'lockProtectedNotes',
+      label: 'Lock protected notes',
+      onClick: lockProtectedNotes,
+      disabled: !protectedNotesUnlocked,
+    },
+    {
+      id: 'changeProtectedNotesPassword',
+      label: 'Change protected notes password',
+      onClick: openChangePasswordDialog,
       disabled: !protectedNotesUnlocked,
     },
     {
