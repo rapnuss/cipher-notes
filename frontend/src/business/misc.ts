@@ -400,9 +400,6 @@ export const mergeTodoNoteConflict = (
   dirtyNote: Note,
   serverConflict: Note
 ): Note | null => {
-  if (dirtyNote.protected === 1 || serverConflict.protected === 1) {
-    return null
-  }
   if (
     dirtyNote.todos === undefined ||
     serverConflict.todos === undefined ||
@@ -414,6 +411,8 @@ export const mergeTodoNoteConflict = (
   let todos: Todos
   if (deepEquals(dirtyNote.todos, serverConflict.todos, ['id', 'updated_at'])) {
     todos = dirtyNote.todos
+  } else if (dirtyNote.protected === 1 || serverConflict.protected === 1) {
+    return null
   } else if (baseVersion.todos === undefined || !todosHaveIdsAndUpdatedAt(baseVersion.todos)) {
     return null
   } else {
@@ -447,12 +446,11 @@ export const mergeTextNoteConflict = (
   if (dirtyNote.txt === undefined || serverConflict.txt === undefined) {
     return null
   }
-  if (dirtyNote.protected === 1 || serverConflict.protected === 1) {
-    return null
-  }
   let txt: string
   if (dirtyNote.txt === serverConflict.txt) {
     txt = dirtyNote.txt
+  } else if (dirtyNote.protected === 1 || serverConflict.protected === 1) {
+    return null
   } else if (baseVersion.txt === undefined) {
     return null
   } else {

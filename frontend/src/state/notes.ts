@@ -986,8 +986,25 @@ const storeOpenNote = nonConcurrent(async () => {
     !!note.protected !== openNote.protected
 
   let contentChanged = false
-  if (note.protected === 1) {
-    contentChanged = true
+  if (note.protected === 1 && note.protected_iv) {
+    const key = getProtectedNotesKey()
+    if (key) {
+      const decrypted = await tryDecryptNote(note)
+      if (decrypted) {
+        contentChanged =
+          decrypted.title !== openNote.title ||
+          (decrypted.type === 'note' &&
+            openNote.type === 'note' &&
+            decrypted.txt !== openNote.txt) ||
+          (decrypted.type === 'todo' &&
+            openNote.type === 'todo' &&
+            !deepEquals(decrypted.todos, openNote.todos))
+      } else {
+        contentChanged = true
+      }
+    } else {
+      contentChanged = true
+    }
   } else {
     contentChanged =
       note.title !== openNote.title ||

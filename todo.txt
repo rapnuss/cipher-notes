@@ -60,6 +60,8 @@ DONE:
   on change encryption key
     delete all blobs with the old key
 FIRST:
+  test import and export of protected notes
+  cmd+k does not show protected notes
 TODO:
   todo merge
   error if minio password is not set or too short
