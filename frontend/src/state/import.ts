@@ -15,6 +15,7 @@ import XSet from '../util/XSet'
 import {createLabel} from './labels'
 import {notifications} from '@mantine/notifications'
 import {comlink} from '../comlink'
+import {getProtectedNotesKey} from './protectedNotes'
 
 export type ImportState = {
   importDialog: {
@@ -263,10 +264,7 @@ export const importNotesWithPassword = async (): Promise<void> => {
       return
     }
 
-    const currentConfig = await db.protected_notes_config.get('config')
-    const currentKey = currentConfig
-      ? await deriveKey(protectedNotesPassword, currentConfig.master_salt)
-      : null
+    const currentKey = getProtectedNotesKey()
 
     const processedNotes = await Promise.all(
       parsedData.notes.map(async (n) => {

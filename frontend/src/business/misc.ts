@@ -400,6 +400,9 @@ export const mergeTodoNoteConflict = (
   dirtyNote: Note,
   serverConflict: Note
 ): Note | null => {
+  if (dirtyNote.protected === 1 || serverConflict.protected === 1) {
+    return null
+  }
   if (
     dirtyNote.todos === undefined ||
     serverConflict.todos === undefined ||
@@ -442,6 +445,9 @@ export const mergeTextNoteConflict = (
   serverConflict: Note
 ): Note | null => {
   if (dirtyNote.txt === undefined || serverConflict.txt === undefined) {
+    return null
+  }
+  if (dirtyNote.protected === 1 || serverConflict.protected === 1) {
     return null
   }
   let txt: string
