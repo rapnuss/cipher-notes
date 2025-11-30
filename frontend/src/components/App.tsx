@@ -24,6 +24,7 @@ import {
   UnlockProtectedNotesDialog,
   ChangePasswordDialog,
 } from './ProtectedNotesDialog.tsx'
+import {ProtectFilesDialog} from './ProtectFilesDialog.tsx'
 
 export const App = () => (
   <>
@@ -50,6 +51,7 @@ export const App = () => (
     <SetupProtectedNotesDialog />
     <UnlockProtectedNotesDialog />
     <ChangePasswordDialog />
+    <ProtectFilesDialog />
     <PWABadge />
     <Notifications autoClose={10_000} />
   </>

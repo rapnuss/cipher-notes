@@ -13,7 +13,7 @@ import {ActionIconWithText} from './ActionIconWithText'
 import {IconMenu2} from './icons/IconMenu2'
 import {useFileDialog, useHotkeys} from '@mantine/hooks'
 import {selectAnyModeOrDialogActive, useSelector} from '../state/store'
-import {importFiles} from '../state/files'
+import {onFilesSelected} from '../state/files'
 import {IconPhoto} from './icons/IconPhoto'
 import {
   archiveSelected,
@@ -142,9 +142,9 @@ const ImportActionIcon = () => {
   const {open} = useFileDialog({
     multiple: true,
     resetOnOpen: true,
-    onChange: async (files) => {
+    onChange: (files) => {
       if (!files) return
-      await importFiles(files, activeLabel)
+      onFilesSelected([...files], activeLabel)
     },
   })
   return (
@@ -160,9 +160,9 @@ const FullScreenImport = () => {
   return (
     <Dropzone.FullScreen
       active={!anythingActive && !filesImporting}
-      onDrop={async (files) => {
+      onDrop={(files) => {
         if (files.length === 0) return
-        await importFiles(files, activeLabel)
+        onFilesSelected(files, activeLabel)
       }}
     >
       Drop Files anywhere to import them

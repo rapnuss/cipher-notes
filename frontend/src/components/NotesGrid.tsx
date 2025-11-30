@@ -15,8 +15,10 @@ import {deleteFile, fileOpened, setFileArchived} from '../state/files'
 import {FileIconWithExtension} from './FileIconWithExtension'
 import {selectSelectionActive, toggleSelection, updateCurrentNotes} from '../state/selection'
 import {IconSquareMinus} from './icons/IconSquareMinus'
+import {IconLock} from './icons/IconLock'
 import {useEffect} from 'react'
-import {tryDecryptNote} from '../business/protectedNotesEncryption'
+import {decryptFileTitle, tryDecryptNote} from '../business/protectedNotesEncryption'
+import {getProtectedNotesKey} from '../state/protectedNotes'
 
 export const NotesGrid = () => {
   const query = useSelector((state) => state.notes.query)
@@ -40,12 +42,23 @@ export const NotesGrid = () => {
       )
     ).filter((n): n is Note => n !== null)
 
-    const visibleFiles = allFiles.filter((f) => {
-      if (f.protected === 1) {
-        return protectedNotesUnlocked
-      }
-      return true
-    })
+    const key = getProtectedNotesKey()
+    const visibleFiles = (
+      await Promise.all(
+        allFiles.map(async (f) => {
+          if (f.protected === 1) {
+            if (!protectedNotesUnlocked || !key || !f.protected_iv) return null
+            try {
+              const decryptedTitle = await decryptFileTitle(key, f.title, f.protected_iv)
+              return {...f, title: decryptedTitle}
+            } catch {
+              return null
+            }
+          }
+          return f
+        })
+      )
+    ).filter((f): f is FileMeta => f !== null)
 
     const notes = [...decryptedNotes, ...visibleFiles]
       .filter(
@@ -188,7 +201,7 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
           truncateWithEllipsis(note.txt)
         ) : note.type === 'todo' ? (
           <TodosPreview todos={note.todos} />
-        ) : note.type === 'file' && note.has_thumb ? (
+        ) : note.type === 'file' && note.has_thumb && note.protected !== 1 ? (
           <img
             alt={getFilename(note)}
             src={`/thumbnails/${note.id}`}
@@ -203,7 +216,11 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
               flex: '1 1 0',
             }}
           >
-            <FileIconWithExtension ext={note.ext} size={100} />
+            {note.protected === 1 ? (
+              <IconLock size={100} />
+            ) : (
+              <FileIconWithExtension ext={note.ext} size={100} />
+            )}
           </div>
         ) : null}
       </UnstyledButton>

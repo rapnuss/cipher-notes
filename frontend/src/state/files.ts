@@ -11,6 +11,14 @@ import {db, hasUnsyncedBlobsObservable} from '../db'
 import {loadOpenFileId, storeOpenFileId} from '../services/localStorage'
 import {debounce, nonConcurrent, splitFilename} from '../util/misc'
 import {getState, setState, subscribe} from './store'
+import {encryptFileTitle} from '../business/protectedNotesEncryption'
+import {getProtectedNotesKey} from './protectedNotes'
+
+export type ProtectFilesDialog = {
+  open: boolean
+  files: File[]
+  activeLabel: ActiveLabel
+}
 
 export type FilesState = {
   importing: boolean
@@ -27,14 +35,20 @@ export type FilesState = {
     labelDropdownOpen: boolean
     moreMenuOpen: boolean
   }
+  protectFilesDialog: ProtectFilesDialog
 }
-export const filesInit = {
+export const filesInit: FilesState = {
   importing: false,
   upDownloading: false,
   openFile: null,
   fileDialog: {
     labelDropdownOpen: false,
     moreMenuOpen: false,
+  },
+  protectFilesDialog: {
+    open: false,
+    files: [],
+    activeLabel: 'all',
   },
 }
 loadOpenFileId().then((id) => {
@@ -214,13 +228,57 @@ export const setOpenFile = (syncedFiles: Record<string, FilePullWithState>) => {
   }
 }
 
-export const importFiles = async (files: Iterable<File>, activeLabel: ActiveLabel) => {
+export const onFilesSelected = (files: File[], activeLabel: ActiveLabel) => {
+  const {unlocked} = getState().protectedNotes
+  if (unlocked) {
+    setState((state) => {
+      state.files.protectFilesDialog = {
+        open: true,
+        files,
+        activeLabel,
+      }
+    })
+  } else {
+    importFiles(files, activeLabel, false)
+  }
+}
+
+export const closeProtectFilesDialog = () =>
+  setState((state) => {
+    state.files.protectFilesDialog = {
+      open: false,
+      files: [],
+      activeLabel: 'all',
+    }
+  })
+
+export const confirmProtectFilesDialog = (protect: boolean) => {
+  const {files, activeLabel} = getState().files.protectFilesDialog
+  closeProtectFilesDialog()
+  importFiles(files, activeLabel, protect)
+}
+
+export const importFiles = async (
+  files: Iterable<File>,
+  activeLabel: ActiveLabel,
+  protect: boolean
+) => {
   try {
     setFilesImporting(true)
+    const key = protect ? getProtectedNotesKey() : null
     for (const file of files) {
       const [name, ext] = splitFilename(file.name)
       const id = crypto.randomUUID()
       const now = Date.now()
+
+      let title = name
+      let protectedIv: string | undefined
+      if (protect && key) {
+        const encrypted = await encryptFileTitle(key, name)
+        title = encrypted.encrypted
+        protectedIv = encrypted.iv
+      }
+
       const meta: FileMeta = {
         type: 'file',
         created_at: now,
@@ -228,7 +286,7 @@ export const importFiles = async (files: Iterable<File>, activeLabel: ActiveLabe
         deleted_at: 0,
         ext,
         id,
-        title: name,
+        title,
         state: 'dirty',
         version: 1,
         blob_state: 'local',
@@ -237,7 +295,8 @@ export const importFiles = async (files: Iterable<File>, activeLabel: ActiveLabe
         archived: 0,
         has_thumb: 0,
         size: file.size,
-        protected: 0,
+        protected: protect && key ? 1 : 0,
+        protected_iv: protectedIv,
       }
       const blob: FileBlob = {
         id,
@@ -248,10 +307,12 @@ export const importFiles = async (files: Iterable<File>, activeLabel: ActiveLabe
         await tx.files_blob.add(blob)
       })
     }
-    comlink
-      .generateThumbnails()
-      .then(() => console.log('thumbnails generated'))
-      .catch(console.error)
+    if (!protect) {
+      comlink
+        .generateThumbnails()
+        .then(() => console.log('thumbnails generated'))
+        .catch(console.error)
+    }
   } finally {
     setFilesImporting(false)
   }
