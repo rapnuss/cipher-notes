@@ -1,6 +1,13 @@
 import {db, ProtectedNotesConfig} from '../db'
 import {createVerifier, deriveKey, generateMasterSalt, verifyPassword} from '../util/pbkdf2'
 import {getState, setState} from './store'
+import {
+  decryptFileTitle,
+  decryptNoteFromStorage,
+  encryptFileTitle,
+  encryptNoteForStorage,
+} from '../business/protectedNotesEncryption'
+import {decryptBlob, encryptBlob} from '../util/encryption'
 
 export type SetupDialogState = {
   open: boolean
@@ -134,6 +141,12 @@ export const lockProtectedNotes = () =>
   setState((state) => {
     state.protectedNotes.unlocked = false
     state.protectedNotes.derivedKey = null
+    if (state.notes.openNote?.protected) {
+      state.notes.openNote = null
+    }
+    if (state.files.openFile?.protected) {
+      state.files.openFile = null
+    }
   })
 
 export const loadProtectedNotesConfig = async () => {
@@ -292,16 +305,30 @@ export const submitChangePasswordDialog = async () => {
       return
     }
 
-    const {decryptNoteFromStorage, encryptNoteForStorage} = await import(
-      '../business/protectedNotesEncryption'
-    )
-
     const protectedNotes = await db.notes.where('protected').equals(1).toArray()
+    const protectedFiles = await db.files_meta.where('protected').equals(1).toArray()
+
+    const remoteProtectedFiles = protectedFiles.filter((f) => f.blob_state === 'remote')
+    if (remoteProtectedFiles.length > 0) {
+      throw new Error('Download protected files before changing password')
+    }
 
     const decryptedNotes = await Promise.all(
       protectedNotes.map(async (note) => {
         const decrypted = await decryptNoteFromStorage(note, oldKey)
         return decrypted
+      })
+    )
+
+    const decryptedFiles = await Promise.all(
+      protectedFiles.map(async (file) => {
+        const title = await decryptFileTitle(oldKey, file.title, file.protected_iv ?? '')
+        const blobRecord = await db.files_blob.get(file.id)
+        if (!blobRecord?.blob) {
+          throw new Error('Missing protected file blob')
+        }
+        const blob = await decryptBlob(oldKey, blobRecord.blob, file.mime)
+        return {file, title, blob}
       })
     )
 
@@ -320,22 +347,53 @@ export const submitChangePasswordDialog = async () => {
       })
     )
 
+    const reEncryptedFiles = await Promise.all(
+      decryptedFiles.map(async ({file, title, blob}) => {
+        const encryptedTitle = await encryptFileTitle(newKey, title)
+        const encryptedBlob = await encryptBlob(newKey, blob)
+        return {
+          meta: {
+            ...file,
+            title: encryptedTitle.encrypted,
+            protected_iv: encryptedTitle.iv,
+            updated_at: Date.now(),
+            state: 'dirty' as const,
+            version: file.state === 'dirty' ? file.version : file.version + 1,
+            has_thumb: 0 as const,
+            blob_state: 'local' as const,
+            size: encryptedBlob.size,
+          },
+          blob: encryptedBlob,
+        }
+      })
+    )
+
     const updated_at = Date.now()
 
-    await db.transaction('rw', db.notes, db.protected_notes_config, async () => {
-      for (const note of reEncryptedNotes) {
-        await db.notes.put(note)
-      }
+    await db.transaction(
+      'rw',
+      [db.notes, db.files_meta, db.files_blob, db.files_thumb, db.protected_notes_config],
+      async () => {
+        for (const note of reEncryptedNotes) {
+          await db.notes.put(note)
+        }
 
-      await db.protected_notes_config.put({
-        id: 'config',
-        master_salt: newMasterSalt,
-        verifier,
-        verifier_iv,
-        updated_at,
-        state: 'dirty',
-      })
-    })
+        for (const {meta, blob} of reEncryptedFiles) {
+          await db.files_meta.put(meta)
+          await db.files_blob.put({id: meta.id, blob})
+          await db.files_thumb.delete(meta.id)
+        }
+
+        await db.protected_notes_config.put({
+          id: 'config',
+          master_salt: newMasterSalt,
+          verifier,
+          verifier_iv,
+          updated_at,
+          state: 'dirty',
+        })
+      }
+    )
 
     setState((state) => {
       state.protectedNotes.derivedKey = newKey
@@ -343,9 +401,10 @@ export const submitChangePasswordDialog = async () => {
     })
   } catch (e) {
     console.error('Failed to change password:', e)
+    const message = e instanceof Error ? e.message : 'Failed to change password'
     setState((state) => {
       state.protectedNotes.changePasswordDialog.loading = false
-      state.protectedNotes.changePasswordDialog.error = 'Failed to change password'
+      state.protectedNotes.changePasswordDialog.error = message
     })
   }
 }

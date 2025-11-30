@@ -74,6 +74,8 @@ export const importFilesMetaSchema = z.array(
       created_at: z.number().int().positive().optional(),
       updated_at: z.number().int().positive().optional(),
       deleted_at: z.number().int().nonnegative().optional(),
+      protected: z.boolean().optional(),
+      protected_iv: z.string().optional(),
     })
     .strip()
 )

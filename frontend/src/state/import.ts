@@ -127,7 +127,9 @@ export const exportNotes = async () => {
   }, {} as Record<string, Hue>)
 
   const idToBlob = Object.fromEntries(filesBlobs.map((b) => [b.id, b.blob]))
-  const hasProtectedNotes = notes.some((n) => n.protected === 1)
+  const hasProtectedNotes = notes.some((n) => !!n.protected)
+  const hasProtectedFiles = filesMeta.some((f) => !!f.protected)
+  const hasProtectedData = hasProtectedNotes || hasProtectedFiles
 
   const payload: NotesZip = {
     notes: notes.map((n) => {
@@ -169,11 +171,13 @@ export const exportNotes = async () => {
           deleted_at: f.deleted_at,
           archived: f.archived === 1,
           labels: mapLabelIdsToNames(f.labels),
+          protected: f.protected === 1,
+          protected_iv: f.protected_iv,
         } satisfies ImportFileMeta)
     ),
     labelColors,
     protected_notes_salt:
-      hasProtectedNotes && protectedNotesConfig ? protectedNotesConfig.master_salt : undefined,
+      hasProtectedData && protectedNotesConfig ? protectedNotesConfig.master_salt : undefined,
   }
 
   // validate payload
@@ -205,8 +209,10 @@ export const importNotes = async (): Promise<void> => {
     const parsed = notesZipSchema.parse(JSON.parse(await notesJson.async('string')))
 
     const hasProtectedNotes = parsed.notes.some((n) => n.protected)
+    const hasProtectedFiles = parsed.files_meta.some((f) => f.protected)
+    const hasProtectedData = hasProtectedNotes || hasProtectedFiles
 
-    if (hasProtectedNotes) {
+    if (hasProtectedData) {
       setState((state) => {
         state.import.importDialog.hasProtectedNotes = true
         state.import.importDialog.parsedZip = zip
@@ -236,12 +242,13 @@ export const importNotesWithPassword = async (): Promise<void> => {
 
   try {
     const {deriveKey} = await import('../util/pbkdf2')
-    const {decryptNotePlainData, encryptNoteForStorage} = await import(
-      '../business/protectedNotesEncryption'
-    )
+    const {decryptNotePlainData, encryptNoteForStorage, decryptFileTitle, encryptFileTitle} =
+      await import('../business/protectedNotesEncryption')
+    const {decryptBlob, encryptBlob} = await import('../util/encryption')
 
     const protectedNotes = parsedData.notes.filter((n) => n.protected)
-    if (protectedNotes.length === 0) {
+    const protectedFiles = parsedData.files_meta.filter((f) => f.protected)
+    if (protectedNotes.length === 0 && protectedFiles.length === 0) {
       await doImportNotes(parsedZip, parsedData)
       return
     }
@@ -249,13 +256,20 @@ export const importNotesWithPassword = async (): Promise<void> => {
     const importSalt = parsedData.protected_notes_salt ?? ''
     const importKey = await deriveKey(protectedNotesPassword, importSalt)
 
-    const firstProtected = protectedNotes[0]!
+    const firstProtectedNote = protectedNotes[0]
+    const firstProtectedFile = protectedFiles[0]
     try {
-      await decryptNotePlainData(
-        importKey,
-        firstProtected.txt ?? '',
-        firstProtected.protected_iv ?? ''
-      )
+      if (firstProtectedNote) {
+        await decryptNotePlainData(
+          importKey,
+          firstProtectedNote.txt ?? '',
+          firstProtectedNote.protected_iv ?? ''
+        )
+      } else if (firstProtectedFile?.protected_iv) {
+        await decryptFileTitle(importKey, firstProtectedFile.title, firstProtectedFile.protected_iv)
+      } else {
+        throw new Error('No protected items found')
+      }
     } catch {
       setState((s) => {
         s.import.importDialog.protectedNotesLoading = false
@@ -265,6 +279,14 @@ export const importNotesWithPassword = async (): Promise<void> => {
     }
 
     const currentKey = getProtectedNotesKey()
+    if (!currentKey) {
+      setState((s) => {
+        s.import.importDialog.protectedNotesLoading = false
+        s.import.importDialog.protectedNotesError =
+          'Unlock protected notes to import protected data'
+      })
+      return
+    }
 
     const processedNotes = await Promise.all(
       parsedData.notes.map(async (n) => {
@@ -272,57 +294,45 @@ export const importNotesWithPassword = async (): Promise<void> => {
 
         try {
           const plainData = await decryptNotePlainData(importKey, n.txt, n.protected_iv)
-          if (currentKey) {
-            const tempNote: Note =
-              n.protected_type === 'todo'
-                ? {
-                    id: n.id ?? crypto.randomUUID(),
-                    title: plainData.title,
-                    type: 'todo',
-                    todos: plainData.todos ?? [],
-                    created_at: n.created_at ?? Date.now(),
-                    updated_at: n.updated_at ?? Date.now(),
-                    version: 1,
-                    state: 'dirty',
-                    deleted_at: 0,
-                    archived: n.archived ? 1 : 0,
-                    labels: n.labels,
-                    protected: 1,
-                  }
-                : {
-                    id: n.id ?? crypto.randomUUID(),
-                    title: plainData.title,
-                    type: 'note',
-                    txt: plainData.txt ?? '',
-                    created_at: n.created_at ?? Date.now(),
-                    updated_at: n.updated_at ?? Date.now(),
-                    version: 1,
-                    state: 'dirty',
-                    deleted_at: 0,
-                    archived: n.archived ? 1 : 0,
-                    labels: n.labels,
-                    protected: 1,
-                  }
-            const encrypted = await encryptNoteForStorage(tempNote, currentKey)
-            return {
-              ...n,
-              title: '',
-              txt: encrypted.txt,
-              todos: undefined,
-              protected: true,
-              protected_iv: encrypted.protected_iv,
-              protected_type: encrypted.protected_type,
-            }
-          } else {
-            return {
-              ...n,
-              title: plainData.title,
-              txt: n.protected_type === 'note' ? plainData.txt : undefined,
-              todos: n.protected_type === 'todo' ? plainData.todos : undefined,
-              protected: false,
-              protected_iv: undefined,
-              protected_type: undefined,
-            }
+          const tempNote: Note =
+            n.protected_type === 'todo'
+              ? {
+                  id: n.id ?? crypto.randomUUID(),
+                  title: plainData.title,
+                  type: 'todo',
+                  todos: plainData.todos ?? [],
+                  created_at: n.created_at ?? Date.now(),
+                  updated_at: n.updated_at ?? Date.now(),
+                  version: 1,
+                  state: 'dirty',
+                  deleted_at: 0,
+                  archived: n.archived ? 1 : 0,
+                  labels: n.labels,
+                  protected: 1,
+                }
+              : {
+                  id: n.id ?? crypto.randomUUID(),
+                  title: plainData.title,
+                  type: 'note',
+                  txt: plainData.txt ?? '',
+                  created_at: n.created_at ?? Date.now(),
+                  updated_at: n.updated_at ?? Date.now(),
+                  version: 1,
+                  state: 'dirty',
+                  deleted_at: 0,
+                  archived: n.archived ? 1 : 0,
+                  labels: n.labels,
+                  protected: 1,
+                }
+          const encrypted = await encryptNoteForStorage(tempNote, currentKey)
+          return {
+            ...n,
+            title: '',
+            txt: encrypted.txt,
+            todos: undefined,
+            protected: true,
+            protected_iv: encrypted.protected_iv,
+            protected_type: encrypted.protected_type,
           }
         } catch (e) {
           console.error('Failed to decrypt note during import:', e)
@@ -331,7 +341,47 @@ export const importNotesWithPassword = async (): Promise<void> => {
       })
     )
 
-    await doImportNotes(parsedZip, {...parsedData, notes: processedNotes})
+    const processedFilesMeta: NotesZip['files_meta'] = []
+
+    for (const meta of parsedData.files_meta) {
+      if (!meta.protected || !meta.protected_iv) {
+        processedFilesMeta.push(meta)
+        continue
+      }
+      const entry = parsedZip.file(`${meta.id}${meta.ext ?? ''}`)
+      const blob = entry ? await entry.async('blob') : null
+      if (!blob) {
+        processedFilesMeta.push({...meta, protected: false, protected_iv: undefined})
+        continue
+      }
+      try {
+        const plainTitle = await decryptFileTitle(importKey, meta.title, meta.protected_iv)
+        const plainBlob = await decryptBlob(importKey, blob, meta.mime)
+        const encryptedTitle = await encryptFileTitle(currentKey, plainTitle)
+        const encryptedBlob = await encryptBlob(currentKey, plainBlob)
+        processedFilesMeta.push({
+          ...meta,
+          title: encryptedTitle.encrypted,
+          protected: true,
+          protected_iv: encryptedTitle.iv,
+          size: encryptedBlob.size,
+        })
+        parsedZip.file(`${meta.id}${meta.ext ?? ''}`, encryptedBlob)
+      } catch (e) {
+        console.error('Failed to process protected file during import:', e)
+        setState((s) => {
+          s.import.importDialog.protectedNotesLoading = false
+          s.import.importDialog.protectedNotesError = 'Failed to decrypt protected files'
+        })
+        return
+      }
+    }
+
+    await doImportNotes(parsedZip, {
+      ...parsedData,
+      notes: processedNotes,
+      files_meta: processedFilesMeta,
+    })
   } catch (e) {
     console.error(e)
     setState((s) => {
@@ -474,7 +524,8 @@ const doImportNotes = async (zip: JSZip, parsed: NotesZip): Promise<void> => {
       state: 'dirty',
       version,
       blob_state: 'local',
-      protected: 0,
+      protected: meta.protected ? 1 : 0,
+      protected_iv: meta.protected ? meta.protected_iv : undefined,
     })
   }
 

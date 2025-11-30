@@ -888,6 +888,9 @@ export const syncNotes = nonConcurrent(async () => {
           if (state.notes.openNote?.protected) {
             state.notes.openNote = null
           }
+          if (state.files.openFile?.protected) {
+            state.files.openFile = null
+          }
         })
       }
     }
