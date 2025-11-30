@@ -187,8 +187,11 @@ export const Editor = ({
   const onMount = useCurrentCallback(() => {
     if (!hostRef.current) throw new Error('hostRef.current is null')
 
+    const clamp = (n: number) => Math.max(0, Math.min(n, value.length))
     const initialSelection = selections?.length
-      ? EditorSelection.create(selections.map((s) => EditorSelection.range(s.anchor, s.head)))
+      ? EditorSelection.create(
+          selections.map((s) => EditorSelection.range(clamp(s.anchor), clamp(s.head)))
+        )
       : EditorSelection.cursor(value.length)
 
     const state = EditorState.create({
@@ -241,8 +244,10 @@ export const Editor = ({
       trSpec.changes = {from: 0, to: curDoc.length, insert: value}
     }
     if (!selsEqual) {
+      const docLen = needDoc ? value.length : curDoc.length
+      const clamp = (n: number) => Math.max(0, Math.min(n, docLen))
       trSpec.selection = EditorSelection.create(
-        selections.map((s) => EditorSelection.range(s.anchor, s.head))
+        selections.map((s) => EditorSelection.range(clamp(s.anchor), clamp(s.head)))
       )
       trSpec.scrollIntoView = true
     }
