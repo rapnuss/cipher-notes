@@ -885,6 +885,9 @@ export const syncNotes = nonConcurrent(async () => {
           state.protectedNotes.hasConfig = true
           state.protectedNotes.unlocked = false
           state.protectedNotes.derivedKey = null
+          if (state.notes.openNote?.protected) {
+            state.notes.openNote = null
+          }
         })
       }
     }

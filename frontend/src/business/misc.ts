@@ -213,7 +213,8 @@ export const putToFile = (put: Put): FilePull => {
     mime,
     labels,
     size,
-    protected: 0,
+    protected: parse.protected ? 1 : 0,
+    protected_iv: parse.protected_iv,
   }
 }
 
@@ -316,6 +317,8 @@ export const fileToPut = (f: FileMeta): Put => {
     labels: f.labels,
     archived: !!f.archived,
     size: f.size,
+    protected: !!f.protected,
+    protected_iv: f.protected_iv,
   }
   if (f.deleted_at !== 0) {
     return {

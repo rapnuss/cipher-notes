@@ -200,6 +200,8 @@ export const filePutTxtSchema = z.object({
   labels: z.array(z.uuidv4()),
   archived: z.boolean(),
   size: z.number().int().positive(),
+  protected: z.boolean().optional(),
+  protected_iv: z.string().optional(),
 })
 export type FilePutTxt = z.infer<typeof filePutTxtSchema>
 
