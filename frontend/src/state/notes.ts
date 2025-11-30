@@ -836,7 +836,7 @@ export const syncNotes = nonConcurrent(async () => {
     )
 
     setOpenNote(notesToStore)
-    setOpenFile(filesToStore)
+    await setOpenFile(filesToStore)
 
     await db.transaction('rw', db.notes, db.note_base_versions, async (tx) => {
       const syncedDeleteIds = await tx.notes
@@ -1117,7 +1117,10 @@ export const registerNotesSubscriptions = () => {
       }
     }
   )
-  subscribe((state) => state.notes.openNote?.id ?? null, storeOpenNoteId)
+  subscribe(
+    (state) => (state.notes.openNote?.protected ? null : state.notes.openNote?.id ?? null),
+    storeOpenNoteId
+  )
 
   const syncNotesDebounced = debounce(syncNotes, 1000)
   hasDirtyNotesObservable.subscribe((hasDirtyNotes) => {

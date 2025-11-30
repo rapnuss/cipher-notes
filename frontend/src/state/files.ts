@@ -11,8 +11,10 @@ import {db, hasUnsyncedBlobsObservable} from '../db'
 import {loadOpenFileId, storeOpenFileId} from '../services/localStorage'
 import {debounce, nonConcurrent, splitFilename} from '../util/misc'
 import {getState, setState, subscribe} from './store'
-import {encryptFileTitle} from '../business/protectedNotesEncryption'
+import {decryptFileTitle, encryptFileTitle} from '../business/protectedNotesEncryption'
 import {getProtectedNotesKey} from './protectedNotes'
+import {decryptBlob, encryptBlob} from '../util/encryption'
+import {convertImageToPng} from '../util/convertImageToPng'
 
 export type ProtectFilesDialog = {
   open: boolean
@@ -30,6 +32,7 @@ export type FilesState = {
     version: number
     state: 'dirty' | 'synced'
     archived: 0 | 1
+    protected: 0 | 1
   } | null
   fileDialog: {
     labelDropdownOpen: boolean
@@ -147,14 +150,25 @@ export const deleteFile = async (id: string) => {
 export const fileOpened = async (id: string) => {
   const file = await db.files_meta.get(id)
   if (!file || file.deleted_at !== 0) return
+  let title = file.title
+  if (file.protected === 1) {
+    const key = getProtectedNotesKey()
+    if (!key || !file.protected_iv) return
+    try {
+      title = await decryptFileTitle(key, file.title, file.protected_iv)
+    } catch {
+      return
+    }
+  }
   setState((state) => {
     state.files.openFile = {
       id,
-      title: file.title,
+      title,
       updated_at: file.updated_at,
       version: file.version,
       state: file.state,
       archived: file.archived,
+      protected: file.protected,
     }
   })
   const state = getState()
@@ -197,7 +211,7 @@ export const openFileTitleChanged = (value: string) =>
     }
   })
 
-export const setOpenFile = (syncedFiles: Record<string, FilePullWithState>) => {
+export const setOpenFile = async (syncedFiles: Record<string, FilePullWithState>) => {
   const openFile = getState().files.openFile
   if (!openFile) {
     return
@@ -211,6 +225,16 @@ export const setOpenFile = (syncedFiles: Record<string, FilePullWithState>) => {
       state.files.openFile = null
     })
   }
+  let title = file.title
+  if (file.protected === 1) {
+    const key = getProtectedNotesKey()
+    if (!key || !file.protected_iv) return
+    try {
+      title = await decryptFileTitle(key, file.title, file.protected_iv)
+    } catch {
+      return
+    }
+  }
   if (
     file.version > openFile.version ||
     (file.version === openFile.version && file.updated_at >= openFile.updated_at)
@@ -218,11 +242,12 @@ export const setOpenFile = (syncedFiles: Record<string, FilePullWithState>) => {
     setState((state) => {
       state.files.openFile = {
         id: file.id,
-        title: file.title,
+        title,
         updated_at: file.updated_at,
         version: file.version,
         state: file.state,
         archived: file.archived,
+        protected: file.protected,
       }
     })
   }
@@ -300,7 +325,7 @@ export const importFiles = async (
       }
       const blob: FileBlob = {
         id,
-        blob: file,
+        blob: protect && key ? await encryptBlob(key, file) : file,
       }
       await db.transaction('rw', db.files_meta, db.files_blob, async (tx) => {
         await tx.files_meta.add(meta)
@@ -325,14 +350,42 @@ const storeOpenFile = nonConcurrent(async () => {
   const file = await db.files_meta.get(openFile.id)
   if (!file || file.deleted_at !== 0) return
 
-  if (file.title !== openFile.title || file.archived !== openFile.archived) {
-    await db.files_meta.update(openFile.id, {
-      title: openFile.title,
+  let titleChanged = file.title !== openFile.title
+  if (file.protected === 1 && file.protected_iv) {
+    const key = getProtectedNotesKey()
+    if (key) {
+      try {
+        const decryptedTitle = await decryptFileTitle(key, file.title, file.protected_iv)
+        titleChanged = decryptedTitle !== openFile.title
+      } catch {
+        titleChanged = true
+      }
+    } else {
+      titleChanged = true
+    }
+  }
+
+  if (titleChanged || file.archived !== openFile.archived) {
+    const updates: Partial<FileMeta> = {
       archived: openFile.archived,
       updated_at: openFile.updated_at,
       state: openFile.state,
       version: openFile.version,
-    })
+    }
+    if (file.protected === 1) {
+      const key = getProtectedNotesKey()
+      if (!key) {
+        console.error('Cannot store protected file title: no key available')
+        return
+      }
+      const encrypted = await encryptFileTitle(key, openFile.title)
+      updates.title = encrypted.encrypted
+      updates.protected_iv = encrypted.iv
+    } else {
+      updates.title = openFile.title
+      updates.protected_iv = undefined
+    }
+    await db.files_meta.update(openFile.id, updates)
   }
 })
 
@@ -343,14 +396,30 @@ export const isClipboardSupported = (mime: string) => {
 
 export const copyFileToClipboard = async (file: FileMeta) => {
   try {
+    const blob = await getDecryptedFileBlob(file)
+    if (!blob) throw new Error('File not available locally')
+
     if (file.mime.startsWith('text/') || file.mime === 'application/json') {
-      await navigator.clipboard.write([getTextItem()])
+      const textBlob =
+        file.mime === 'application/json'
+          ? new Blob([await blob.text()], {type: 'text/plain'})
+          : blob
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/plain': textBlob,
+        }),
+      ])
       notifications.show({message: 'Text content copied to clipboard.'})
       return
     }
 
     if (file.mime.startsWith('image/')) {
-      await navigator.clipboard.write([getImageItem()])
+      const imageBlob = file.mime === 'image/png' ? blob : await convertImageToPng(blob, file.mime)
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'image/png': imageBlob,
+        }),
+      ])
       notifications.show({message: 'Image copied to clipboard.'})
       return
     }
@@ -360,58 +429,6 @@ export const copyFileToClipboard = async (file: FileMeta) => {
     notifications.show({
       color: 'red',
       message: `Could not copy to clipboard: ${e instanceof Error ? e.message : 'Unknown error'}`,
-    })
-  }
-
-  function getTextItem() {
-    const stringPromise = fetch(`/files/${file.id}`)
-      .then((res) => res.text())
-      .catch((e) => {
-        notifications.show({
-          color: 'red',
-          message: `Could not copy to clipboard: ${
-            e instanceof Error ? e.message : 'Unknown error'
-          }`,
-        })
-        throw e
-      })
-    return new ClipboardItem({
-      'text/plain': stringPromise,
-    })
-  }
-  function getImageItem() {
-    if (file.mime === 'image/png') {
-      return new ClipboardItem({
-        'image/png': fetch(`/files/${file.id}`).then((res) => res.blob()),
-      })
-    }
-    if (!file.mime.startsWith('image/')) {
-      throw new Error('unsupported file type')
-    }
-    const blobPromise = Promise.resolve().then(async () => {
-      const img = document.createElement('img')
-      const url = `/files/${file.id}`
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve()
-        img.onerror = () => reject(new Error('Image load failed'))
-        img.src = url
-      })
-      const canvas = document.createElement('canvas')
-      canvas.width = img.naturalWidth || img.width
-      canvas.height = img.naturalHeight || img.height
-      const ctx = canvas.getContext('2d')
-      if (!ctx) throw new Error('Canvas 2D context not available')
-      ctx.drawImage(img, 0, 0)
-      const pngBlob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((b) => {
-          if (b) resolve(b)
-          else reject(new Error('PNG conversion failed'))
-        }, 'image/png')
-      })
-      return pngBlob
-    })
-    return new ClipboardItem({
-      'image/png': blobPromise.then((blob) => blob),
     })
   }
 }
@@ -467,11 +484,24 @@ export const registerFilesSubscriptions = () => {
     (curr, prev) => curr && prev && storeDebounced()
   )
 
-  subscribe((state) => state.files.openFile?.id ?? null, storeOpenFileId)
+  subscribe(
+    (state) => (state.files.openFile?.protected ? null : state.files.openFile?.id ?? null),
+    storeOpenFileId
+  )
 
   hasUnsyncedBlobsObservable.subscribe((hasUnsyncedBlobs) => {
     if (hasUnsyncedBlobs) {
       upDownloadBlobsAndSetStateDebounced()
     }
   })
+}
+
+export const getDecryptedFileBlob = async (file: FileMeta): Promise<Blob | null> => {
+  if (file.blob_state === 'remote') return null
+  const blobRecord = await db.files_blob.get(file.id)
+  if (!blobRecord?.blob) return null
+  if (file.protected !== 1) return blobRecord.blob
+  const key = getProtectedNotesKey()
+  if (!key) return null
+  return await decryptBlob(key, blobRecord.blob, file.mime)
 }

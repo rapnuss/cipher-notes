@@ -11,7 +11,9 @@ export const generateThumbnails = nonConcurrent(async (): Promise<void> => {
   const ids = await db.files_meta
     .where('mime')
     .anyOf(canvasSupportedImageMimeTypes)
-    .and(({has_thumb, blob_state}) => has_thumb === 0 && blob_state !== 'remote')
+    .and(({has_thumb, blob_state, protected: isProtected}) => {
+      return has_thumb === 0 && blob_state !== 'remote' && isProtected !== 1
+    })
     .primaryKeys()
 
   if (ids.length === 0) return

@@ -9,6 +9,7 @@ import {
   openFileTitleChanged,
   setLabelDropdownOpen,
   setMoreMenuOpen,
+  getDecryptedFileBlob,
 } from '../state/files'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
@@ -29,7 +30,7 @@ import {IconDownload} from './icons/IconDownload'
 import {downloadBlob, formatDateTime} from '../util/misc'
 import {notifications} from '@mantine/notifications'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
-import {useEffect} from 'react'
+import {useEffect, useState} from 'react'
 import {useHotkeys} from '@mantine/hooks'
 import {FileIconWithExtension} from './FileIconWithExtension'
 import {isAndroid} from '../helpers/bowser'
@@ -44,7 +45,9 @@ export const OpenFileDialog = () => {
   const openFile = useSelector((state) => state.files.openFile)
   const {moreMenuOpen, labelDropdownOpen} = useSelector((state) => state.files.fileDialog)
   const labelsCache = useSelector((state) => state.labels.labelsCache)
+  const protectedUnlocked = useSelector((state) => state.protectedNotes.unlocked)
   const open = openFile !== null
+  const [resolvedSrc, setResolvedSrc] = useState<string | null>(null)
   const file = useLiveQuery(
     async () => (openFile ? (await db.files_meta.get(openFile.id)) ?? fileNotFound : undefined),
     [openFile?.id]
@@ -55,6 +58,42 @@ export const OpenFileDialog = () => {
       fileClosed()
     }
   }, [file])
+  useEffect(() => {
+    let cancelled = false
+    let url: string | null = null
+    const load = async () => {
+      if (!file || file === fileNotFound) {
+        setResolvedSrc(null)
+        return
+      } else if (file.blob_state === 'remote') {
+        setResolvedSrc(null)
+        return
+      } else if (file.protected !== 1) {
+        setResolvedSrc(`/files/${file.id}`)
+        return
+      } else if (!protectedUnlocked) {
+        setResolvedSrc(null)
+        return
+      }
+      const blob = await getDecryptedFileBlob(file)
+      if (!blob) {
+        setResolvedSrc(null)
+        return
+      }
+      url = URL.createObjectURL(blob)
+      if (!cancelled) {
+        setResolvedSrc(url)
+      }
+    }
+    load().catch((err) => {
+      console.error(err)
+      if (!cancelled) setResolvedSrc(null)
+    })
+    return () => {
+      cancelled = true
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [file, protectedUnlocked])
   useHotkeys(
     [
       [
@@ -82,10 +121,13 @@ export const OpenFileDialog = () => {
     true
   )
   if (!file || file === fileNotFound) return null
+  const fileForDisplay = openFile ? {...file, title: openFile.title} : file
+  const filename = getFilename(fileForDisplay)
   const openNoteLabel = file.labels[0]
   const hue: Hue = openNoteLabel ? labelsCache[openNoteLabel]?.hue ?? null : null
   const borderColor = labelBorderColor(hue, theme)
-  const src = `/files/${file.id}`
+  const src = resolvedSrc ?? `/files/${file.id}`
+  const protectedLocked = file.protected === 1 && !resolvedSrc
   return (
     <Drawer
       opened={open}
@@ -149,14 +191,20 @@ export const OpenFileDialog = () => {
         >
           File not downloaded
         </div>
+      ) : protectedLocked ? (
+        <div
+          style={{flex: '1 1 0', display: 'flex', justifyContent: 'center', alignItems: 'center'}}
+        >
+          Unlock protected files to view this file.
+        </div>
       ) : file.mime.startsWith('image/') ? (
-        <ImageViewer src={src} alt={file.title} />
+        <ImageViewer src={src} alt={openFile?.title ?? file.title} />
       ) : file.mime === 'application/pdf' ? (
         <iframe
           style={{flex: '1 1 0', border: 'none'}}
           key={file.id}
           src={src}
-          title={file.title}
+          title={openFile?.title ?? file.title}
         />
       ) : file.mime.startsWith('video/') ? (
         <video style={{flex: '1 1 0', minHeight: 0}} src={src} controls />
@@ -270,12 +318,15 @@ export const OpenFileDialog = () => {
           </Popover.Dropdown>
         </Popover>
         <ActionIconWithText
-          title={'Download ' + getFilename(file)}
+          title={'Download ' + filename}
           text='store'
           onClick={async () => {
-            const record = await db.files_blob.get(file.id)
-            if (!record || !record.blob) return
-            downloadBlob(record.blob, getFilename(file))
+            const blob = await getDecryptedFileBlob(file)
+            if (!blob) {
+              notifications.show({color: 'red', message: 'File not available locally'})
+              return
+            }
+            downloadBlob(blob, filename)
             if (isAndroid()) {
               notifications.show({
                 title: 'File downloaded',
