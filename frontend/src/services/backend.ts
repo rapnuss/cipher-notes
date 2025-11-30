@@ -104,12 +104,34 @@ export type EncPut =
       deleted_at: number
     }
 
-export type EncSyncRes = {puts: EncPut[]; synced_to: number; conflicts: EncPut[]}
+export type ProtectedNotesConfig = {
+  master_salt: string
+  verifier: string
+  verifier_iv: string
+  updated_at: number
+}
 
-export const reqSyncNotes = (lastSyncedTo: number, puts: EncPut[], syncToken: string) =>
+export type EncSyncRes = {
+  puts: EncPut[]
+  synced_to: number
+  conflicts: EncPut[]
+  protected_notes_config: ProtectedNotesConfig | null
+}
+
+export const reqSyncNotes = (
+  lastSyncedTo: number,
+  puts: EncPut[],
+  syncToken: string,
+  protectedNotesConfig?: ProtectedNotesConfig
+) =>
   request<EncSyncRes>('/syncNotes', {
     method: 'POST',
-    body: {last_synced_to: lastSyncedTo, sync_token: syncToken, puts},
+    body: {
+      last_synced_to: lastSyncedTo,
+      sync_token: syncToken,
+      puts,
+      protected_notes_config: protectedNotesConfig,
+    },
   })
 
 export const reqDeleteNotes = ({confirm, password}: {confirm?: string; password?: string}) =>
@@ -185,19 +207,3 @@ export const reqStorageUsage = () =>
     '/storageUsage',
     {method: 'GET'}
   )
-
-export type ProtectedNotesConfig = {
-  master_salt: string
-  verifier: string
-  verifier_iv: string
-  updated_at: number
-}
-
-export const reqGetProtectedNotesConfig = () =>
-  request<{config: ProtectedNotesConfig | null}>('/getProtectedNotesConfig', {method: 'GET'})
-
-export const reqPutProtectedNotesConfig = (config: ProtectedNotesConfig) =>
-  request<{success: boolean}>('/putProtectedNotesConfig', {
-    method: 'POST',
-    body: config,
-  })

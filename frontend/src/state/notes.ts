@@ -660,7 +660,19 @@ export const syncNotes = nonConcurrent(async () => {
       keyTokenPair,
       1024 * 1024
     )
-    const res = await reqSyncNotes(lastSyncedTo, encPuts, keyTokenPair.syncToken)
+
+    const localConfig = await db.protected_notes_config.get('config')
+    const dirtyConfig =
+      localConfig?.state === 'dirty'
+        ? {
+            master_salt: localConfig.master_salt,
+            verifier: localConfig.verifier,
+            verifier_iv: localConfig.verifier_iv,
+            updated_at: localConfig.updated_at,
+          }
+        : undefined
+
+    const res = await reqSyncNotes(lastSyncedTo, encPuts, keyTokenPair.syncToken, dirtyConfig)
     if (!res.success) {
       setState((state) => {
         state.notes.sync.error = res.error
@@ -853,6 +865,29 @@ export const syncNotes = nonConcurrent(async () => {
         .primaryKeys()
       await tx.labels.bulkDelete(syncedDeleteIds)
     })
+
+    if (dirtyConfig) {
+      await db.protected_notes_config.update('config', {state: 'synced'})
+    }
+    const serverConfig = res.data.protected_notes_config
+    if (serverConfig) {
+      const currentConfig = await db.protected_notes_config.get('config')
+      if (!currentConfig || serverConfig.updated_at > currentConfig.updated_at) {
+        await db.protected_notes_config.put({
+          id: 'config',
+          master_salt: serverConfig.master_salt,
+          verifier: serverConfig.verifier,
+          verifier_iv: serverConfig.verifier_iv,
+          updated_at: serverConfig.updated_at,
+          state: 'synced',
+        })
+        setState((state) => {
+          state.protectedNotes.hasConfig = true
+          state.protectedNotes.unlocked = false
+          state.protectedNotes.derivedKey = null
+        })
+      }
+    }
 
     setState((state) => {
       state.conflicts.conflicts = noteConflicts

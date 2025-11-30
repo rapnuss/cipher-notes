@@ -1,7 +1,6 @@
 import {db, ProtectedNotesConfig} from '../db'
 import {createVerifier, deriveKey, generateMasterSalt, verifyPassword} from '../util/pbkdf2'
 import {getState, setState} from './store'
-import {reqGetProtectedNotesConfig, reqPutProtectedNotesConfig} from '../services/backend'
 
 export type SetupDialogState = {
   open: boolean
@@ -139,30 +138,6 @@ export const lockProtectedNotes = () =>
 
 export const loadProtectedNotesConfig = async () => {
   const localConfig = await db.protected_notes_config.get('config')
-
-  const isLoggedIn = getState().user.user.loggedIn
-  if (isLoggedIn) {
-    const res = await reqGetProtectedNotesConfig()
-    if (res.success && res.data.config) {
-      const serverConfig = res.data.config
-      if (!localConfig || serverConfig.updated_at > localConfig.updated_at) {
-        await db.protected_notes_config.put({
-          id: 'config',
-          master_salt: serverConfig.master_salt,
-          verifier: serverConfig.verifier,
-          verifier_iv: serverConfig.verifier_iv,
-          updated_at: serverConfig.updated_at,
-          state: 'synced',
-        })
-        setState((state) => {
-          state.protectedNotes.configLoaded = true
-          state.protectedNotes.hasConfig = true
-        })
-        return await db.protected_notes_config.get('config')
-      }
-    }
-  }
-
   setState((state) => {
     state.protectedNotes.configLoaded = true
     state.protectedNotes.hasConfig = !!localConfig
@@ -207,19 +182,6 @@ export const submitSetupDialog = async () => {
     }
 
     await db.protected_notes_config.put(config)
-
-    const isLoggedIn = getState().user.user.loggedIn
-    if (isLoggedIn) {
-      const res = await reqPutProtectedNotesConfig({
-        master_salt: masterSalt,
-        verifier,
-        verifier_iv,
-        updated_at,
-      })
-      if (res.success) {
-        await db.protected_notes_config.update('config', {state: 'synced'})
-      }
-    }
 
     setState((state) => {
       state.protectedNotes.hasConfig = true
@@ -375,19 +337,6 @@ export const submitChangePasswordDialog = async () => {
       })
     })
 
-    const isLoggedIn = getState().user.user.loggedIn
-    if (isLoggedIn) {
-      const res = await reqPutProtectedNotesConfig({
-        master_salt: newMasterSalt,
-        verifier,
-        verifier_iv,
-        updated_at,
-      })
-      if (res.success) {
-        await db.protected_notes_config.update('config', {state: 'synced'})
-      }
-    }
-
     setState((state) => {
       state.protectedNotes.derivedKey = newKey
       state.protectedNotes.changePasswordDialog = {...changePasswordDialogInit}
@@ -398,29 +347,6 @@ export const submitChangePasswordDialog = async () => {
       state.protectedNotes.changePasswordDialog.loading = false
       state.protectedNotes.changePasswordDialog.error = 'Failed to change password'
     })
-  }
-}
-
-export const syncProtectedNotesConfig = async () => {
-  const config = await db.protected_notes_config.get('config')
-  if (!config || config.state !== 'dirty') {
-    return
-  }
-
-  const isLoggedIn = getState().user.user.loggedIn
-  if (!isLoggedIn) {
-    return
-  }
-
-  const res = await reqPutProtectedNotesConfig({
-    master_salt: config.master_salt,
-    verifier: config.verifier,
-    verifier_iv: config.verifier_iv,
-    updated_at: config.updated_at,
-  })
-
-  if (res.success) {
-    await db.protected_notes_config.update('config', {state: 'synced'})
   }
 }
 
