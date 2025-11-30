@@ -85,13 +85,13 @@ export function useUndoRedo<Data>(
   chunkThreshold = 500,
   key?: string | number | null
 ): UseUndoRedoReturn {
-  const [state, dispatch] = useReducer(reducer<Data>, {
+  const [state, dispatch] = useReducer(reducer<Data>, null, () => ({
     history: [externalValue],
     currentIndex: 0,
     lastChangeTime: Date.now(),
     prevKey: key,
     prevValue: externalValue,
-  })
+  }))
 
   // Refs to store the latest state and callback
   const stateRef = useRef(state)

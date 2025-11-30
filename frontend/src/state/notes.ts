@@ -1021,7 +1021,8 @@ const storeOpenNote = nonConcurrent(async () => {
       }
 
       if (openNote.type === 'note') {
-        const {todos: _todos, ...noteBase} = note
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const {todos, ...noteBase} = note
         const noteToEncrypt: Note = {
           ...noteBase,
           type: 'note',
@@ -1043,7 +1044,8 @@ const storeOpenNote = nonConcurrent(async () => {
           protected_type: encrypted.protected_type,
         })
       } else {
-        const {txt: _txt, ...noteBase} = note
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const {txt, ...noteBase} = note
         const noteToEncrypt: Note = {
           ...noteBase,
           type: 'todo',
