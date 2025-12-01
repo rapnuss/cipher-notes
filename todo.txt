@@ -63,6 +63,10 @@ FIRST:
   test import and export of protected notes
   cmd+k does not show protected notes
 TODO:
+  fix data loss when locking notes with unsaved changes
+  search content does not work for protected notes
+  cmd+k does not show protected notes
+  check race condition in storeOpenNote when toggling protection
   todo merge
   error if minio password is not set or too short
   make features pem optional
