@@ -197,35 +197,17 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
             .insert(protectedNotesConfigTbl)
             .values({
               user_id: user.id,
-              master_salt: clientConfig.master_salt,
-              verifier: clientConfig.verifier,
-              verifier_iv: clientConfig.verifier_iv,
-              updated_at: clientConfig.updated_at,
+              ...clientConfig,
             })
             .onConflictDoUpdate({
               target: protectedNotesConfigTbl.user_id,
-              set: {
-                master_salt: clientConfig.master_salt,
-                verifier: clientConfig.verifier,
-                verifier_iv: clientConfig.verifier_iv,
-                updated_at: clientConfig.updated_at,
-              },
+              set: clientConfig,
             })
         } else if (existingConfig.updated_at > clientConfig.updated_at) {
-          responseConfig = {
-            master_salt: existingConfig.master_salt,
-            verifier: existingConfig.verifier,
-            verifier_iv: existingConfig.verifier_iv,
-            updated_at: existingConfig.updated_at,
-          }
+          responseConfig = existingConfig
         }
       } else if (existingConfig) {
-        responseConfig = {
-          master_salt: existingConfig.master_salt,
-          verifier: existingConfig.verifier,
-          verifier_iv: existingConfig.verifier_iv,
-          updated_at: existingConfig.updated_at,
-        }
+        responseConfig = existingConfig
       }
 
       return {

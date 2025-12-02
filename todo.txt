@@ -60,15 +60,13 @@ DONE:
   on change encryption key
     delete all blobs with the old key
 FIRST:
-  test import and export of protected notes
-  cmd+k does not show protected notes
+  protected_notes_config server time or version number
 TODO:
-  fix data loss when locking notes with unsaved changes
-  search content does not work for protected notes
   cmd+k does not show protected notes
+LATER:
+  fix data loss when locking notes with unsaved changes
   check race condition in storeOpenNote when toggling protection
   todo merge
   error if minio password is not set or too short
   make features pem optional
-LATER:
 MAYBE:
