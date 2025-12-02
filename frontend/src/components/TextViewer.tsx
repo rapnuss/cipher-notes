@@ -8,6 +8,7 @@ export const TextViewer = ({src}: TextViewerProps) => {
   useEffect(() => {
     const abortController = new AbortController()
     const fetchSrc = src
+    // eslint-disable-next-line -- resetting to loading state when src changes is intentional
     setText(null)
     fetch(fetchSrc, {signal: abortController.signal})
       .then((res) => res.text())

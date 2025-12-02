@@ -186,6 +186,7 @@ export const BulkLabelDropdownContent = ({opened}: {opened: boolean}) => {
   }, [selected, labels])
 
   useEffect(() => {
+    // eslint-disable-next-line -- resetting state on prop change is intentional
     setUpdatedLabelState({})
     setSearch('')
   }, [opened, selectionActive])

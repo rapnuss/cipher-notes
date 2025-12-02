@@ -169,7 +169,7 @@ export const Editor = ({
 
   const updates = useMemo<Extension>(
     () =>
-      // eslint-disable-next-line react-hooks/refs
+      // eslint-disable-next-line -- callback is not called during render
       EditorView.updateListener.of((u: ViewUpdate) => {
         if (applyingRef.current) return
         if (u.docChanged || u.selectionSet) {
