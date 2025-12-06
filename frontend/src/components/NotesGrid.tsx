@@ -6,7 +6,7 @@ import {db} from '../db'
 import {bisectBy, byProp, deepEquals, truncateWithEllipsis} from '../util/misc'
 import {IconSquare} from './icons/IconSquare'
 import {IconCheckbox} from './icons/IconCheckbox'
-import {activeLabelIsUuid, FileMeta, Note, ThemeName, Todo} from '../business/models'
+import {activeLabelIsUuid, FileMeta, Note, PlainNote, ThemeName, Todo} from '../business/models'
 import {deriveTodosData, getFilename, labelBgColor, labelBorderColor} from '../business/misc'
 import {useThemeName} from '../helpers/useMyColorScheme'
 import {IconDots} from './icons/IconDots'
@@ -16,16 +16,23 @@ import {FileIconWithExtension} from './FileIconWithExtension'
 import {selectSelectionActive, toggleSelection, updateCurrentNotes} from '../state/selection'
 import {IconSquareMinus} from './icons/IconSquareMinus'
 import {useEffect} from 'react'
+import {decryptNotes} from '../business/notesEncryption'
 
 export const NotesGrid = () => {
   const query = useSelector((state) => state.notes.query)
   const sort = useSelector((state) => state.notes.sort)
   const activeLabel = useSelector((state) => state.labels.activeLabel)
+  const cryptoKey = useSelector((state) => state.protectedNotes.derivedKey)
   const notes = useLiveQuery(async () => {
     const queryLower = query.toLocaleLowerCase()
     const allNotes = await db.notes.where('deleted_at').equals(0).toArray()
     const allFiles = await db.files_meta.where('deleted_at').equals(0).toArray()
-    const notes = [...allNotes, ...allFiles]
+
+    const decryptedNotes = cryptoKey
+      ? await decryptNotes(cryptoKey, allNotes)
+      : allNotes.filter((n): n is PlainNote => n.type === 'note' || n.type === 'todo')
+
+    const notes = [...decryptedNotes, ...allFiles]
       .filter(
         (n) =>
           (activeLabel === 'archived'

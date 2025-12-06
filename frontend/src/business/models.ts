@@ -21,7 +21,23 @@ export type NoteCommon = {
 export type TextNote = NoteCommon & {type: 'note'; txt: string}
 export type TodoNote = NoteCommon & {type: 'todo'; todos: Todos}
 
-export type Note = XOR<TextNote, TodoNote>
+export type ProtectedTextNote = Omit<NoteCommon, 'title'> & {
+  type: 'note_protected'
+  cipher_text: string
+  iv: string
+}
+export type ProtectedTodoNote = Omit<NoteCommon, 'title'> & {
+  type: 'todo_protected'
+  cipher_text: string
+  iv: string
+}
+export type PlainNote = XOR<TextNote, TodoNote>
+export type ProtectedNote = XOR<ProtectedTextNote, ProtectedTodoNote>
+export type Note = XOR<PlainNote, ProtectedNote>
+
+export type DecryptedProtectedTodoNote = TodoNote & {protected: true}
+export type DecryptedProtectedTextNote = TextNote & {protected: true}
+export type DecryptedProtectedNote = XOR<DecryptedProtectedTextNote, DecryptedProtectedTodoNote>
 
 export type FileMeta = {
   id: string

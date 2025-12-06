@@ -7,6 +7,7 @@ import {
   importKey,
 } from '../util/encryption'
 import {EncPut} from '../services/backend'
+import {DecryptedProtectedNote, Note, PlainNote, ProtectedNote, Todos} from './models'
 
 type UpsertPut = {
   id: string
@@ -83,3 +84,91 @@ export const isValidKeyTokenPair = (keyTokenPair: string) => {
     calcChecksum(cryptoKey, syncToken) === Number(checksum)
   )
 }
+
+export const encryptProtectedNote = async (
+  cryptoKey: CryptoKey,
+  note: DecryptedProtectedNote
+): Promise<ProtectedNote> => {
+  if (note.type === 'note') {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const {txt, protected: _, type: _1, title, ...rest} = note
+    const {cipher_text, iv} = await encryptString(cryptoKey, JSON.stringify({title, txt}))
+    return {
+      type: 'note_protected',
+      ...rest,
+      cipher_text,
+      iv,
+    }
+  } else if (note.type === 'todo') {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const {todos, protected: _, type: _1, title, ...rest} = note
+    const {cipher_text, iv} = await encryptString(cryptoKey, JSON.stringify({title, todos}))
+    return {
+      type: 'todo_protected',
+      ...rest,
+      cipher_text,
+      iv,
+    }
+  } else {
+    throw new Error('Invalid note')
+  }
+}
+
+export const decryptProtectedNote = async (
+  cryptoKey: CryptoKey,
+  note: ProtectedNote
+): Promise<DecryptedProtectedNote> => {
+  if (note.type === 'note_protected') {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const {cipher_text, iv, type: _1, ...rest} = note
+    const jsonStr = await decryptString(cryptoKey, cipher_text, iv)
+    const {title, txt} = JSON.parse(jsonStr) as {title: string; txt: string}
+    return {
+      protected: true,
+      type: 'note',
+      ...rest,
+      title,
+      txt,
+    }
+  } else if (note.type === 'todo_protected') {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const {cipher_text, iv, type: _1, ...rest} = note
+    const jsonStr = await decryptString(cryptoKey, cipher_text, iv)
+    const {title, todos} = JSON.parse(jsonStr) as {title: string; todos: Todos}
+    return {
+      protected: true,
+      type: 'todo',
+      ...rest,
+      title,
+      todos,
+    }
+  }
+  throw new Error('Invalid note')
+}
+
+export function decryptNotes(
+  cryptoKey: CryptoKey,
+  note: ProtectedNote[]
+): Promise<DecryptedProtectedNote[]>
+export function decryptNotes(
+  cryptoKey: CryptoKey,
+  notes: Note[]
+): Promise<(PlainNote | DecryptedProtectedNote)[]>
+export function decryptNotes(
+  cryptoKey: CryptoKey,
+  notes: Note[]
+): Promise<(PlainNote | DecryptedProtectedNote)[]> {
+  return Promise.all(
+    notes.map(async (note) =>
+      note.type === 'note_protected' || note.type === 'todo_protected'
+        ? decryptProtectedNote(cryptoKey, note)
+        : note
+    )
+  )
+}
+
+export const encryptNotes = async (
+  cryptoKey: CryptoKey,
+  notes: DecryptedProtectedNote[]
+): Promise<ProtectedNote[]> =>
+  Promise.all(notes.map((note) => encryptProtectedNote(cryptoKey, note)))

@@ -26,6 +26,16 @@ export const usersTbl = pgTable('users', {
   successful_login_at: bigint({mode: 'number'}),
 })
 
+export const protectedNotesConfigTbl = pgTable('protected_notes_config', {
+  user_id: bigint({mode: 'number'})
+    .references(() => usersTbl.id)
+    .primaryKey(),
+  master_salt: varchar({length: 24}).notNull(),
+  verifier: varchar({length: 255}).notNull(),
+  verifier_iv: varchar({length: 16}).notNull(),
+  updated_at: bigint({mode: 'number'}).notNull(),
+})
+
 export const sessionsTbl = pgTable('sessions', {
   id: bigint({mode: 'number'}).generatedAlwaysAsIdentity().primaryKey(),
   user_id: bigint({mode: 'number'})

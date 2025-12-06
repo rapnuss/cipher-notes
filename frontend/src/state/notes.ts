@@ -139,7 +139,7 @@ export const noteOpened = async (id: string) => {
         updatedAt: note.updated_at,
         archived: note.archived === 1,
       }
-    } else {
+    } else if (note.type === 'note') {
       state.notes.openNote = {
         type: 'note',
         id,
@@ -893,7 +893,8 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
                   ? openNote.selections
                   : [defaultSelection],
             }
-          : {
+          : note.type === 'todo'
+          ? {
               type: note.type,
               id: note.id,
               title: note.title,
@@ -901,6 +902,7 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
               updatedAt: note.updated_at,
               archived: note.archived === 1,
             }
+          : null
     })
   }
 }

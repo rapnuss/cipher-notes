@@ -211,7 +211,7 @@ export const noteToPut = (n: Note): Put => {
       updated_at: n.updated_at,
       version: n.version,
       deleted_at: n.deleted_at,
-      type: n.type,
+      type: n.type === 'note_protected' ? 'note' : n.type === 'todo_protected' ? 'todo' : n.type,
     }
   } else if (n.type === 'todo') {
     const txtObj: TodoPutTxt = {
@@ -310,7 +310,9 @@ export const notesIsEmpty = (note: Note): boolean =>
   note.title === '' &&
   (note.type === 'note'
     ? note.txt === ''
-    : note.todos.length === 0 || (note.todos.length === 1 && note.todos[0]!.txt === ''))
+    : note.type === 'todo' &&
+      note.todos &&
+      (note.todos.length === 0 || (note.todos.length === 1 && note.todos[0]!.txt === '')))
 
 export const mergeNoteConflicts = (
   baseVersions: Note[],

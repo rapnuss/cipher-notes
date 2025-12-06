@@ -1,6 +1,6 @@
 import {and, eq, gt, inArray, isNotNull, notInArray} from 'drizzle-orm'
 import {db} from '../db'
-import {notesTbl, usersTbl} from '../db/schema'
+import {notesTbl, protectedNotesConfigTbl, usersTbl} from '../db/schema'
 import {authEndpointsFactory} from '../endpointsFactory'
 import {z} from 'zod'
 import createHttpError from 'http-errors'
@@ -32,6 +32,12 @@ const deleteSchema = z.object({
   version: z.number().int().positive(),
   deleted_at: z.number().int().positive(),
 })
+const protectedNotesConfigSchema = z.object({
+  master_salt: z.string().max(24),
+  verifier: z.string().max(255),
+  verifier_iv: z.string().max(16),
+  updated_at: z.number().int().positive(),
+})
 const putSchema = z.union([upsertSchema, deleteSchema])
 const putsSchema = z.array(putSchema)
 type Put = z.infer<typeof putSchema>
@@ -50,15 +56,17 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
   input: z.object({
     last_synced_to: z.number().int().nonnegative(),
     puts: putsSchema,
-    sync_token: z.string().base64().length(24),
+    sync_token: z.base64().length(24),
+    protected_notes_config: protectedNotesConfigSchema.optional(),
   }),
   output: z.object({
     puts: putsSchema,
     conflicts: putsSchema,
     synced_to: z.number().int().nonnegative(),
+    protected_notes_config: protectedNotesConfigSchema.nullable(),
   }),
   handler: async ({
-    input: {last_synced_to, puts: clientPuts, sync_token},
+    input: {last_synced_to, puts: clientPuts, sync_token, protected_notes_config: clientConfig},
     options: {user_id, session_id},
   }) => {
     const [user] = await db.select().from(usersTbl).where(eq(usersTbl.id, user_id))
@@ -174,11 +182,39 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
         throw createHttpError(400, 'notes storage limit exceeded')
       }
 
+      const [existingConfig] = await tx
+        .select()
+        .from(protectedNotesConfigTbl)
+        .where(eq(protectedNotesConfigTbl.user_id, user.id))
+        .limit(1)
+
+      let responseConfig: z.infer<typeof protectedNotesConfigSchema> | null = null
+
+      if (clientConfig) {
+        if (!existingConfig || clientConfig.updated_at > existingConfig.updated_at) {
+          await tx
+            .insert(protectedNotesConfigTbl)
+            .values({
+              user_id: user.id,
+              ...clientConfig,
+            })
+            .onConflictDoUpdate({
+              target: protectedNotesConfigTbl.user_id,
+              set: clientConfig,
+            })
+        } else if (existingConfig.updated_at > clientConfig.updated_at) {
+          responseConfig = existingConfig
+        }
+      } else if (existingConfig) {
+        responseConfig = existingConfig
+      }
+
       return {
         puts: putsSchema.parse(pullPuts.concat(unmatchedDeletes)),
         synced_to: Math.max(last_synced_to, maxPutAt),
         conflicts: putsSchema.parse(conflicts),
         pushedIds: updates.map((u) => u.id).concat(inserts.map((i) => i.id)),
+        protected_notes_config: responseConfig,
       }
     })
 

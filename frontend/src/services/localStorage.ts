@@ -1,5 +1,6 @@
 import {ActiveLabel, SettingsOptions, settingsOptionsSchema} from '../business/models'
 import {NotesState} from '../state/notes'
+import {ProtectedNotesConfig} from '../state/protectedNotes'
 import {UserState} from '../state/user'
 import {zodParseString} from '../util/zod'
 
@@ -85,4 +86,19 @@ export const storeSettingsOptions = (options: SettingsOptions): Promise<void> =>
 export const loadSettingsOptions = (): Promise<SettingsOptions | null> =>
   Promise.resolve().then(() => {
     return zodParseString(settingsOptionsSchema, localStorage.getItem('settingsOptions')) ?? null
+  })
+
+export const storeProtectedNotesConfig = (config: ProtectedNotesConfig | null): Promise<void> =>
+  Promise.resolve().then(() => {
+    if (config === null) {
+      localStorage.removeItem('protectedNotesConfig')
+    } else {
+      localStorage.setItem('protectedNotesConfig', JSON.stringify(config))
+    }
+  })
+
+export const loadProtectedNotesConfig = (): Promise<ProtectedNotesConfig | null> =>
+  Promise.resolve().then(() => {
+    const configStr = localStorage.getItem('protectedNotesConfig')
+    return configStr ? JSON.parse(configStr) : null
   })
