@@ -19,6 +19,11 @@ import {ChangeEmailDialog} from './ChangeEmailDialog.tsx'
 import {OpenFileDialog} from './OpenFileDialog.tsx'
 import {StorageUsageDialog} from './StorageUsageDialog.tsx'
 import {SettingsDialog} from './SettingsDialog.tsx'
+import {
+  ChangePasswordDialog,
+  SetupProtectedNotesDialog,
+  UnlockProtectedNotesDialog,
+} from './ProtectedNotesDialogs.tsx'
 
 export const App = () => (
   <>
@@ -37,6 +42,9 @@ export const App = () => (
     <AdminPanel />
     <ConflictDialog />
     <EncryptionKeyDialog />
+    <SetupProtectedNotesDialog />
+    <UnlockProtectedNotesDialog />
+    <ChangePasswordDialog />
     <DeleteServerNotesDialog />
     <DeleteAccountDialog />
     <ChangeEmailDialog />

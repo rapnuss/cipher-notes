@@ -6,7 +6,7 @@ import {db} from '../db'
 import {bisectBy, byProp, deepEquals, truncateWithEllipsis} from '../util/misc'
 import {IconSquare} from './icons/IconSquare'
 import {IconCheckbox} from './icons/IconCheckbox'
-import {activeLabelIsUuid, FileMeta, Note, PlainNote, ThemeName, Todo} from '../business/models'
+import {activeLabelIsUuid, FileMeta, Note, ThemeName, Todo} from '../business/models'
 import {deriveTodosData, getFilename, labelBgColor, labelBorderColor} from '../business/misc'
 import {useThemeName} from '../helpers/useMyColorScheme'
 import {IconDots} from './icons/IconDots'
@@ -16,7 +16,8 @@ import {FileIconWithExtension} from './FileIconWithExtension'
 import {selectSelectionActive, toggleSelection, updateCurrentNotes} from '../state/selection'
 import {IconSquareMinus} from './icons/IconSquareMinus'
 import {useEffect} from 'react'
-import {decryptNotes} from '../business/notesEncryption'
+import {decryptNotes, isDecryptedProtectedNote, isPlainNote} from '../business/notesEncryption'
+import {IconShieldCode} from './icons/IconShieldCode'
 
 export const NotesGrid = () => {
   const query = useSelector((state) => state.notes.query)
@@ -29,8 +30,11 @@ export const NotesGrid = () => {
     const allFiles = await db.files_meta.where('deleted_at').equals(0).toArray()
 
     const decryptedNotes = cryptoKey
-      ? await decryptNotes(cryptoKey, allNotes)
-      : allNotes.filter((n): n is PlainNote => n.type === 'note' || n.type === 'todo')
+      ? await decryptNotes(cryptoKey, allNotes).catch((e) => {
+          console.error(e)
+          return allNotes.filter(isPlainNote)
+        })
+      : allNotes.filter(isPlainNote)
 
     const notes = [...decryptedNotes, ...allFiles]
       .filter(
@@ -52,7 +56,7 @@ export const NotesGrid = () => {
       )
       .sort(byProp(sort.prop, sort.desc))
     return bisectBy(notes ?? [], (n) => n.archived === 1)
-  }, [query, sort, activeLabel])
+  }, [query, sort, activeLabel, cryptoKey])
   const [archivedNotes = [], activeNotes = []] = notes ?? []
   useEffect(() => {
     if (
@@ -138,12 +142,25 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
         opacity: note.archived && !selected && !activeLabelArchived ? 0.5 : 1,
         outline: selected ? '2px solid var(--mantine-color-bright)' : undefined,
         ...(glowColor ? {'--note-glow-color': glowColor} : {}),
+        position: 'relative',
       }}
       shadow='lg'
       bg={labelBgColor(label?.hue ?? null, theme)}
       bd={borderColor ? `2px solid ${borderColor}` : undefined}
       className='note-preview'
     >
+      {isDecryptedProtectedNote(note) && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            padding: '.75rem',
+          }}
+        >
+          <IconShieldCode size={16} />
+        </div>
+      )}
       <UnstyledButton
         style={{
           flex: '1 1 auto',

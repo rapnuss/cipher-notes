@@ -352,7 +352,6 @@ export const keepImportNotes = async (): Promise<void> => {
         id: crypto.randomUUID(),
         created_at: importNote.createdTimestampUsec / 1000,
         updated_at: importNote.userEditedTimestampUsec / 1000,
-        title: importNote.title,
         deleted_at: 0,
         state: 'dirty',
         version: 1,
@@ -364,7 +363,7 @@ export const keepImportNotes = async (): Promise<void> => {
           id: crypto.randomUUID(),
           created_at: noteCommon.created_at,
           updated_at: noteCommon.updated_at,
-          title: noteCommon.title,
+          title: importNote.title,
           deleted_at: noteCommon.deleted_at,
           state: noteCommon.state,
           version: noteCommon.version,
@@ -396,6 +395,7 @@ export const keepImportNotes = async (): Promise<void> => {
         const note: Note = {
           ...noteCommon,
           type: 'note',
+          title: importNote.title,
           txt: importNote.textContent,
         }
         res.push(note)
@@ -403,6 +403,7 @@ export const keepImportNotes = async (): Promise<void> => {
         const note: Note = {
           ...noteCommon,
           type: 'todo',
+          title: importNote.title,
           todos: importNote.listContent.map((item) => ({
             id: crypto.randomUUID(),
             txt: item.text,

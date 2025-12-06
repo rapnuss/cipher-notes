@@ -27,6 +27,12 @@ import {labelSelected, selectCachedLabels} from '../state/labels'
 import {delay} from '../util/misc'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import {openSettings} from '../state/settings'
+import {
+  lockProtectedNotes,
+  openProtectedNotesChangePasswordDialog,
+  openProtectedNotesSetupDialog,
+  openProtectedNotesUnlockDialog,
+} from '../state/protectedNotes'
 
 type Command = SpotlightActionData & {shortcut?: string; onClick: () => void}
 
@@ -40,6 +46,8 @@ export const CommandCenter = () => {
   const notes: Note[] = useLiveQuery(() => db.notes.where('deleted_at').equals(0).toArray(), [], [])
   const labels = useSelector(selectCachedLabels)
   const activeLabel = useSelector((state) => state.labels.activeLabel)
+  const protectedNotesUnlocked = useSelector((state) => !!state.protectedNotes.derivedKey)
+  const protectedNotesConfigured = useSelector((state) => !!state.protectedNotes.config)
 
   const commands: Command[] = [
     {
@@ -51,8 +59,29 @@ export const CommandCenter = () => {
     {
       id: 'newNote',
       label: 'New note',
-      onClick: addNote,
+      onClick: () => addNote(false),
       shortcut: 'alt+shift+n',
+    },
+    {
+      id: 'unlockProtectedNotes',
+      label: 'Unlock protected notes',
+      onClick: () => openProtectedNotesUnlockDialog(),
+      shortcut: 'alt+shift+u',
+      disabled: protectedNotesUnlocked,
+    },
+    {
+      id: 'lockProtectedNotes',
+      label: 'Lock protected notes',
+      onClick: lockProtectedNotes,
+      shortcut: 'alt+shift+l',
+      disabled: !protectedNotesUnlocked,
+    },
+    {
+      id: 'newProtectedNote',
+      label: 'New protected note',
+      onClick: () => addNote(true),
+      shortcut: 'alt+shift+p',
+      disabled: !protectedNotesUnlocked,
     },
     {
       id: 'searchContent',
@@ -115,6 +144,12 @@ export const CommandCenter = () => {
       id: 'privacy',
       label: 'Privacy Policy',
       onClick: () => window.open('/privacy.html', '_blank'),
+    },
+    {
+      id: 'setupProtectedNotes',
+      label: 'Setup protected notes',
+      onClick: () => openProtectedNotesSetupDialog(),
+      disabled: protectedNotesConfigured,
     },
     {
       id: 'encryptionKey',
@@ -197,6 +232,12 @@ export const CommandCenter = () => {
       label: 'Admin Panel',
       onClick: openAdminDialog,
       disabled: !isAdmin || hostingMode === 'central',
+    },
+    {
+      id: 'protectedNotesChangePassword',
+      label: 'Change protected notes password (and re-encrypt all protected notes)',
+      onClick: openProtectedNotesChangePasswordDialog,
+      disabled: !protectedNotesUnlocked,
     },
     {
       id: 'generateNewEncryptionKeyAndResync',

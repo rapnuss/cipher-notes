@@ -27,7 +27,7 @@ export const deriveKey = async (password: string, masterSalt: string): Promise<C
     },
     keyMaterial,
     {name: 'AES-GCM', length: 256},
-    true,
+    false,
     ['encrypt', 'decrypt']
   )
 

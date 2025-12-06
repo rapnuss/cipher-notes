@@ -15,12 +15,13 @@ import {
   labelPutTxtSchema,
   Note,
   NoteCommon,
+  ProtectedPutTxt,
+  PutTxt,
+  putTxtSchema,
   TextPutTxt,
-  textPutTxtSchema,
   ThemeName,
   Todo,
   TodoPutTxt,
-  todoPutTxtSchema,
   Todos,
 } from './models'
 import {Put} from './notesEncryption'
@@ -117,50 +118,82 @@ export const putToNote = (put: Put): Note => {
     version,
     deleted_at: deleted_at ?? 0,
     state: 'synced',
-    title: '',
+
     archived: 0,
   }
   if (txt === null && type === 'note') {
     return {
       ...common,
       type: 'note',
+      title: '',
       txt: '',
     }
   } else if (txt === null && type === 'todo') {
     return {
       ...common,
       type: 'todo',
+      title: '',
       todos: [],
     }
   } else if (typeof txt === 'string' && type === 'note') {
-    const {title, txt, labels, archived} = zodParseString(textPutTxtSchema, put.txt) ?? {
+    const putTxt: PutTxt = zodParseString(putTxtSchema, put.txt) ?? {
       title: '',
       txt: put.txt,
       archived: false,
     }
-    return {
-      ...common,
-      type: 'note',
-      txt,
-      title,
-      labels,
-      archived: archived ? 1 : 0,
+    const {labels, archived} = putTxt
+    if ('cipher_text' in putTxt) {
+      return {
+        ...common,
+        type: 'note_protected',
+        cipher_text: putTxt.cipher_text,
+        iv: putTxt.iv,
+        labels,
+        archived: archived ? 1 : 0,
+      }
+    } else if ('title' in putTxt && 'txt' in putTxt) {
+      const {title, txt} = putTxt
+      return {
+        ...common,
+        type: 'note',
+        txt,
+        title,
+        labels,
+        archived: archived ? 1 : 0,
+      }
+    } else {
+      throw new Error('Invalid note put')
     }
   } else if (typeof txt === 'string' && type === 'todo') {
-    const {title, todos, labels, archived} = zodParseString(todoPutTxtSchema, put.txt) ?? {
+    const putTxt: PutTxt = zodParseString(putTxtSchema, put.txt) ?? {
       title: '',
       todos: put.txt
         ? [{done: false, txt: put.txt, id: crypto.randomUUID(), updated_at: Date.now()}]
         : [],
       archived: false,
     }
-    return {
-      ...common,
-      type: 'todo',
-      todos,
-      title,
-      labels,
-      archived: archived ? 1 : 0,
+    const {labels, archived} = putTxt
+    if ('cipher_text' in putTxt) {
+      return {
+        ...common,
+        type: 'todo_protected',
+        cipher_text: putTxt.cipher_text,
+        iv: putTxt.iv,
+        labels,
+        archived: archived ? 1 : 0,
+      }
+    } else if ('title' in putTxt && 'todos' in putTxt) {
+      const {title, todos} = putTxt
+      return {
+        ...common,
+        type: 'todo',
+        todos,
+        title,
+        labels,
+        archived: archived ? 1 : 0,
+      }
+    } else {
+      throw new Error('Invalid todo put')
     }
   } else {
     throw new Error('put is not a note')
@@ -244,6 +277,40 @@ export const noteToPut = (n: Note): Put => {
       version: n.version,
       deleted_at: null,
       type: n.type,
+    }
+  } else if (n.type === 'note_protected') {
+    const {cipher_text, iv, labels, archived} = n
+    const txtObj: ProtectedPutTxt = {
+      cipher_text,
+      iv,
+      labels,
+      archived: !!archived,
+    }
+    return {
+      id: n.id,
+      created_at: n.created_at,
+      txt: JSON.stringify(txtObj),
+      updated_at: n.updated_at,
+      version: n.version,
+      deleted_at: null,
+      type: 'note',
+    }
+  } else if (n.type === 'todo_protected') {
+    const {cipher_text, iv, labels, archived} = n
+    const txtObj: ProtectedPutTxt = {
+      cipher_text,
+      iv,
+      labels,
+      archived: !!archived,
+    }
+    return {
+      id: n.id,
+      created_at: n.created_at,
+      txt: JSON.stringify(txtObj),
+      updated_at: n.updated_at,
+      version: n.version,
+      deleted_at: null,
+      type: 'todo',
     }
   } else {
     throw new Error('Invalid note')

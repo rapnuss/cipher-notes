@@ -13,6 +13,9 @@ import {
   filePullDefExtraKeys,
   defaultSelection,
   CMSelection,
+  DecryptedProtectedNote,
+  PlainNote,
+  NoteCommon,
 } from '../business/models'
 import {getState, setState, subscribe} from './store'
 import {
@@ -24,7 +27,15 @@ import {
   takeJsonSize,
 } from '../util/misc'
 import {EncPut, isUnauthorizedRes, reqSyncNotes} from '../services/backend'
-import {Put, decryptSyncData, encryptSyncData} from '../business/notesEncryption'
+import {
+  Put,
+  decryptProtectedNote,
+  decryptSyncData,
+  encryptProtectedNote,
+  encryptSyncData,
+  isDecryptedProtectedNote,
+  isProtectedNote,
+} from '../business/notesEncryption'
 import {
   db,
   hasDirtyFilesMetaObservable,
@@ -127,8 +138,17 @@ export const setMoreMenuOpen = (open: boolean) =>
     state.notes.noteDialog.moreMenuOpen = open
   })
 export const noteOpened = async (id: string) => {
-  const note = await db.notes.get(id)
+  let note = await db.notes.get(id)
   if (!note || note.deleted_at !== 0) return
+  let protectedNote = false
+
+  if (isProtectedNote(note)) {
+    const cryptoKey = getState().protectedNotes.derivedKey
+    if (!cryptoKey) return
+    note = await decryptProtectedNote(cryptoKey, note)
+    protectedNote = true
+  }
+
   setState((state) => {
     if (note.type === 'todo') {
       state.notes.openNote = {
@@ -138,6 +158,7 @@ export const noteOpened = async (id: string) => {
         title: note.title,
         updatedAt: note.updated_at,
         archived: note.archived === 1,
+        protected: protectedNote,
       }
     } else if (note.type === 'note') {
       state.notes.openNote = {
@@ -148,6 +169,7 @@ export const noteOpened = async (id: string) => {
         updatedAt: note.updated_at,
         archived: note.archived === 1,
         selections: [defaultSelection],
+        protected: protectedNote,
       }
     }
   })
@@ -188,7 +210,9 @@ export const noteClosed = async () => {
     }
   })
 }
-export const addNote = async () => {
+export const addNote = async (isProtected: boolean) => {
+  const cryptoKey = getState().protectedNotes.derivedKey
+  if (!cryptoKey && isProtected) return
   const now = Date.now()
   const id = crypto.randomUUID()
   const {activeLabel} = getState().labels
@@ -205,7 +229,11 @@ export const addNote = async () => {
     labels: activeLabelIsUuid(activeLabel) ? [activeLabel] : undefined,
     archived: 0,
   }
-  await db.notes.add(note)
+  await db.notes.add(
+    isProtected && cryptoKey
+      ? await encryptProtectedNote(cryptoKey, {...note, protected: true})
+      : note
+  )
 
   setState((state) => {
     state.notes.openNote = {
@@ -216,6 +244,7 @@ export const addNote = async () => {
       updatedAt: now,
       archived: false,
       selections: [defaultSelection],
+      protected: isProtected,
     }
   })
 }
@@ -243,6 +272,7 @@ export const openNoteTypeToggled = () =>
         title: state.notes.openNote.title,
         updatedAt: Date.now(),
         archived: state.notes.openNote.archived,
+        protected: state.notes.openNote.protected,
       }
     } else {
       state.notes.openNote = {
@@ -253,6 +283,7 @@ export const openNoteTypeToggled = () =>
         updatedAt: Date.now(),
         archived: state.notes.openNote.archived,
         selections: [defaultSelection],
+        protected: state.notes.openNote.protected,
       }
     }
   })
@@ -260,6 +291,13 @@ export const openNoteArchivedToggled = () =>
   setState((state) => {
     if (!state.notes.openNote) return
     state.notes.openNote.archived = !state.notes.openNote.archived
+    state.notes.openNote.updatedAt = Date.now()
+  })
+
+export const openNoteProtectedToggled = () =>
+  setState((state) => {
+    if (!state.notes.openNote) return
+    state.notes.openNote.protected = !state.notes.openNote.protected
     state.notes.openNote.updatedAt = Date.now()
   })
 
@@ -637,7 +675,18 @@ export const syncNotes = nonConcurrent(async () => {
       keyTokenPair,
       1024 * 1024
     )
-    const res = await reqSyncNotes(lastSyncedTo, encPuts, keyTokenPair.syncToken)
+    const {state: protectedNotesConfigState, ...localProtectedNotesConfig} =
+      state.protectedNotes.config ?? {}
+    const dirtyProtectedNotesConfig =
+      protectedNotesConfigState === 'dirty' && 'master_salt' in localProtectedNotesConfig
+        ? localProtectedNotesConfig
+        : undefined
+    const res = await reqSyncNotes(
+      lastSyncedTo,
+      encPuts,
+      keyTokenPair.syncToken,
+      dirtyProtectedNotesConfig
+    )
     if (!res.success) {
       setState((state) => {
         state.notes.sync.error = res.error
@@ -797,10 +846,35 @@ export const syncNotes = nonConcurrent(async () => {
         const insertNotes = insertNoteIds.map((id) => notesToStore[id]!)
         await tx.notes.bulkPut(insertNotes)
         await tx.note_base_versions.bulkPut(baseVersions.concat(insertNotes))
+
+        if (dirtyProtectedNotesConfig && !res.data.protected_notes_config) {
+          setState((state) => {
+            if (state.protectedNotes.config) {
+              state.protectedNotes.config.state = 'synced'
+            }
+          })
+        } else if (
+          res.data.protected_notes_config &&
+          (!('master_salt' in localProtectedNotesConfig) ||
+            localProtectedNotesConfig.updated_at < res.data.protected_notes_config.updated_at)
+        ) {
+          setState((state) => {
+            state.protectedNotes.derivedKey = null
+            if (state.notes.openNote?.protected) {
+              state.notes.openNote = null
+            }
+            if (res.data.protected_notes_config) {
+              state.protectedNotes.config = {
+                ...res.data.protected_notes_config,
+                state: 'synced',
+              }
+            }
+          })
+        }
       }
     )
 
-    setOpenNote(notesToStore)
+    await setOpenNote(notesToStore)
     setOpenFile(filesToStore)
 
     await db.transaction('rw', db.notes, db.note_base_versions, async (tx) => {
@@ -862,14 +936,19 @@ export const syncNotes = nonConcurrent(async () => {
   }
 })
 
-const setOpenNote = (syncedNotes: Record<string, Note>) => {
+const setOpenNote = async (syncedNotes: Record<string, Note>) => {
   const openNote = getState().notes.openNote
   if (!openNote) {
     return
   }
-  const note = syncedNotes[openNote.id]
+  let note = syncedNotes[openNote.id]
   if (!note) {
     return
+  }
+  if (isProtectedNote(note)) {
+    const cryptoKey = getState().protectedNotes.derivedKey
+    if (!cryptoKey) return
+    note = await decryptProtectedNote(cryptoKey, note)
   }
   if (note.deleted_at !== 0) {
     return setState((state) => {
@@ -889,9 +968,10 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
               updatedAt: note.updated_at,
               archived: note.archived === 1,
               selections:
-                'selections' in openNote && openNote.selections // TODO: check if we need to clamp selections
+                'selections' in openNote && openNote.selections
                   ? openNote.selections
                   : [defaultSelection],
+              protected: isDecryptedProtectedNote(note),
             }
           : note.type === 'todo'
           ? {
@@ -901,6 +981,7 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
               todos: note.todos,
               updatedAt: note.updated_at,
               archived: note.archived === 1,
+              protected: isDecryptedProtectedNote(note),
             }
           : null
     })
@@ -911,26 +992,61 @@ const storeOpenNote = nonConcurrent(async () => {
   const openNote = getState().notes.openNote
   if (!openNote) return
 
-  const note = await db.notes.get(openNote.id)
+  let note: Note | DecryptedProtectedNote | undefined = await db.notes.get(openNote.id)
+
+  if (!note) {
+    return
+  }
+
+  const cryptoKey = getState().protectedNotes.derivedKey
+  if (isProtectedNote(note)) {
+    if (!cryptoKey) return
+    note = await decryptProtectedNote(cryptoKey, note)
+  }
 
   if (
-    note &&
-    (note.title !== openNote.title ||
-      note.type !== openNote.type ||
-      !!note.archived !== openNote.archived ||
-      (note.type === 'note' && note.txt !== openNote.txt) ||
-      (note.type === 'todo' && !deepEquals(note.todos, openNote.todos)))
+    note.title !== openNote.title ||
+    note.type !== openNote.type ||
+    !!note.archived !== openNote.archived ||
+    (note.type === 'note' && note.txt !== openNote.txt) ||
+    (note.type === 'todo' && !deepEquals(note.todos, openNote.todos)) ||
+    openNote.protected !== isDecryptedProtectedNote(note)
   ) {
-    await db.notes.update(openNote.id, {
-      type: openNote.type,
-      title: openNote.title,
-      txt: openNote.type === 'note' ? openNote.txt : undefined,
-      todos: openNote.type === 'todo' ? openNote.todos : undefined,
+    if (openNote.protected) {
+    }
+    let common: NoteCommon = {
+      id: openNote.id,
+      created_at: note.created_at,
+      deleted_at: 0,
       updated_at: openNote.updatedAt,
       state: 'dirty',
       version: note.state === 'dirty' ? note.version : note.version + 1,
       archived: openNote.archived ? 1 : 0,
-    })
+    }
+    let plainNote: PlainNote
+    if (openNote.type === 'note') {
+      plainNote = {
+        ...common,
+        type: 'note',
+        title: openNote.title,
+        txt: openNote.txt,
+      }
+    } else if (openNote.type === 'todo') {
+      plainNote = {
+        ...common,
+        type: 'todo',
+        title: openNote.title,
+        todos: openNote.todos,
+      }
+    } else {
+      return
+    }
+    let noteToStore: Note = plainNote
+    if (openNote.protected) {
+      if (!cryptoKey) return
+      noteToStore = await encryptProtectedNote(cryptoKey, noteToStore)
+    }
+    await db.notes.update(openNote.id, noteToStore)
   }
 })
 
@@ -951,7 +1067,10 @@ export const registerNotesSubscriptions = () => {
       }
     }
   )
-  subscribe((state) => state.notes.openNote?.id ?? null, storeOpenNoteId)
+  subscribe(
+    (state) => (state.notes.openNote?.protected ? null : state.notes.openNote?.id ?? null),
+    storeOpenNoteId
+  )
 
   const syncNotesDebounced = debounce(syncNotes, 1000)
   hasDirtyNotesObservable.subscribe((hasDirtyNotes) => {

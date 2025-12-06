@@ -7,7 +7,7 @@ import {
   importKey,
 } from '../util/encryption'
 import {EncPut} from '../services/backend'
-import {DecryptedProtectedNote, Note, PlainNote, ProtectedNote, Todos} from './models'
+import {DecryptedProtectedNote, FileMeta, Note, PlainNote, ProtectedNote, Todos} from './models'
 
 type UpsertPut = {
   id: string
@@ -87,11 +87,12 @@ export const isValidKeyTokenPair = (keyTokenPair: string) => {
 
 export const encryptProtectedNote = async (
   cryptoKey: CryptoKey,
-  note: DecryptedProtectedNote
+  note: DecryptedProtectedNote | PlainNote
 ): Promise<ProtectedNote> => {
-  if (note.type === 'note') {
+  const foo = {...note, protected: 'protected' in note && note.protected}
+  if (foo.type === 'note') {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const {txt, protected: _, type: _1, title, ...rest} = note
+    const {txt, protected: _, type: _1, title, ...rest} = foo
     const {cipher_text, iv} = await encryptString(cryptoKey, JSON.stringify({title, txt}))
     return {
       type: 'note_protected',
@@ -99,9 +100,9 @@ export const encryptProtectedNote = async (
       cipher_text,
       iv,
     }
-  } else if (note.type === 'todo') {
+  } else if (foo.type === 'todo') {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const {todos, protected: _, type: _1, title, ...rest} = note
+    const {todos, protected: _, type: _1, title, ...rest} = foo
     const {cipher_text, iv} = await encryptString(cryptoKey, JSON.stringify({title, todos}))
     return {
       type: 'todo_protected',
@@ -172,3 +173,15 @@ export const encryptNotes = async (
   notes: DecryptedProtectedNote[]
 ): Promise<ProtectedNote[]> =>
   Promise.all(notes.map((note) => encryptProtectedNote(cryptoKey, note)))
+
+export const isProtectedNote = (
+  note: Note
+): note is typeof note & {type: 'note_protected' | 'todo_protected'} =>
+  note.type === 'note_protected' || note.type === 'todo_protected'
+
+export const isPlainNote = (note: Note): note is typeof note & {type: 'note' | 'todo'} =>
+  note.type === 'note' || note.type === 'todo'
+
+export const isDecryptedProtectedNote = (
+  note: Note | DecryptedProtectedNote | FileMeta
+): note is typeof note & {protected: true} => 'protected' in note && note.protected

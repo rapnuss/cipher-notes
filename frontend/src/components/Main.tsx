@@ -62,7 +62,7 @@ const FloatingButtons = () => {
         style={{position: 'absolute', bottom: '1.25rem', right: '1.25rem', zIndex: 1}}
       >
         <ImportActionIcon />
-        <ActionIconWithText onClick={addNote} title='Create new note' text='new'>
+        <ActionIconWithText onClick={() => addNote(false)} title='Create new note' text='new'>
           <IconPlus />
         </ActionIconWithText>
       </ActionIcon.Group>

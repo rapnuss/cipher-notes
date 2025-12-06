@@ -290,3 +290,8 @@ export const submitChangePasswordDialog = async () => {
 export const registerProtectedNotesSubscriptions = () => {
   subscribe((state) => state.protectedNotes.config, storeProtectedNotesConfig)
 }
+
+export const lockProtectedNotes = () =>
+  setState((state) => {
+    state.protectedNotes.derivedKey = null
+  })

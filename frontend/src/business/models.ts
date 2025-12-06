@@ -9,7 +9,6 @@ export const activeLabelIsUuid = (activeLabel: ActiveLabel): activeLabel is UUID
 
 export type NoteCommon = {
   id: string
-  title: string
   created_at: number
   updated_at: number
   version: number
@@ -18,15 +17,15 @@ export type NoteCommon = {
   labels?: string[]
   archived: 0 | 1
 }
-export type TextNote = NoteCommon & {type: 'note'; txt: string}
-export type TodoNote = NoteCommon & {type: 'todo'; todos: Todos}
+export type TextNote = NoteCommon & {type: 'note'; title: string; txt: string}
+export type TodoNote = NoteCommon & {type: 'todo'; title: string; todos: Todos}
 
-export type ProtectedTextNote = Omit<NoteCommon, 'title'> & {
+export type ProtectedTextNote = NoteCommon & {
   type: 'note_protected'
   cipher_text: string
   iv: string
 }
-export type ProtectedTodoNote = Omit<NoteCommon, 'title'> & {
+export type ProtectedTodoNote = NoteCommon & {
   type: 'todo_protected'
   cipher_text: string
   iv: string
@@ -130,6 +129,7 @@ export type TextOpenNote = {
   txt: string
   updatedAt: number
   archived: boolean
+  protected: boolean
   selections: CMSelection[]
 }
 export type TodoOpenNote = {
@@ -139,6 +139,7 @@ export type TodoOpenNote = {
   todos: Todos
   updatedAt: number
   archived: boolean
+  protected: boolean
 }
 export type OpenNote = XOR<TextOpenNote, TodoOpenNote>
 
@@ -174,6 +175,17 @@ export const todoPutTxtSchema = z.object({
   archived: z.boolean().optional(),
 })
 export type TodoPutTxt = z.infer<typeof todoPutTxtSchema>
+
+export const protectedPutTxtSchema = z.object({
+  labels: z.array(z.uuidv4()).optional(),
+  archived: z.boolean().optional(),
+  cipher_text: z.string(),
+  iv: z.string(),
+})
+export type ProtectedPutTxt = z.infer<typeof protectedPutTxtSchema>
+
+export const putTxtSchema = z.union([textPutTxtSchema, todoPutTxtSchema, protectedPutTxtSchema])
+export type PutTxt = z.infer<typeof putTxtSchema>
 
 export const hueSchema = z.union([
   z.literal(null),

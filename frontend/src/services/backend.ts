@@ -1,4 +1,5 @@
 import {backendUrl, backendTimeout} from '../config'
+import {ProtectedNotesConfig} from '../state/protectedNotes'
 import {fetchJson} from '../util/fetch'
 import {Overwrite} from '../util/type'
 
@@ -104,12 +105,29 @@ export type EncPut =
       deleted_at: number
     }
 
-export type EncSyncRes = {puts: EncPut[]; synced_to: number; conflicts: EncPut[]}
+export type SyncProtectedNotesConfig = Omit<ProtectedNotesConfig, 'state'>
 
-export const reqSyncNotes = (lastSyncedTo: number, puts: EncPut[], syncToken: string) =>
+export type EncSyncRes = {
+  puts: EncPut[]
+  synced_to: number
+  conflicts: EncPut[]
+  protected_notes_config: SyncProtectedNotesConfig | null
+}
+
+export const reqSyncNotes = (
+  lastSyncedTo: number,
+  puts: EncPut[],
+  syncToken: string,
+  config?: SyncProtectedNotesConfig
+) =>
   request<EncSyncRes>('/syncNotes', {
     method: 'POST',
-    body: {last_synced_to: lastSyncedTo, sync_token: syncToken, puts},
+    body: {
+      last_synced_to: lastSyncedTo,
+      sync_token: syncToken,
+      puts,
+      protected_notes_config: config,
+    },
   })
 
 export const reqDeleteNotes = ({confirm, password}: {confirm?: string; password?: string}) =>
