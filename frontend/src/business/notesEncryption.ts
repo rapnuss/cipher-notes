@@ -178,6 +178,35 @@ export const encryptNotes = async (
 ): Promise<ProtectedNote[]> =>
   Promise.all(notes.map((note) => encryptProtectedNote(cryptoKey, note)))
 
+export const reEncryptNotes = (
+  oldKey: CryptoKey,
+  newKey: CryptoKey,
+  notes: ProtectedNote[]
+): Promise<ProtectedNote[]> =>
+  Promise.all(notes.map((note) => reEncryptProtectedNote(oldKey, newKey, note))).then((notes) =>
+    notes.filter((n) => n !== null)
+  )
+
+export const reEncryptProtectedNote = async (
+  oldKey: CryptoKey,
+  newKey: CryptoKey,
+  note: ProtectedNote
+): Promise<ProtectedNote | null> => {
+  const decryptedNote = await decryptProtectedNote(oldKey, note).catch((e) => {
+    console.error('Failed to decrypt note:', note.id, e)
+    return null
+  })
+  if (!decryptedNote) {
+    return null
+  }
+  return encryptProtectedNote(newKey, {
+    ...decryptedNote,
+    updated_at: Date.now(),
+    state: 'dirty',
+    version: note.state === 'dirty' ? note.version : note.version + 1,
+  })
+}
+
 export const isProtectedNote = (
   note: Note
 ): note is typeof note & {type: 'note_protected' | 'todo_protected'} =>

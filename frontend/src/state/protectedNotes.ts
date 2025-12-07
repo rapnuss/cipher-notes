@@ -1,5 +1,5 @@
-import {DecryptedProtectedNote, ProtectedNote} from '../business/models'
-import {decryptNotes, encryptNotes} from '../business/notesEncryption'
+import {ProtectedNote} from '../business/models'
+import {reEncryptNotes} from '../business/notesEncryption'
 import {db} from '../db'
 import {loadProtectedNotesConfig, storeProtectedNotesConfig} from '../services/localStorage'
 import {createVerifier, deriveKey, generateMasterSalt, verifyPassword} from '../util/pbkdf2'
@@ -269,9 +269,8 @@ export const submitChangePasswordDialog = async () => {
         (n): n is ProtectedNote => n.type === 'note_protected' || n.type === 'todo_protected'
       )
 
-      const decryptedNotes: DecryptedProtectedNote[] = await decryptNotes(oldKey, protectedNotes)
-      const encryptedNotes = await encryptNotes(newKey, decryptedNotes)
-      await db.notes.bulkPut(encryptedNotes)
+      const reEncryptedNotes = await reEncryptNotes(oldKey, newKey, protectedNotes)
+      await db.notes.bulkPut(reEncryptedNotes)
       setState((state) => {
         state.protectedNotes.config = newConfig
         state.protectedNotes.derivedKey = newKey
