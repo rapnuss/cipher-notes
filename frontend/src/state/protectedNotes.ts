@@ -261,7 +261,6 @@ export const submitChangePasswordDialog = async () => {
       state: 'dirty',
     }
 
-    // TODO: Re-encrypt all notes with the new password
     await db.transaction('rw', db.notes, async () => {
       const allNotes = await db.notes.where('deleted_at').equals(0).toArray()
 

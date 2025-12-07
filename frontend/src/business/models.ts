@@ -102,7 +102,6 @@ export const noteSortOptions = noteSortProps.map((prop) => ({
 
 export type NoteSortProp = (typeof noteSortProps)[number]
 
-// TODO: make id mandatory except for imports
 export const todoSchema = z.object({
   id: z.string(),
   updated_at: z.number().optional(),

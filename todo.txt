@@ -61,8 +61,8 @@ DONE:
     delete all blobs with the old key
 FIRST:
 TODO:
+LATER:
+MAYBE:
   todo merge
   error if minio password is not set or too short
   make features pem optional
-LATER:
-MAYBE:
