@@ -23,6 +23,8 @@ export const importNotesSchema = z.array(
       todos: importTodosSchema.optional(),
       labels: z.array(z.string()).optional(),
       archived: z.boolean().optional(),
+      cipher_text: z.string().optional(),
+      iv: z.string().optional(),
     })
     .strip()
 )
@@ -76,12 +78,22 @@ export const importFilesMetaSchema = z.array(
 )
 export type ImportFileMeta = z.infer<typeof importFilesMetaSchema>[number]
 
+export const importProtectedNoteConfigSchema = z.object({
+  master_salt: z.string().max(24),
+  verifier: z.string().max(255),
+  verifier_iv: z.string().max(16),
+  updated_at: z.number().int().positive().optional(),
+  state: z.enum(['dirty', 'synced']).optional(),
+})
+export type ImportProtectedNoteConfig = z.infer<typeof importProtectedNoteConfigSchema>
+
 // Full notes.json schema
 export const notesZipSchema = z
   .object({
     notes: importNotesSchema,
     files_meta: importFilesMetaSchema,
     labelColors: z.record(z.string(), hueSchema).optional(),
+    protected_notes_config: importProtectedNoteConfigSchema.optional(),
   })
   .strip()
 export type NotesZip = z.infer<typeof notesZipSchema>

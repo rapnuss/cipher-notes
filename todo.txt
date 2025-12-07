@@ -60,6 +60,7 @@ DONE:
   on change encryption key
     delete all blobs with the old key
 FIRST:
+  import and export protected notes
 TODO:
 LATER:
 MAYBE:

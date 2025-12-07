@@ -88,6 +88,8 @@ export const exportNotes = async () => {
     db.files_blob.toArray(),
   ])
 
+  const protectedNotesConfig = getState().protectedNotes.config
+
   // map label ids to names for export
   const labelsCache = getState().labels.labelsCache
   const mapLabelIdsToNames = (ids?: string[]) =>
@@ -110,6 +112,9 @@ export const exportNotes = async () => {
       updated_at: n.updated_at,
       archived: n.archived === 1,
       labels: mapLabelIdsToNames(n.labels),
+      cipher_text:
+        n.type === 'note_protected' || n.type === 'todo_protected' ? n.cipher_text : undefined,
+      iv: n.type === 'note_protected' || n.type === 'todo_protected' ? n.iv : undefined,
     })),
     files_meta: filesMeta.map(
       (f) =>
@@ -127,6 +132,7 @@ export const exportNotes = async () => {
         } satisfies ImportFileMeta)
     ),
     labelColors,
+    protected_notes_config: protectedNotesConfig ?? undefined,
   }
 
   // validate payload
