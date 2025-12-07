@@ -5,8 +5,9 @@ import {
   notesZipSchema,
   ImportFileMeta,
   NotesZip,
+  ImportProtectedNoteConfig,
 } from '../business/importNotesSchema'
-import {FileBlob, FileMeta, Hue, Label, Note, NoteCommon} from '../business/models'
+import {FileBlob, FileMeta, Hue, Label, Note, NoteCommon, ProtectedNote} from '../business/models'
 import {db} from '../db'
 import {downloadBlob, splitFilename} from '../util/misc'
 import {getState, RootState, setState} from './store'
@@ -15,13 +16,23 @@ import XSet from '../util/XSet'
 import {createLabel} from './labels'
 import {notifications} from '@mantine/notifications'
 import {comlink} from '../comlink'
+import {deriveKey, verifyPassword} from '../util/pbkdf2'
+import {encryptProtectedNote, decryptProtectedNote} from '../business/notesEncryption'
+
+export type ImportDialogState = {
+  open: boolean
+  file: File | null
+  error: string | null
+  oldPassword: string
+  needsOldPassword: boolean
+  loading: boolean
+  parsedZip: JSZip | null
+  parsedData: NotesZip | null
+  importedProtectedConfig: ImportProtectedNoteConfig | null
+}
 
 export type ImportState = {
-  importDialog: {
-    open: boolean
-    file: File | null
-    error: string | null
-  }
+  importDialog: ImportDialogState
   keepImportDialog: {
     open: boolean
     file: File | null
@@ -30,22 +41,34 @@ export type ImportState = {
   }
 }
 
+const importDialogInit: ImportDialogState = {
+  open: false,
+  file: null,
+  error: null,
+  oldPassword: '',
+  needsOldPassword: false,
+  loading: false,
+  parsedZip: null,
+  parsedData: null,
+  importedProtectedConfig: null,
+}
+
 export const importInit: ImportState = {
-  importDialog: {open: false, file: null, error: null},
+  importDialog: importDialogInit,
   keepImportDialog: {open: false, file: null, error: null, importArchived: false},
 }
 
 // actions
 export const openImportDialog = () =>
   setState((state) => {
-    state.import.importDialog = {open: true, file: null, error: null}
+    state.import.importDialog = {...importDialogInit, open: true}
   })
 export const closeImportDialog = (state?: WritableDraft<RootState>) => {
   if (state) {
-    state.import.importDialog = importInit.importDialog
+    state.import.importDialog = importDialogInit
   } else {
     setState((state) => {
-      state.import.importDialog = importInit.importDialog
+      state.import.importDialog = importDialogInit
     })
   }
 }
@@ -53,6 +76,14 @@ export const importFileChanged = (file: File | null) =>
   setState((state) => {
     state.import.importDialog.file = file
     state.import.importDialog.error = null
+    state.import.importDialog.needsOldPassword = false
+    state.import.importDialog.parsedZip = null
+    state.import.importDialog.parsedData = null
+    state.import.importDialog.importedProtectedConfig = null
+  })
+export const setImportOldPassword = (password: string) =>
+  setState((state) => {
+    state.import.importDialog.oldPassword = password
   })
 export const openKeepImportDialog = () =>
   setState((state) => {
@@ -152,22 +183,81 @@ export const exportNotes = async () => {
   downloadBlob(blob, `${iso}_ciphernotes.zip`)
 }
 
+const hasProtectedNotes = (parsed: NotesZip) =>
+  parsed.notes.some((n) => n.cipher_text !== undefined && n.iv !== undefined)
+
+const configsMatch = (
+  a: ImportProtectedNoteConfig | null | undefined,
+  b: ImportProtectedNoteConfig | null | undefined
+) => a?.master_salt === b?.master_salt && a?.verifier === b?.verifier
+
 export const importNotes = async (): Promise<void> => {
   const state = getState()
-  const file = state.import.importDialog.file
+  const {
+    file,
+    oldPassword,
+    parsedZip: cachedZip,
+    parsedData: cachedParsed,
+  } = state.import.importDialog
+  const currentConfig = state.protectedNotes.config
+  const currentKey = state.protectedNotes.derivedKey
   if (!file) return
 
+  setState((s) => {
+    s.import.importDialog.loading = true
+    s.import.importDialog.error = null
+  })
+
   try {
-    const zip = await new JSZip().loadAsync(file)
+    const zip = cachedZip ?? (await new JSZip().loadAsync(file))
     const notesJson = zip.file('notes.json')
     if (!notesJson) throw new Error('notes.json not found in archive')
-    const parsed = notesZipSchema.parse(JSON.parse(await notesJson.async('string')))
+    const parsed = cachedParsed ?? notesZipSchema.parse(JSON.parse(await notesJson.async('string')))
+
+    const importedConfig = parsed.protected_notes_config ?? null
+    const protectedNotesInImport = hasProtectedNotes(parsed)
+    const configsDiffer = protectedNotesInImport && !configsMatch(importedConfig, currentConfig)
+
+    if (configsDiffer && !oldPassword) {
+      setState((s) => {
+        s.import.importDialog.needsOldPassword = true
+        s.import.importDialog.loading = false
+        s.import.importDialog.parsedZip = zip
+        s.import.importDialog.parsedData = parsed
+        s.import.importDialog.importedProtectedConfig = importedConfig
+      })
+      return
+    }
+
+    let oldKey: CryptoKey | null = null
+    let effectiveKey = currentKey
+    let shouldAdoptImportedConfig = false
+
+    if (configsDiffer && oldPassword && importedConfig) {
+      oldKey = await deriveKey(oldPassword, importedConfig.master_salt)
+      const valid = await verifyPassword(
+        oldKey,
+        importedConfig.verifier,
+        importedConfig.verifier_iv
+      )
+      if (!valid) {
+        setState((s) => {
+          s.import.importDialog.error = 'Invalid password for imported notes'
+          s.import.importDialog.loading = false
+        })
+        return
+      }
+
+      if (!currentConfig) {
+        effectiveKey = oldKey
+        shouldAdoptImportedConfig = true
+      }
+    }
 
     const now = Date.now()
     const {labelsCache} = getState().labels
     const cachedLabels = Object.values(labelsCache)
     const existingLabels = XSet.fromItr(cachedLabels, (l) => l.name)
-    // Collect label names used in notes and files
     const importLabelNames = XSet.fromItr([
       ...parsed.notes.flatMap((n) => n.labels ?? []),
       ...parsed.files_meta.flatMap((f) => f.labels ?? []),
@@ -181,7 +271,6 @@ export const importNotes = async (): Promise<void> => {
       [...cachedLabels, ...createdLabels].map((l) => [l.name, l.id])
     )
 
-    // Prepare notes to upsert similar to previous import logic, resolving label names
     const notesToUpsert: Note[] = []
     for (const importedNote of parsed.notes ?? []) {
       const id = importedNote.id ?? crypto.randomUUID()
@@ -206,7 +295,42 @@ export const importNotes = async (): Promise<void> => {
 
       const todos = importedNote.todos
       const txt = importedNote.txt
-      if (todos !== undefined) {
+      const cipher_text = importedNote.cipher_text
+      const iv = importedNote.iv
+
+      if (cipher_text !== undefined && iv !== undefined) {
+        const tempProtectedNote: ProtectedNote = {
+          id,
+          type: todos !== undefined ? 'todo_protected' : 'note_protected',
+          cipher_text,
+          iv,
+          created_at,
+          updated_at,
+          version,
+          state: 'dirty',
+          deleted_at: 0,
+          archived: importedNote.archived ? 1 : 0,
+          labels,
+        }
+
+        if (oldKey && effectiveKey && !shouldAdoptImportedConfig) {
+          const decrypted = await decryptProtectedNote(oldKey, tempProtectedNote)
+          const reEncrypted = await encryptProtectedNote(effectiveKey, decrypted)
+          notesToUpsert.push({
+            ...reEncrypted,
+            id,
+            created_at,
+            updated_at: now,
+            version,
+            state: 'dirty',
+            deleted_at: 0,
+            archived: importedNote.archived ? 1 : 0,
+            labels,
+          })
+        } else {
+          notesToUpsert.push(tempProtectedNote)
+        }
+      } else if (todos !== undefined) {
         const todoIds = XSet.fromItr(todos, (t) => t.id)
         notesToUpsert.push({
           id,
@@ -297,12 +421,23 @@ export const importNotes = async (): Promise<void> => {
 
     setState((state) => {
       closeImportDialog(state)
+      if (shouldAdoptImportedConfig && importedConfig && effectiveKey) {
+        state.protectedNotes.config = {
+          master_salt: importedConfig.master_salt,
+          verifier: importedConfig.verifier,
+          verifier_iv: importedConfig.verifier_iv,
+          updated_at: importedConfig.updated_at ?? Date.now(),
+          state: 'dirty',
+        }
+        state.protectedNotes.derivedKey = effectiveKey
+      }
     })
     notifications.show({title: 'Success', message: 'Backup imported'})
   } catch (e) {
     console.error(e)
     setState((state) => {
       state.import.importDialog.error = e instanceof Error ? e.message : 'Invalid file format'
+      state.import.importDialog.loading = false
     })
   }
 }
