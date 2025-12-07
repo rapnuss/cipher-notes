@@ -67,7 +67,7 @@ export const CommandCenter = () => {
       label: 'Unlock protected notes',
       onClick: () => openProtectedNotesUnlockDialog(),
       shortcut: 'alt+shift+u',
-      disabled: protectedNotesUnlocked,
+      disabled: !protectedNotesConfigured || protectedNotesUnlocked,
     },
     {
       id: 'lockProtectedNotes',

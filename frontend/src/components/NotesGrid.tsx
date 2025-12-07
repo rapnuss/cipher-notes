@@ -28,12 +28,10 @@ export const NotesGrid = () => {
     const queryLower = query.toLocaleLowerCase()
     const allNotes = await db.notes.where('deleted_at').equals(0).toArray()
     const allFiles = await db.files_meta.where('deleted_at').equals(0).toArray()
+    const currentCryptoKey = getState().protectedNotes.derivedKey
 
-    const decryptedNotes = cryptoKey
-      ? await decryptNotes(cryptoKey, allNotes).catch((e) => {
-          console.error(e)
-          return allNotes.filter(isPlainNote)
-        })
+    const decryptedNotes = currentCryptoKey
+      ? await decryptNotes(currentCryptoKey, allNotes)
       : allNotes.filter(isPlainNote)
 
     const notes = [...decryptedNotes, ...allFiles]

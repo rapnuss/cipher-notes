@@ -159,13 +159,17 @@ export function decryptNotes(
   cryptoKey: CryptoKey,
   notes: Note[]
 ): Promise<(PlainNote | DecryptedProtectedNote)[]> {
+  // TODO: return broken note so it can be rescued with an old password
   return Promise.all(
     notes.map(async (note) =>
       note.type === 'note_protected' || note.type === 'todo_protected'
-        ? decryptProtectedNote(cryptoKey, note)
+        ? decryptProtectedNote(cryptoKey, note).catch((e) => {
+            console.error('Failed to decrypt note:', note.id, e)
+            return null
+          })
         : note
     )
-  )
+  ).then((notes) => notes.filter((n) => n !== null))
 }
 
 export const encryptNotes = async (
