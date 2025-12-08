@@ -7,7 +7,15 @@ import {
   NotesZip,
   ImportProtectedNoteConfig,
 } from '../business/importNotesSchema'
-import {FileBlob, FileMeta, Hue, Label, Note, NoteCommon, ProtectedNote} from '../business/models'
+import {
+  FileBlob,
+  FileMeta,
+  Hue,
+  Label,
+  Note,
+  NoteCommon,
+  protectedMessageSchema,
+} from '../business/models'
 import {db} from '../db'
 import {downloadBlob, splitFilename} from '../util/misc'
 import {getState, RootState, setState} from './store'
@@ -17,7 +25,8 @@ import {createLabel} from './labels'
 import {notifications} from '@mantine/notifications'
 import {comlink} from '../comlink'
 import {deriveKey, verifyPassword} from '../util/pbkdf2'
-import {encryptProtectedNote, decryptProtectedNote} from '../business/notesEncryption'
+import {zodParseString} from '../util/zod'
+import {decryptString, encryptString} from '../util/encryption'
 
 export type ImportDialogState = {
   open: boolean
@@ -299,25 +308,22 @@ export const importNotes = async (): Promise<void> => {
       const iv = importedNote.iv
 
       if (cipher_text !== undefined && iv !== undefined) {
-        const tempProtectedNote: ProtectedNote = {
-          id,
-          type: todos !== undefined ? 'todo_protected' : 'note_protected',
-          cipher_text,
-          iv,
-          created_at,
-          updated_at,
-          version,
-          state: 'dirty',
-          deleted_at: 0,
-          archived: importedNote.archived ? 1 : 0,
-          labels,
-        }
-
-        if (oldKey && effectiveKey && !shouldAdoptImportedConfig) {
-          const decrypted = await decryptProtectedNote(oldKey, tempProtectedNote)
-          const reEncrypted = await encryptProtectedNote(effectiveKey, decrypted)
+        if (oldKey && effectiveKey) {
+          const messageJson = await decryptString(oldKey, cipher_text, iv)
+          const message = zodParseString(protectedMessageSchema, messageJson)
+          if (!message) {
+            console.error('Invalid note', messageJson)
+            continue
+          }
+          const type = 'todos' in message ? 'todo_protected' : 'note_protected'
+          const {cipher_text: new_cipher_text, iv: new_iv} = await encryptString(
+            effectiveKey,
+            messageJson
+          )
           notesToUpsert.push({
-            ...reEncrypted,
+            type,
+            cipher_text: new_cipher_text,
+            iv: new_iv,
             id,
             created_at,
             updated_at: now,
@@ -328,7 +334,7 @@ export const importNotes = async (): Promise<void> => {
             labels,
           })
         } else {
-          notesToUpsert.push(tempProtectedNote)
+          throw new Error('missing key')
         }
       } else if (todos !== undefined) {
         const todoIds = XSet.fromItr(todos, (t) => t.id)

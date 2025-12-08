@@ -7,7 +7,16 @@ import {
   importKey,
 } from '../util/encryption'
 import {EncPut} from '../services/backend'
-import {DecryptedProtectedNote, FileMeta, Note, PlainNote, ProtectedNote, Todos} from './models'
+import {
+  DecryptedProtectedNote,
+  FileMeta,
+  Note,
+  PlainNote,
+  ProtectedNote,
+  protectedTextMessageSchema,
+  protectedTodoMessageSchema,
+} from './models'
+import {zodParseString} from '../util/zod'
 
 type UpsertPut = {
   id: string
@@ -79,8 +88,8 @@ export const isValidKeyTokenPair = (keyTokenPair: string) => {
     cryptoKey &&
     syncToken &&
     checksum &&
-    z.string().base64().length(44).safeParse(cryptoKey).success &&
-    z.string().base64().length(24).safeParse(syncToken).success &&
+    z.base64().length(44).safeParse(cryptoKey).success &&
+    z.base64().length(24).safeParse(syncToken).success &&
     calcChecksum(cryptoKey, syncToken) === Number(checksum)
   )
 }
@@ -123,7 +132,11 @@ export const decryptProtectedNote = async (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const {cipher_text, iv, type: _1, ...rest} = note
     const jsonStr = await decryptString(cryptoKey, cipher_text, iv)
-    const {title, txt} = JSON.parse(jsonStr) as {title: string; txt: string}
+    const message = zodParseString(protectedTextMessageSchema, jsonStr)
+    if (!message) {
+      throw new Error('Invalid note')
+    }
+    const {title, txt} = message
     return {
       protected: true,
       type: 'note',
@@ -135,7 +148,11 @@ export const decryptProtectedNote = async (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const {cipher_text, iv, type: _1, ...rest} = note
     const jsonStr = await decryptString(cryptoKey, cipher_text, iv)
-    const {title, todos} = JSON.parse(jsonStr) as {title: string; todos: Todos}
+    const message = zodParseString(protectedTodoMessageSchema, jsonStr)
+    if (!message) {
+      throw new Error('Invalid note')
+    }
+    const {title, todos} = message
     return {
       protected: true,
       type: 'todo',

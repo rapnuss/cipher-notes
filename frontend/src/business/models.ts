@@ -238,3 +238,23 @@ export const settingsOptionsSchema = z.object({
   darkTheme: z.enum(darkThemeOptions),
 })
 export type SettingsOptions = z.infer<typeof settingsOptionsSchema>
+
+export const protectedTextMessageSchema = z
+  .object({
+    title: z.string(),
+    txt: z.string(),
+  })
+  .strip()
+
+export const protectedTodoMessageSchema = z
+  .object({
+    title: z.string(),
+    todos: todosSchema,
+  })
+  .strip()
+
+export const protectedMessageSchema = z.union([
+  protectedTextMessageSchema,
+  protectedTodoMessageSchema,
+])
+export type ProtectedMessage = z.infer<typeof protectedMessageSchema>
