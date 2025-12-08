@@ -79,9 +79,9 @@ export const importFilesMetaSchema = z.array(
 export type ImportFileMeta = z.infer<typeof importFilesMetaSchema>[number]
 
 export const importProtectedNoteConfigSchema = z.object({
-  master_salt: z.string().max(24),
-  verifier: z.string().max(255),
-  verifier_iv: z.string().max(16),
+  master_salt: z.base64().length(24),
+  verifier: z.base64().max(255),
+  verifier_iv: z.base64().length(16),
   updated_at: z.number().int().positive().optional(),
   state: z.enum(['dirty', 'synced']).optional(),
 })
