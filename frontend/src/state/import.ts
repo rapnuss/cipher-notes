@@ -432,7 +432,7 @@ export const importNotes = async (): Promise<void> => {
           master_salt: importedConfig.master_salt,
           verifier: importedConfig.verifier,
           verifier_iv: importedConfig.verifier_iv,
-          updated_at: importedConfig.updated_at ?? Date.now(),
+          updated_at: Date.now(),
           state: 'dirty',
         }
         state.protectedNotes.derivedKey = effectiveKey
