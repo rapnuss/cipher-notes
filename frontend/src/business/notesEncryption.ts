@@ -96,7 +96,8 @@ export const isValidKeyTokenPair = (keyTokenPair: string) => {
 
 export const encryptProtectedNote = async (
   cryptoKey: CryptoKey,
-  note: DecryptedProtectedNote | PlainNote
+  note: DecryptedProtectedNote | PlainNote,
+  salt: string
 ): Promise<ProtectedNote> => {
   const foo = {...note, protected: 'protected' in note && note.protected}
   if (foo.type === 'note') {
@@ -108,6 +109,7 @@ export const encryptProtectedNote = async (
       ...rest,
       cipher_text,
       iv,
+      salt,
     }
   } else if (foo.type === 'todo') {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -118,6 +120,7 @@ export const encryptProtectedNote = async (
       ...rest,
       cipher_text,
       iv,
+      salt,
     }
   } else {
     throw new Error('Invalid note')
@@ -176,7 +179,7 @@ export function decryptNotes(
   cryptoKey: CryptoKey,
   notes: Note[]
 ): Promise<(PlainNote | DecryptedProtectedNote)[]> {
-  // TODO: return broken note so it can be rescued with an old password
+  // TODO: return broken note so it can be rescued with an old password, the salt needs to be stored in the note
   return Promise.all(
     notes.map(async (note) =>
       note.type === 'note_protected' || note.type === 'todo_protected'
@@ -193,21 +196,23 @@ export const encryptNotes = async (
   cryptoKey: CryptoKey,
   notes: DecryptedProtectedNote[]
 ): Promise<ProtectedNote[]> =>
-  Promise.all(notes.map((note) => encryptProtectedNote(cryptoKey, note)))
+  Promise.all(notes.map((note) => encryptProtectedNote(cryptoKey, note, note.salt)))
 
 export const reEncryptNotes = (
   oldKey: CryptoKey,
   newKey: CryptoKey,
-  notes: ProtectedNote[]
+  notes: ProtectedNote[],
+  newSalt: string
 ): Promise<ProtectedNote[]> =>
-  Promise.all(notes.map((note) => reEncryptProtectedNote(oldKey, newKey, note))).then((notes) =>
-    notes.filter((n) => n !== null)
+  Promise.all(notes.map((note) => reEncryptProtectedNote(oldKey, newKey, note, newSalt))).then(
+    (notes) => notes.filter((n) => n !== null)
   )
 
 export const reEncryptProtectedNote = async (
   oldKey: CryptoKey,
   newKey: CryptoKey,
-  note: ProtectedNote
+  note: ProtectedNote,
+  newSalt: string
 ): Promise<ProtectedNote | null> => {
   const decryptedNote = await decryptProtectedNote(oldKey, note).catch((e) => {
     console.error('Failed to decrypt note:', note.id, e)
@@ -216,12 +221,16 @@ export const reEncryptProtectedNote = async (
   if (!decryptedNote) {
     return null
   }
-  return encryptProtectedNote(newKey, {
-    ...decryptedNote,
-    updated_at: Date.now(),
-    state: 'dirty',
-    version: note.state === 'dirty' ? note.version : note.version + 1,
-  })
+  return encryptProtectedNote(
+    newKey,
+    {
+      ...decryptedNote,
+      updated_at: Date.now(),
+      state: 'dirty',
+      version: note.state === 'dirty' ? note.version : note.version + 1,
+    },
+    newSalt
+  )
 }
 
 export const isProtectedNote = (

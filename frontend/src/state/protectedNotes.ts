@@ -268,7 +268,7 @@ export const submitChangePasswordDialog = async () => {
         (n): n is ProtectedNote => n.type === 'note_protected' || n.type === 'todo_protected'
       )
 
-      const reEncryptedNotes = await reEncryptNotes(oldKey, newKey, protectedNotes)
+      const reEncryptedNotes = await reEncryptNotes(oldKey, newKey, protectedNotes, newMasterSalt)
       await db.notes.bulkPut(reEncryptedNotes)
       setState((state) => {
         state.protectedNotes.config = newConfig

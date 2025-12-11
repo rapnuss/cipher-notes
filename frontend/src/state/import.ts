@@ -241,6 +241,7 @@ export const importNotes = async (): Promise<void> => {
     let oldKey: CryptoKey | null = null
     let effectiveKey = currentKey
     let shouldAdoptImportedConfig = false
+    let effectiveSalt = currentConfig?.master_salt
 
     if (configsDiffer && oldPassword && importedConfig) {
       oldKey = await deriveKey(oldPassword, importedConfig.master_salt)
@@ -260,6 +261,7 @@ export const importNotes = async (): Promise<void> => {
       if (!currentConfig) {
         effectiveKey = oldKey
         shouldAdoptImportedConfig = true
+        effectiveSalt = importedConfig.master_salt
       }
     }
 
@@ -307,7 +309,7 @@ export const importNotes = async (): Promise<void> => {
       const cipher_text = importedNote.cipher_text
       const iv = importedNote.iv
 
-      if (cipher_text !== undefined && iv !== undefined) {
+      if (cipher_text !== undefined && iv !== undefined && effectiveSalt) {
         if (oldKey && effectiveKey) {
           const messageJson = await decryptString(oldKey, cipher_text, iv)
           const message = zodParseString(protectedMessageSchema, messageJson)
@@ -332,6 +334,7 @@ export const importNotes = async (): Promise<void> => {
             deleted_at: 0,
             archived: importedNote.archived ? 1 : 0,
             labels,
+            salt: effectiveSalt,
           })
         } else {
           throw new Error('missing key')

@@ -138,7 +138,7 @@ export const setMoreMenuOpen = (open: boolean) =>
     state.notes.noteDialog.moreMenuOpen = open
   })
 export const noteOpened = async (id: string) => {
-  let note = await db.notes.get(id)
+  let note: Note | DecryptedProtectedNote | undefined = await db.notes.get(id)
   if (!note || note.deleted_at !== 0) return
   let protectedNote = false
 
@@ -211,8 +211,10 @@ export const noteClosed = async () => {
   })
 }
 export const addNote = async (isProtected: boolean) => {
-  const cryptoKey = getState().protectedNotes.derivedKey
-  if (!cryptoKey && isProtected) return
+  const protectedNotes = getState().protectedNotes
+  const cryptoKey = protectedNotes.derivedKey
+  const salt = protectedNotes.config?.master_salt
+  if ((!cryptoKey || !salt) && isProtected) return
   const now = Date.now()
   const id = crypto.randomUUID()
   const {activeLabel} = getState().labels
@@ -231,7 +233,7 @@ export const addNote = async (isProtected: boolean) => {
   }
   await db.notes.add(
     isProtected && cryptoKey
-      ? await encryptProtectedNote(cryptoKey, {...note, protected: true})
+      ? await encryptProtectedNote(cryptoKey, {...note, protected: true}, salt!)
       : note
   )
 
@@ -941,7 +943,7 @@ const setOpenNote = async (syncedNotes: Record<string, Note>) => {
   if (!openNote) {
     return
   }
-  let note = syncedNotes[openNote.id]
+  let note: Note | DecryptedProtectedNote | undefined = syncedNotes[openNote.id]
   if (!note) {
     return
   }
@@ -989,7 +991,8 @@ const setOpenNote = async (syncedNotes: Record<string, Note>) => {
 }
 
 const storeOpenNote = nonConcurrent(async () => {
-  const openNote = getState().notes.openNote
+  const state = getState()
+  const openNote = state.notes.openNote
   if (!openNote) return
 
   let note: Note | DecryptedProtectedNote | undefined = await db.notes.get(openNote.id)
@@ -998,7 +1001,8 @@ const storeOpenNote = nonConcurrent(async () => {
     return
   }
 
-  const cryptoKey = getState().protectedNotes.derivedKey
+  const cryptoKey = state.protectedNotes.derivedKey
+  const salt = state.protectedNotes.config?.master_salt
   if (isProtectedNote(note)) {
     if (!cryptoKey) return
     note = await decryptProtectedNote(cryptoKey, note)
@@ -1043,8 +1047,8 @@ const storeOpenNote = nonConcurrent(async () => {
     }
     let noteToStore: Note = plainNote
     if (openNote.protected) {
-      if (!cryptoKey) return
-      noteToStore = await encryptProtectedNote(cryptoKey, noteToStore)
+      if (!cryptoKey || !salt) return
+      noteToStore = await encryptProtectedNote(cryptoKey, noteToStore, salt)
     }
     await db.notes.update(openNote.id, noteToStore)
   }

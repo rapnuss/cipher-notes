@@ -60,10 +60,12 @@ DONE:
   on change encryption key
     delete all blobs with the old key
 FIRST:
-  import and export protected notes
+  test: change open note protected on second client
 TODO:
+  check if server strips extra fields
 LATER:
 MAYBE:
+  delete empty protected notes on close
   todo merge
   error if minio password is not set or too short
   make features pem optional

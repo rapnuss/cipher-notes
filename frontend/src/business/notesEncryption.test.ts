@@ -10,7 +10,8 @@ import {
 
 describe('notesEncryption', () => {
   it('should encrypt and decrypt one protected note', async () => {
-    const key = await deriveKey('test', generateMasterSalt())
+    const salt = generateMasterSalt()
+    const key = await deriveKey('test', salt)
     const note: Note = {
       id: '1',
       txt: 'This is a test note',
@@ -24,7 +25,7 @@ describe('notesEncryption', () => {
       labels: [],
       archived: 0,
     }
-    const encryptedNote = await encryptProtectedNote(key, note)
+    const encryptedNote = await encryptProtectedNote(key, note, salt)
     const decryptedNote = await decryptProtectedNote(key, encryptedNote)
     expect(decryptedNote.txt).toEqual(note.txt)
     expect(decryptedNote.title).toEqual(note.title)
@@ -39,7 +40,8 @@ describe('notesEncryption', () => {
   })
 
   it('should encrypt and decrypt multiple protected notes', async () => {
-    const key = await deriveKey('test', generateMasterSalt())
+    const salt = generateMasterSalt()
+    const key = await deriveKey('test', salt)
     const notes: DecryptedProtectedNote[] = [
       {
         id: '1',
@@ -54,6 +56,7 @@ describe('notesEncryption', () => {
         labels: [],
         archived: 0,
         protected: true,
+        salt,
       },
       {
         id: '2',
@@ -68,6 +71,7 @@ describe('notesEncryption', () => {
         labels: [],
         archived: 0,
         protected: true,
+        salt,
       },
     ]
 

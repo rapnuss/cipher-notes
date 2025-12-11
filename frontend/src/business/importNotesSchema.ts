@@ -25,6 +25,7 @@ export const importNotesSchema = z.array(
       archived: z.boolean().optional(),
       cipher_text: z.string().optional(),
       iv: z.string().optional(),
+      salt: z.base64().length(24).optional(),
     })
     .strip()
 )

@@ -118,7 +118,6 @@ export const putToNote = (put: Put): Note => {
     version,
     deleted_at: deleted_at ?? 0,
     state: 'synced',
-
     archived: 0,
   }
   if (txt === null && type === 'note') {
@@ -150,6 +149,7 @@ export const putToNote = (put: Put): Note => {
         iv: putTxt.iv,
         labels,
         archived: archived ? 1 : 0,
+        salt: putTxt.salt,
       }
     } else if ('title' in putTxt && 'txt' in putTxt) {
       const {title, txt} = putTxt
@@ -181,6 +181,7 @@ export const putToNote = (put: Put): Note => {
         iv: putTxt.iv,
         labels,
         archived: archived ? 1 : 0,
+        salt: putTxt.salt,
       }
     } else if ('title' in putTxt && 'todos' in putTxt) {
       const {title, todos} = putTxt
@@ -281,6 +282,7 @@ export const noteToPut = (n: Note): Put => {
   } else if (n.type === 'note_protected') {
     const {cipher_text, iv, labels, archived} = n
     const txtObj: ProtectedPutTxt = {
+      salt: n.salt,
       cipher_text,
       iv,
       labels,
@@ -298,6 +300,7 @@ export const noteToPut = (n: Note): Put => {
   } else if (n.type === 'todo_protected') {
     const {cipher_text, iv, labels, archived} = n
     const txtObj: ProtectedPutTxt = {
+      salt: n.salt,
       cipher_text,
       iv,
       labels,

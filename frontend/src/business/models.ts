@@ -24,18 +24,20 @@ export type ProtectedTextNote = NoteCommon & {
   type: 'note_protected'
   cipher_text: string
   iv: string
+  salt: string
 }
 export type ProtectedTodoNote = NoteCommon & {
   type: 'todo_protected'
   cipher_text: string
   iv: string
+  salt: string
 }
 export type PlainNote = XOR<TextNote, TodoNote>
 export type ProtectedNote = XOR<ProtectedTextNote, ProtectedTodoNote>
 export type Note = XOR<PlainNote, ProtectedNote>
 
-export type DecryptedProtectedTodoNote = TodoNote & {protected: true}
-export type DecryptedProtectedTextNote = TextNote & {protected: true}
+export type DecryptedProtectedTodoNote = TodoNote & {protected: true; salt: string}
+export type DecryptedProtectedTextNote = TextNote & {protected: true; salt: string}
 export type DecryptedProtectedNote = XOR<DecryptedProtectedTextNote, DecryptedProtectedTodoNote>
 
 export type FileMeta = {
@@ -180,6 +182,7 @@ export const protectedPutTxtSchema = z.object({
   archived: z.boolean().optional(),
   cipher_text: z.string(),
   iv: z.string(),
+  salt: z.base64().length(24),
 })
 export type ProtectedPutTxt = z.infer<typeof protectedPutTxtSchema>
 
