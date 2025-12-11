@@ -1,5 +1,5 @@
 import {ProtectedNote} from '../business/models'
-import {reEncryptNotes} from '../business/notesEncryption'
+import {reEncryptNotes, reEncryptProtectedNote} from '../business/notesEncryption'
 import {db} from '../db'
 import {loadProtectedNotesConfig, storeProtectedNotesConfig} from '../services/localStorage'
 import {createVerifier, deriveKey, generateMasterSalt, verifyPassword} from '../util/pbkdf2'
@@ -33,12 +33,20 @@ export type ChangePasswordDialogState = {
   loading: boolean
   error: string
 }
+export type RescueDialogState = {
+  open: boolean
+  password: string
+  loading: boolean
+  error: string
+  message: string
+}
 export type ProtectedNotesState = {
   config: ProtectedNotesConfig | null
   derivedKey: CryptoKey | null
   setupDialog: SetupDialogState
   unlockDialog: UnlockDialogState
   changePasswordDialog: ChangePasswordDialogState
+  rescueDialog: RescueDialogState
 }
 const setupDialogInit: SetupDialogState = Object.freeze({
   open: false,
@@ -61,12 +69,20 @@ const changePasswordDialogInit: ChangePasswordDialogState = Object.freeze({
   loading: false,
   error: '',
 })
+const rescueDialogInit: RescueDialogState = Object.freeze({
+  open: false,
+  password: '',
+  loading: false,
+  error: '',
+  message: '',
+})
 export const protectedNotesInit: ProtectedNotesState = Object.freeze({
   config: null,
   derivedKey: null,
   setupDialog: setupDialogInit,
   unlockDialog: unlockDialogInit,
   changePasswordDialog: changePasswordDialogInit,
+  rescueDialog: rescueDialogInit,
 })
 
 loadProtectedNotesConfig().then((config) =>
@@ -89,6 +105,10 @@ export const openProtectedNotesChangePasswordDialog = () =>
   setState((state) => {
     state.protectedNotes.changePasswordDialog = {...changePasswordDialogInit, open: true}
   })
+export const openRescueProtectedNotesDialog = () =>
+  setState((state) => {
+    state.protectedNotes.rescueDialog = {...rescueDialogInit, open: true}
+  })
 
 export const closeSetupDialog = () =>
   setState((state) => {
@@ -101,6 +121,10 @@ export const closeUnlockDialog = () =>
 export const closeChangePasswordDialog = () =>
   setState((state) => {
     state.protectedNotes.changePasswordDialog = changePasswordDialogInit
+  })
+export const closeRescueProtectedNotesDialog = () =>
+  setState((state) => {
+    state.protectedNotes.rescueDialog = rescueDialogInit
   })
 export const setSetupDialogPassword = (password: string) =>
   setState((state) => {
@@ -125,6 +149,10 @@ export const setChangePasswordNewPassword = (password: string) =>
 export const setChangePasswordConfirmPassword = (password: string) =>
   setState((state) => {
     state.protectedNotes.changePasswordDialog.confirmPassword = password
+  })
+export const setRescueDialogPassword = (password: string) =>
+  setState((state) => {
+    state.protectedNotes.rescueDialog.password = password
   })
 
 export const submitSetupDialog = async () => {
@@ -281,6 +309,84 @@ export const submitChangePasswordDialog = async () => {
     setState((state) => {
       state.protectedNotes.changePasswordDialog.loading = false
       state.protectedNotes.changePasswordDialog.error = 'Failed to change password'
+    })
+  }
+}
+
+export const submitRescueProtectedNotesDialog = async () => {
+  const {password, loading, open} = getState().protectedNotes.rescueDialog
+  const {config, derivedKey} = getState().protectedNotes
+
+  if (!open || !config || !derivedKey || loading) {
+    return
+  }
+  if (password.length === 0) {
+    setState((state) => {
+      state.protectedNotes.rescueDialog.error = 'Password is required'
+      state.protectedNotes.rescueDialog.message = ''
+    })
+    return
+  }
+
+  setState((state) => {
+    state.protectedNotes.rescueDialog.loading = true
+    state.protectedNotes.rescueDialog.error = ''
+    state.protectedNotes.rescueDialog.message = ''
+  })
+
+  try {
+    const notes = await db.notes.where('deleted_at').equals(0).toArray()
+    const candidates = notes.filter(
+      (n): n is ProtectedNote =>
+        (n.type === 'note_protected' || n.type === 'todo_protected') &&
+        n.salt !== config.master_salt
+    )
+
+    if (candidates.length === 0) {
+      setState((state) => {
+        state.protectedNotes.rescueDialog.loading = false
+        state.protectedNotes.rescueDialog.message = 'No protected notes need rescue'
+      })
+      return
+    }
+
+    const saltToKey = new Map<string, CryptoKey>()
+    const rescued: ProtectedNote[] = []
+
+    for (const note of candidates) {
+      let oldKey = saltToKey.get(note.salt)
+      if (!oldKey) {
+        oldKey = await deriveKey(password, note.salt)
+        saltToKey.set(note.salt, oldKey)
+      }
+      const reEncrypted = await reEncryptProtectedNote(oldKey, derivedKey, note, config.master_salt)
+      if (reEncrypted) {
+        rescued.push(reEncrypted)
+      }
+    }
+
+    if (rescued.length === 0) {
+      setState((state) => {
+        state.protectedNotes.rescueDialog.loading = false
+        state.protectedNotes.rescueDialog.error =
+          'Failed to decrypt notes with the entered password'
+      })
+      return
+    }
+
+    await db.notes.bulkPut(rescued)
+    setState((state) => {
+      state.protectedNotes.rescueDialog.loading = false
+      state.protectedNotes.rescueDialog.password = ''
+      state.protectedNotes.rescueDialog.message = `Rescued ${rescued.length} protected note${
+        rescued.length === 1 ? '' : 's'
+      }`
+    })
+  } catch (e) {
+    console.error('Failed to rescue protected notes:', e)
+    setState((state) => {
+      state.protectedNotes.rescueDialog.loading = false
+      state.protectedNotes.rescueDialog.error = 'Failed to rescue protected notes'
     })
   }
 }

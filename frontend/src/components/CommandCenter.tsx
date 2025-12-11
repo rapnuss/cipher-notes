@@ -32,6 +32,7 @@ import {
   openProtectedNotesChangePasswordDialog,
   openProtectedNotesSetupDialog,
   openProtectedNotesUnlockDialog,
+  openRescueProtectedNotesDialog,
 } from '../state/protectedNotes'
 
 type Command = SpotlightActionData & {shortcut?: string; onClick: () => void}
@@ -237,6 +238,12 @@ export const CommandCenter = () => {
       id: 'protectedNotesChangePassword',
       label: 'Change protected notes password (and re-encrypt all protected notes)',
       onClick: openProtectedNotesChangePasswordDialog,
+      disabled: !protectedNotesUnlocked,
+    },
+    {
+      id: 'rescueProtectedNotes',
+      label: 'Rescue protected notes with an old password',
+      onClick: openRescueProtectedNotesDialog,
       disabled: !protectedNotesUnlocked,
     },
     {

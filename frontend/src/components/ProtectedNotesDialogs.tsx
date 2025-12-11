@@ -4,15 +4,18 @@ import {
   closeSetupDialog,
   closeUnlockDialog,
   closeChangePasswordDialog,
+  closeRescueProtectedNotesDialog,
   setSetupDialogPassword,
   setSetupDialogConfirmPassword,
   setUnlockDialogPassword,
   setChangePasswordCurrentPassword,
   setChangePasswordNewPassword,
   setChangePasswordConfirmPassword,
+  setRescueDialogPassword,
   submitSetupDialog,
   submitUnlockDialog,
   submitChangePasswordDialog,
+  submitRescueProtectedNotesDialog,
 } from '../state/protectedNotes'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
@@ -138,6 +141,47 @@ export const ChangePasswordDialog = () => {
         )}
         <Button onClick={submitChangePasswordDialog} loading={loading}>
           Change Password
+        </Button>
+      </Stack>
+    </Modal>
+  )
+}
+
+export const RescueProtectedNotesDialog = () => {
+  const {open, password, loading, error, message} = useSelector(
+    (state) => state.protectedNotes.rescueDialog
+  )
+
+  useCloseOnBack({
+    id: 'rescue-protected-notes-dialog',
+    open,
+    onClose: closeRescueProtectedNotesDialog,
+  })
+
+  return (
+    <Modal opened={open} onClose={closeRescueProtectedNotesDialog} title='Rescue Protected Notes'>
+      <Stack gap='md'>
+        <Text size='sm' c='dimmed'>
+          Try to decrypt protected notes using an old password. Only notes using a different
+          password than the current one will be changed.
+        </Text>
+        <PasswordInput
+          label='Old Password'
+          placeholder='Enter old password'
+          value={password}
+          onChange={(e) => setRescueDialogPassword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') submitRescueProtectedNotesDialog()
+          }}
+        />
+        {error && (
+          <Text size='sm' c='red'>
+            {error}
+          </Text>
+        )}
+        {message && <Text size='sm'>{message}</Text>}
+        <Button onClick={submitRescueProtectedNotesDialog} loading={loading}>
+          Rescue Notes
         </Button>
       </Stack>
     </Modal>

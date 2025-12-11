@@ -23,6 +23,7 @@ import {
   ChangePasswordDialog,
   SetupProtectedNotesDialog,
   UnlockProtectedNotesDialog,
+  RescueProtectedNotesDialog,
 } from './ProtectedNotesDialogs.tsx'
 
 export const App = () => (
@@ -45,6 +46,7 @@ export const App = () => (
     <SetupProtectedNotesDialog />
     <UnlockProtectedNotesDialog />
     <ChangePasswordDialog />
+    <RescueProtectedNotesDialog />
     <DeleteServerNotesDialog />
     <DeleteAccountDialog />
     <ChangeEmailDialog />
