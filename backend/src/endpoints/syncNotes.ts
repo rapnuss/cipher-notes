@@ -59,7 +59,7 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
   }),
   handler: async ({
     input: {last_synced_to, puts: clientPuts, sync_token},
-    options: {user_id, session_id},
+    ctx: {user_id, session_id},
   }) => {
     const [user] = await db.select().from(usersTbl).where(eq(usersTbl.id, user_id))
     if (!user) {

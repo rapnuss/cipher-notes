@@ -16,7 +16,7 @@ export const storageUsageEndpoint = authEndpointsFactory.build({
       limit: z.number(),
     }),
   }),
-  handler: async ({options: {user_id}}) => {
+  handler: async ({ctx: {user_id}}) => {
     const cipherTextLength = await getCipherTextLength(db, user_id)
     const committedSize = await getFileStorageUsage(db, user_id)
     const notes = {

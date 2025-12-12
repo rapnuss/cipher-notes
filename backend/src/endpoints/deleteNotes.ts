@@ -16,7 +16,7 @@ export const deleteNotesEndpoint = authEndpointsFactory.build({
     password: z.string().min(1).optional(),
   }),
   output: z.object({}),
-  handler: async ({options: {user_id}, input}) => {
+  handler: async ({ctx: {user_id}, input}) => {
     const [user] = await db.select().from(usersTbl).where(eq(usersTbl.id, user_id))
     if (!user) {
       throw createHttpError(500, 'User not found')
@@ -60,7 +60,7 @@ export const deleteAccountEndpoint = authEndpointsFactory.build({
     password: z.string().min(1).optional(),
   }),
   output: z.object({}),
-  handler: async ({options: {user_id}, input}) => {
+  handler: async ({ctx: {user_id}, input}) => {
     const [user] = await db.select().from(usersTbl).where(eq(usersTbl.id, user_id))
     if (!user) {
       throw createHttpError(500, 'User not found')

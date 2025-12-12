@@ -21,7 +21,7 @@ export const adminCreateUserEndpoint = authEndpointsFactory.build({
     password: z.string().min(1),
   }),
   output: z.object({}),
-  handler: async ({input, options: {user_id}}) => {
+  handler: async ({input, ctx: {user_id}}) => {
     if (hostingMode !== 'self') throw createHttpError(400, 'Only in self-hosted')
     await assertAdmin(user_id)
     const [existing] = await db
@@ -50,7 +50,7 @@ export const adminSetPasswordEndpoint = authEndpointsFactory.build({
     admin_password: z.string().min(1),
   }),
   output: z.object({}),
-  handler: async ({input, options: {user_id}}) => {
+  handler: async ({input, ctx: {user_id}}) => {
     if (hostingMode !== 'self') throw createHttpError(400, 'Only in self-hosted')
     const [admin] = await db.select().from(usersTbl).where(eq(usersTbl.id, user_id)).limit(1)
     if (!admin || !admin.is_admin || !admin.password_hash) throw createHttpError(403, 'Forbidden')

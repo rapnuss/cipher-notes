@@ -33,7 +33,7 @@ export const getPresignedUrlsEndpoint = authEndpointsFactory.build({
       })
     ),
   }),
-  handler: async ({input, options: {user_id}}) => {
+  handler: async ({input, ctx: {user_id}}) => {
     const [download_urls, uploadResult] = await Promise.all([
       getDownloadUrls(input.download_ids, user_id),
       getUploadUrls(input.uploads, user_id),

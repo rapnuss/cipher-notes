@@ -5,7 +5,6 @@ import typescriptParser from '@typescript-eslint/parser';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import globals from 'globals';
-import reactCompiler from 'eslint-plugin-react-compiler';
 
 export default [
   {
@@ -33,8 +32,7 @@ export default [
     plugins: {
       '@typescript-eslint': typescriptEslint,
       'react-hooks': reactHooks,
-      'react-refresh': reactRefresh,
-      'react-compiler': reactCompiler,
+      'react-refresh': reactRefresh
     },
     rules: {
       ...js.configs.recommended.rules,
@@ -42,7 +40,6 @@ export default [
       ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', {allowConstantExport: true}],
       eqeqeq: 2,
-      'react-compiler/react-compiler': 'error',
       'no-constant-binary-expression': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       'no-redeclare': 'off',

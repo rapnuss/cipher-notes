@@ -11,7 +11,7 @@ import {hostingMode} from '../env'
 export const sendConfirmCodeEndpoint = authEndpointsFactory.build({
   method: 'post',
   output: z.object({}),
-  handler: async ({options: {user_id}}) => {
+  handler: async ({ctx: {user_id}}) => {
     if (hostingMode === 'self') {
       throw createHttpError(400, 'Confirm flow disabled')
     }
