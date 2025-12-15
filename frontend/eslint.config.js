@@ -19,6 +19,7 @@ export default [
         ...globals.serviceworker,
         ComlinkWorker: 'readonly',
         ENV_HOSTING_MODE: 'readonly',
+        ENV_API_URL: 'readonly',
         ENV_HCAPTCHA_SITE_KEY: 'readonly',
         ENV_GIT_COMMIT: 'readonly',
       },

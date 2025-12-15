@@ -11,7 +11,7 @@
     "test": "vitest",
     "test:run": "vitest --run",
     "typecheck": "tsc --noEmit",
-    "build:twa": "yarn build && node ./scripts/sync-twa-dist.mjs"
+    "build:twa": "cross-env API_URL='https://ciphernotes.com/api' yarn build && node ./scripts/sync-twa-dist.mjs"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.7.7",

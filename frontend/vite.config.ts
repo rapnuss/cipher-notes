@@ -39,6 +39,7 @@ export default defineConfig({
     ENV_GIT_COMMIT: JSON.stringify(process.env.RENDER_GIT_COMMIT ?? 'unknown'),
     ENV_HOSTING_MODE: JSON.stringify(process.env.HOSTING_MODE ?? 'central'),
     ENV_HCAPTCHA_SITE_KEY: JSON.stringify(process.env.HCAPTCHA_SITE_KEY ?? ''),
+    ENV_API_URL: JSON.stringify(process.env.API_URL ?? '/api'),
   },
   build: {
     outDir: 'dist',

@@ -1,4 +1,4 @@
-export const backendUrl = import.meta.env.DEV ? '/api' : 'https://ciphernotes.com/api'
+export const backendUrl: string = typeof ENV_API_URL === 'string' ? ENV_API_URL : '/api'
 export const backendTimeout = 8000
 export const hCaptchaSiteCode = ENV_HCAPTCHA_SITE_KEY
 export const hostingMode: 'central' | 'self' =
