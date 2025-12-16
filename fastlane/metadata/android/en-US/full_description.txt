@@ -20,4 +20,4 @@ Key features:
 - Archive unused notes.
 - Share encryption key via QR-Code directly from app to app
 
-Ciphernotes runs on https://ciphernotes.com and the Android app wraps the same PWA using a Trusted Web Activity.
+Ciphernotes is a PWA hosted on https://ciphernotes.com the Android app bundles the assets and serves them locally using a WebView.
