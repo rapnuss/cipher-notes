@@ -5,6 +5,7 @@ const socket = io({
   withCredentials: true,
   autoConnect: false,
   reconnection: true,
+  transports: ['polling'],
 })
 socket.on('connect_error', (err) => {
   console.error('socket connect_error', err)
