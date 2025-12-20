@@ -44,7 +44,7 @@ document.addEventListener(
 
 export const SideEffects = () => {
   useHotkeys([['Escape', () => notifications.clean()]], [], true)
-  useSetColorSchemeAndListenForChange()
+  useSetColorSchemeAndListenForChange(100)
   const themeName = useThemeName()
   useEffect(() => {
     const doc = document.documentElement
