@@ -10,3 +10,7 @@
 - update web frontend dependencies
 - add glow effect to black theme
 - fix crash: clamp editor selection when syncing between devices
+
+## v3.4 (7)
+
+- fix registration with hcaptcha
