@@ -1,4 +1,4 @@
-import {TextareaHTMLAttributes, useRef, useLayoutEffect, FC, FormEvent, CSSProperties} from 'react'
+import {TextareaHTMLAttributes, useRef, useLayoutEffect, FC, CSSProperties} from 'react'
 import classes from './AutoResizingTextarea.module.css'
 
 export type AutoResizingTextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
@@ -16,20 +16,18 @@ export const AutoResizingTextarea: FC<AutoResizingTextareaProps> = (props) => {
     }
   }, [])
 
-  const handleInput = (e: FormEvent<HTMLTextAreaElement>) => {
-    const value = e.currentTarget.value + ' '
-    if (wrapperRef.current) {
-      wrapperRef.current.dataset.replicatedValue = value
-    }
-    onInput?.(e)
-  }
-
   return (
     <div ref={wrapperRef} className={classes.growWrap} style={style}>
       <textarea
         {...rest}
         ref={textareaRef}
-        onInput={handleInput}
+        onInput={(e) => {
+          const value = e.currentTarget.value + ' '
+          if (wrapperRef.current) {
+            wrapperRef.current.dataset.replicatedValue = value
+          }
+          onInput?.(e)
+        }}
         className={classes.textarea}
         style={textareaStyles}
         autoFocus={autoFocus}
