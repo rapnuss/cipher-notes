@@ -64,6 +64,11 @@ textarea {
   background-color: rgba(0, 0, 0, 0.1);
 }
 
+.label-selector-item,
+.special-label-selector-item {
+  border-radius: var(--mantine-radius-default) !important;
+}
+
 :root[data-theme-name='white'],
 :root[data-theme-name='black'] {
   --mantine-radius-xs: 0;

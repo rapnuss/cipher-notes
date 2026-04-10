@@ -74,7 +74,7 @@ export const LabelSelector = () => {
           bd={activeLabel === 'all' ? '2px solid var(--mantine-color-bright)' : 'none'}
           p='xs'
           flex='1 1 0'
-          style={{borderRadius: 'var(--mantine-radius-md)', outlineOffset: '2px'}}
+          style={{borderRadius: 'var(--mantine-radius-default)', outlineOffset: '2px'}}
           bg={colorScheme === 'dark' ? darkColorsGradient : lightColorsGradient}
           onClick={() => {
             labelSelected('all')
@@ -92,7 +92,7 @@ export const LabelSelector = () => {
           bd={activeLabel === 'unlabeled' ? '2px solid var(--mantine-color-bright)' : 'none'}
           p='xs'
           flex='1 1 0'
-          style={{borderRadius: 'var(--mantine-radius-md)', outlineOffset: '2px'}}
+          style={{borderRadius: 'var(--mantine-radius-default)', outlineOffset: '2px'}}
           onClick={() => {
             labelSelected('unlabeled')
             toggleLabelSelector()
@@ -146,11 +146,10 @@ const LabelSelectorItem = ({active, theme, ...label}: LabelSelectorItemProps) =>
       key={label.id}
       align='center'
       bd={
-        themeHasBorder
-          ? `2px solid ${borderColor}`
-          : active
-          ? '2px solid var(--mantine-color-bright)'
-          : undefined
+        themeHasBorder ? `2px solid ${borderColor}`
+        : active ?
+          '2px solid var(--mantine-color-bright)'
+        : undefined
       }
       fw={themeHasBorder && active ? 'bold' : undefined}
       p='xs'
