@@ -1,15 +1,83 @@
 /// <reference types="node" />
 import {VitePWA} from 'vite-plugin-pwa'
-import {defineConfig} from 'vite'
-import react from '@vitejs/plugin-react'
+import {defineConfig, type Plugin} from 'vite'
+import react, {reactCompilerPreset} from '@vitejs/plugin-react'
+import babel from '@rolldown/plugin-babel'
 import {comlink} from 'vite-plugin-comlink'
-import license from 'rollup-plugin-license'
+import {createRequire} from 'module'
+import {licensePlugin} from 'rolldown-license-plugin'
 import fs from 'fs'
 import path from 'path'
-import {licensesTemplate} from './licensesTemplate'
+import {licensesTemplate, type LicenseDependency} from './licensesTemplate'
 
 const isDev = process.env.NODE_ENV === 'development'
 const isPreview = process.env.PREVIEW === 'true'
+const require = createRequire(import.meta.url)
+const collectedLicenses = new Map<string, LicenseDependency>()
+
+type RolldownLicenseInfo = {
+  name: string
+  version: string
+  license: string
+  licenseText: string
+}
+
+type PackageManifest = {
+  private?: boolean
+  description?: string
+  repository?: string | {url?: string}
+  author?: string | {name?: string; email?: string}
+}
+
+const loadLicenseDependency = (dependency: RolldownLicenseInfo): LicenseDependency => {
+  try {
+    const packagePath = require.resolve(`${dependency.name}/package.json`)
+    const manifest = JSON.parse(fs.readFileSync(packagePath, 'utf8')) as PackageManifest
+    const author = typeof manifest.author === 'string' ? {name: manifest.author} : manifest.author
+
+    return {
+      ...dependency,
+      private: manifest.private,
+      description: manifest.description,
+      repository:
+        typeof manifest.repository === 'string' ? manifest.repository
+        : typeof manifest.repository === 'object' ? manifest.repository?.url
+        : '',
+      author,
+    }
+  } catch {
+    return dependency
+  }
+}
+
+const collectLicenses = (dependencies: RolldownLicenseInfo[]) => {
+  for (const dependency of dependencies) {
+    const hydratedDependency = loadLicenseDependency(dependency)
+    collectedLicenses.set(
+      `${hydratedDependency.name}@${hydratedDependency.version}`,
+      hydratedDependency,
+    )
+  }
+}
+
+const writeLicensesFilePlugin = (): Plugin => ({
+  name: 'write-licenses-file',
+  apply: 'build',
+  sharedDuringBuild: true,
+  buildStart() {
+    collectedLicenses.clear()
+  },
+  closeBundle() {
+    const outputPath = path.resolve(__dirname, 'dist/licenses.html')
+    fs.mkdirSync(path.dirname(outputPath), {recursive: true})
+    fs.writeFileSync(
+      outputPath,
+      licensesTemplate(
+        [...collectedLicenses.values()].sort((left, right) => left.name.localeCompare(right.name)),
+      ),
+    )
+  },
+})
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -43,26 +111,22 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    rollupOptions: {
+    chunkSizeWarningLimit: 9999999999999,
+    rolldownOptions: {
       plugins: [
-        license({
-          thirdParty: {
-            output: {
-              file: 'dist/licenses.html',
-              template: licensesTemplate,
-            },
+        licensePlugin({
+          done(dependencies) {
+            collectLicenses(dependencies)
           },
-        }) as any,
+        }),
       ],
     },
   },
   plugins: [
+    writeLicensesFilePlugin(),
     comlink(),
-    react({
-      babel: {
-        plugins: [['babel-plugin-react-compiler', {}]],
-      },
-    }),
+    react(),
+    babel({presets: [reactCompilerPreset()]}),
     VitePWA({
       strategies: 'injectManifest',
       includeAssets: ['robots.txt', 'sitemap.xml'],

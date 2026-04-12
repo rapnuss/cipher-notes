@@ -1,6 +1,18 @@
-import {Dependency} from 'rollup-plugin-license'
+export type LicenseDependency = {
+  name: string
+  version: string
+  license: string
+  licenseText: string
+  private?: boolean
+  description?: string
+  repository?: string
+  author?: {
+    name?: string
+    email?: string
+  }
+}
 
-export const licensesTemplate = (dependencies: Dependency[]) => `
+export const licensesTemplate = (dependencies: LicenseDependency[]) => `
 <html lang="en">
 <head>
   <title>Third Party Licenses - ciphernotes</title>
@@ -53,14 +65,12 @@ export const licensesTemplate = (dependencies: Dependency[]) => `
                 <td>${dep.name}</td>
                 <td>${dep.version}</td>
                 <td>${dep.license}</td>
-                <td>${dep.private}</td>
-                <td>${dep.description}</td>
-                <td>${
-                  typeof dep.repository === 'string' ? dep.repository : dep.repository?.url
-                }</td>
+                <td>${dep.private ?? false}</td>
+                <td>${dep.description ?? ''}</td>
+                <td>${dep.repository ?? ''}</td>
                 <td>${dep.author?.name ?? ''} ${dep.author?.email ?? ''}</td>
                 <td><pre>${dep.licenseText?.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre></td>
-              </tr>`
+              </tr>`,
           )
           .join('')}
       </tbody>
