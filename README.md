@@ -18,18 +18,6 @@ You can share the key via a QR code directly from app to app.
 - Yarn (for frontend)
 - mkcert (for generating development certificates)
 
-### Database Setup
-1. Start the PostgreSQL database:
-   ```bash
-   docker-compose up -d postgres
-   ```
-   This will start the PostgreSQL database on port 5432.
-2. Initialize the database schema:
-   ```bash
-   cd backend
-   bun db:migrate    # Apply schema changes
-   ```
-
 ### Backend Setup
 1. Navigate to the backend directory:
    ```bash
@@ -43,9 +31,31 @@ You can share the key via a QR code directly from app to app.
    ```bash
    bun install
    ```
+4. generate jwt key
+  ```bash
+  openssl genpkey -algorithm RSA -out jwt-private.pem -pkeyopt rsa_keygen_bits:2048
+  openssl rsa -pubout -in jwt-private.pem -out ../frontend/jwt-public.pub
+  ```
 4. Start the backend:
    ```bash
    bun dev
+   ```
+
+### Local s3 setup
+```bash
+docker compose up minio-setup
+```
+
+### Database Setup
+1. Start the PostgreSQL database:
+   ```bash
+   docker-compose up -d postgres
+   ```
+   This will start the PostgreSQL database on port 5432.
+2. Initialize the database schema:
+   ```bash
+   cd backend
+   bun db:migrate    # Apply schema changes
    ```
 
 ### SSL Certificate Setup
