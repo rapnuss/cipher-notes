@@ -43,6 +43,6 @@ export const App = () => (
     <ImprintDialog />
     <SettingsDialog />
     <PWABadge />
-    <Notifications autoClose={10_000} />
+    <Notifications autoClose={6_000} />
   </>
 )

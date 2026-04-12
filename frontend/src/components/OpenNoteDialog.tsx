@@ -49,8 +49,8 @@ import {formatDateTime} from '../util/misc'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
-  return openNote.type === 'note'
-    ? {type: 'note', txt: openNote.txt, selections: openNote.selections}
+  return openNote.type === 'note' ?
+      {type: 'note', txt: openNote.txt, selections: openNote.selections}
     : {type: 'todo', todos: openNote.todos}
 }
 
@@ -61,17 +61,17 @@ export const OpenNoteDialog = () => {
   const labelsCache = useSelector((state) => state.labels.labelsCache)
   const note = useLiveQuery(
     () => (!openNote ? undefined : db.notes.get(openNote.id)),
-    [openNote?.id]
+    [openNote?.id],
   )
   const openNoteLabel = note?.labels?.[0]
-  const hue: Hue = openNoteLabel ? labelsCache[openNoteLabel]?.hue ?? null : null
+  const hue: Hue = openNoteLabel ? (labelsCache[openNoteLabel]?.hue ?? null) : null
   const borderColor = labelBorderColor(hue, theme)
   const historyItem = selectHistoryItem(openNote)
   const {undo, redo, canUndo, canRedo} = useUndoRedo<NoteHistoryItem | null>(
     historyItem,
     openNoteHistoryHandler,
     500,
-    openNote?.id ?? null
+    openNote?.id ?? null,
   )
   const open = !!openNote
   useCloseOnBack({id: 'open-note-dialog', open, onClose: noteClosed})
@@ -109,7 +109,7 @@ export const OpenNoteDialog = () => {
       ],
     ],
     [],
-    true
+    true,
   )
   return (
     <Drawer
@@ -166,7 +166,7 @@ export const OpenNoteDialog = () => {
           e.stopPropagation()
           if (openNote.type === 'todo') {
             const existingTextarea = (e.currentTarget.parentElement?.querySelector(
-              'textarea:not(:disabled)'
+              'textarea:not(:disabled)',
             ) ?? null) as HTMLTextAreaElement | null
             const parent = e.currentTarget.parentElement
             if (e.key === 'ArrowDown' && !openNote.todos.some((t) => !t.done)) {
@@ -184,7 +184,7 @@ export const OpenNoteDialog = () => {
         }}
         data-autofocus={isNewNote ? true : undefined}
       />
-      {openNote?.type === 'note' ? (
+      {openNote?.type === 'note' ?
         <Editor
           placeholder='Note text'
           value={openNote.txt}
@@ -197,7 +197,7 @@ export const OpenNoteDialog = () => {
           autoFocus={isDesktop() && !isNewNote}
           viewCb={(view) => (viewRef.current = view)}
         />
-      ) : openNote?.type === 'todo' ? (
+      : openNote?.type === 'todo' ?
         <TodoControl
           todos={openNote.todos}
           onTodoChecked={todoChecked}
@@ -211,7 +211,7 @@ export const OpenNoteDialog = () => {
           onUp={focusTitleInput}
           autoFocus={isDesktop() && !isNewNote}
         />
-      ) : null}
+      : null}
       <Flex gap='xs'>
         <Menu
           shadow='md'
@@ -245,9 +245,9 @@ export const OpenNoteDialog = () => {
                 if (!openNote) return
                 setMoreMenuOpen(false)
                 navigator.clipboard.writeText(
-                  openNote.type === 'note' ? openNote.txt : todosToText(openNote.todos)
+                  openNote.type === 'note' ? openNote.txt : todosToText(openNote.todos),
                 )
-                notifications.show({message: 'Note copied to clipboard.   '})
+                notifications.show({message: 'Note copied to clipboard.'})
               }}
             >
               Copy to clipboard

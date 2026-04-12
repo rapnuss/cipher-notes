@@ -20,6 +20,14 @@ export const RegisterDialog = () => {
     open,
     onClose: closeRegisterDialog,
   })
+  const onOk = async () => {
+    if (!captchaToken) return
+    await registerEmail(captchaToken)
+    if (captchaToken) {
+      hcaptchaRef.current?.resetCaptcha()
+      setCaptchaToken(null)
+    }
+  }
   return (
     <Modal
       opened={open}
@@ -38,6 +46,9 @@ export const RegisterDialog = () => {
           type='email'
           value={email}
           onChange={(e) => registerEmailChanged(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onOk()
+          }}
         />
         <a href='/agb.html' target='_blank'>
           AGB Deutsch
@@ -62,18 +73,7 @@ export const RegisterDialog = () => {
           onChange={(e) => registerAgreeChanged(e.target.checked)}
         />
         <HCaptcha ref={hcaptchaRef} sitekey={hCaptchaSiteCode} onVerify={setCaptchaToken} />
-        <Button
-          loading={loading}
-          disabled={!email || !agree || !captchaToken}
-          onClick={async () => {
-            if (!captchaToken) return
-            await registerEmail(captchaToken)
-            if (captchaToken) {
-              hcaptchaRef.current?.resetCaptcha()
-              setCaptchaToken(null)
-            }
-          }}
-        >
+        <Button loading={loading} disabled={!email || !agree || !captchaToken} onClick={onOk}>
           Register
         </Button>
       </Stack>
