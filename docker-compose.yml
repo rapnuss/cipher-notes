@@ -72,7 +72,7 @@ services:
 
   minio-setup:
     image: minio/mc:latest
-    container_name: ciphernotes_minio_setup
+    container_name: notes_minio_setup
     depends_on:
       minio:
         condition: service_healthy

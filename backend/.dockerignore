@@ -6,3 +6,4 @@ node_modules
 .env.example
 docker-compose.yml
 Dockerfile
+*.pem

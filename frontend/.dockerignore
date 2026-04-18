@@ -4,6 +4,7 @@ node_modules
 .env
 .env.example
 .nvmrc
-cert.pem
+*.pem
 Dockerfile
-key.pem
+jwt-public.pub
+*.tsbuildinfo
