@@ -9,6 +9,11 @@ but the encryption key is stored in the browser's local storage.
 This way no password is needed to access the notes and they key can easily be shared between devices.
 You can share the key via a QR code directly from app to app.
 
+## Self-hosting
+
+You can self-host the project using Docker Compose.
+See the [dockerimage/README.md](dockerimage/README.md) for more details.
+
 ## Development Setup
 
 ### Prerequisites
@@ -17,6 +22,18 @@ You can share the key via a QR code directly from app to app.
 - Bun (for backend)
 - Yarn (for frontend)
 - mkcert (for generating development certificates)
+
+### Local s3 setup
+```bash
+docker compose up minio-setup
+```
+
+### Database Setup
+1. Start the PostgreSQL database:
+   ```bash
+   docker-compose up -d postgres
+   ```
+   This will start the PostgreSQL database on port 5432.
 
 ### Backend Setup
 1. Navigate to the backend directory:
@@ -36,26 +53,13 @@ You can share the key via a QR code directly from app to app.
   openssl genpkey -algorithm RSA -out jwt-private.pem -pkeyopt rsa_keygen_bits:2048
   openssl rsa -pubout -in jwt-private.pem -out ../frontend/jwt-public.pub
   ```
-4. Start the backend:
+5. Initialize the database schema:
+   ```bash
+   bun db:migrate    # Apply schema changes
+   ```
+6. Start the backend:
    ```bash
    bun dev
-   ```
-
-### Local s3 setup
-```bash
-docker compose up minio-setup
-```
-
-### Database Setup
-1. Start the PostgreSQL database:
-   ```bash
-   docker-compose up -d postgres
-   ```
-   This will start the PostgreSQL database on port 5432.
-2. Initialize the database schema:
-   ```bash
-   cd backend
-   bun db:migrate    # Apply schema changes
    ```
 
 ### SSL Certificate Setup
@@ -105,6 +109,8 @@ docker compose up minio-setup
 - Frontend: https://localhost:5173
 - Backend API: http://localhost:5100
 - PostgreSQL: localhost:5432
+- MinIO: localhost:9000
+- MinIO Console: localhost:9001
 
 ### Tech Stack
 - Frontend: React + TypeScript + Vite
@@ -135,7 +141,7 @@ docker compose up minio-setup
 5. Access `https://<your-ip>:5173` on your mobile device
 
 
-## TWA
+## Android App (used to be a TWA)
 
 ### Generate keystore
 
@@ -150,10 +156,10 @@ docker compose up minio-setup
 ~\.bubblewrap\jdk\jdk-17.0.11+9\bin\keytool.exe -printcert -jarfile ".\app-release-signed.apk"
 ```
 
-### Bundle the frontend into the TWA
+### Bundle the frontend into the App
 
-From the `frontend/` directory you can run `yarn build:twa` to compile the web app and copy the generated assets into `twa/app/src/main/assets/www`. This is useful if you plan to distribute an offline bundle where the Android wrapper serves the PWA locally.
+From the `frontend/` directory you can run `yarn build:twa` to compile the web app and copy the generated assets into `twa/app/src/main/assets/www`.
 
 ## Licensing
 
-The source in this repository (frontend, backend, infrastructure, and TWA wrapper) is released under the terms of the AGPL-3.0-only license; see `LICENSE` for the full text. Third-party components remain under their respective licenses, including React (MIT), Bun (MIT), Drizzle ORM (Apache-2.0), and Android Browser Helper (Apache-2.0). Review individual package documentation for complete notices when redistributing.
+The source in this repository (frontend, backend, infrastructure, and Android App) is released under the terms of the AGPL-3.0-only license; see `LICENSE` for the full text. Third-party components remain under their respective licenses. Review individual package documentation for complete notices when redistributing.

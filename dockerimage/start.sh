@@ -34,7 +34,7 @@ export S3_BUCKET=${S3_BUCKET:-ciphernotes}
 ############################################
 cd /app/backend
 echo "Applying migrations..."
-./node_modules/.bin/drizzle-kit migrate || bun run db:migrate || true
+bun run db:migrate || true
 
 ############################################
 # Start backend

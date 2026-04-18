@@ -1,7 +1,9 @@
 services:
   app:
-    image: rapnuss/ciphernotes:latest
     container_name: ciphernotes_app
+    build:
+      context: ..
+      dockerfile: dockerimage/Dockerfile
     env_file:
       - .env
     ports:
@@ -13,6 +15,8 @@ services:
         condition: service_healthy
       minio-setup:
         condition: service_completed_successfully
+    networks:
+      - backend
     restart: unless-stopped
 
   db:
@@ -32,10 +36,12 @@ services:
       start_period: 5s
     volumes:
       - db_data:/var/lib/postgresql/data
+    networks:
+      - backend
     restart: unless-stopped
 
   minio:
-    image: minio/minio:latest
+    image: pgsty/minio:RELEASE.2026-04-17T00-00-00Z
     container_name: ciphernotes_minio
     env_file:
       - .env
@@ -51,10 +57,12 @@ services:
       - "9001:9001"
     volumes:
       - minio_data:/data
+    networks:
+      - backend
     restart: unless-stopped
 
   minio-setup:
-    image: minio/mc:latest
+    image: pgsty/mc:RELEASE.2026-04-17T00-00-00Z
     container_name: ciphernotes_minio_setup
     env_file:
       - .env
@@ -65,7 +73,13 @@ services:
     command: >-
       "mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} &&
       (mc ls local/ciphernotes || mc mb -p local/ciphernotes || true)"
+    networks:
+      - backend
     restart: "no"
+
+networks:
+  backend:
+    name: ciphernotes_backend
 
 volumes:
   db_data:
