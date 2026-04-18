@@ -1,9 +1,6 @@
-export type LicenseDependency = {
-  name: string
-  version: string
-  license: string
-  licenseText: string
-  private?: boolean
+import {LicenseInfo} from 'rolldown-license-plugin'
+
+export type LicenseDependency = LicenseInfo & {
   description?: string
   repository?: string
   author?: {
@@ -36,7 +33,7 @@ export const licensesTemplate = (dependencies: LicenseDependency[]) => `
     pre {
       font-size: 0.75rem;
       white-space: pre-wrap;
-      width: 80em;
+      width: 80ch;
     }
   </style>
 </head>
@@ -50,7 +47,6 @@ export const licensesTemplate = (dependencies: LicenseDependency[]) => `
           <th>Name</th>
           <th>Version</th>
           <th>License</th>
-          <th>Private</th>
           <th>Description</th>
           <th>Repository</th>
           <th>Author</th>
@@ -65,7 +61,6 @@ export const licensesTemplate = (dependencies: LicenseDependency[]) => `
                 <td>${dep.name}</td>
                 <td>${dep.version}</td>
                 <td>${dep.license}</td>
-                <td>${dep.private ?? false}</td>
                 <td>${dep.description ?? ''}</td>
                 <td>${dep.repository ?? ''}</td>
                 <td>${dep.author?.name ?? ''} ${dep.author?.email ?? ''}</td>

@@ -13,7 +13,11 @@ export const compare = (a: any, b: any) => {
   if (typeof a === 'string' && typeof b === 'string') {
     return a.localeCompare(b)
   }
-  return a < b ? -1 : a > b ? 1 : 0
+  return (
+    a < b ? -1
+    : a > b ? 1
+    : 0
+  )
 }
 
 export const sort = <T>(arr: Array<T>, cmp: (a: T, b: T) => number = compare) =>
@@ -72,7 +76,7 @@ export const setTimeoutPromise = <Fn extends (...args: any[]) => any, AbortValue
 export const debouncePromise = <Fn extends (...args: any[]) => any, AbortValue>(
   fn: Fn,
   timeout: number,
-  abortValue: AbortValue
+  abortValue: AbortValue,
 ) => {
   type Ret = Awaited<ReturnType<Fn>>
   let promise = {cancel: () => {}}
@@ -136,7 +140,7 @@ export const throttle = <Args extends any[]>(fn: (...args: Args) => unknown, tim
 
 export const indexBy = <T, K extends string | number>(
   arr: T[],
-  keyFn: (item: T) => K
+  keyFn: (item: T) => K,
 ): Map<K, T> => {
   const map = new Map<K, T>()
   for (const item of arr) {
@@ -202,7 +206,7 @@ export const deepEquals = (
   a: unknown,
   b: unknown,
   ignoreProps: string[] = [],
-  prop: string | null = null
+  prop: string | null = null,
 ): boolean => {
   if (prop !== null && ignoreProps.includes(prop)) return true
   if (typeof a !== typeof b) return false
@@ -288,7 +292,7 @@ export const bisectBy = <T>(arr: T[], pred: (x: T) => boolean): readonly [T[], T
 
 export const partitionBy = <T, Key extends string>(
   arr: T[],
-  keyFn: (x: T) => Key
+  keyFn: (x: T) => Key,
 ): Partial<Record<Key, T[]>> => {
   const res: Partial<Record<Key, T[]>> = {}
   for (const x of arr) {
@@ -310,11 +314,11 @@ export const moveWithinListViaDnD = <Item>(
   list: Item[],
   dragIndex: number,
   dropIndex: number,
-  closestEdge: 'top' | 'bottom'
+  closestEdge: 'top' | 'bottom',
 ) => {
   const movingForward = dragIndex < dropIndex
   const goingAfter = closestEdge === 'bottom'
-  let targetIndex = 0
+  let targetIndex
   if (movingForward) {
     targetIndex = goingAfter ? dropIndex : dropIndex - 1
   } else {
@@ -370,7 +374,7 @@ export const takeSum = <T>(arr: T[], limit: number, getSize: (x: T) => number): 
 
 export function parseRangeHeader(
   rangeHeader: string | null,
-  fileSize: number
+  fileSize: number,
 ): {start: number; end: number} | null {
   if (!rangeHeader) return null
   const match = rangeHeader.match(/bytes=(\d+)-(\d*)/)

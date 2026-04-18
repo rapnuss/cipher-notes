@@ -5,7 +5,7 @@ import react, {reactCompilerPreset} from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 import {comlink} from 'vite-plugin-comlink'
 import {createRequire} from 'module'
-import {licensePlugin} from 'rolldown-license-plugin'
+import {LicenseInfo, licensePlugin} from 'rolldown-license-plugin'
 import fs from 'fs'
 import path from 'path'
 import {licensesTemplate, type LicenseDependency} from './licensesTemplate'
@@ -15,13 +15,6 @@ const isPreview = process.env.PREVIEW === 'true'
 const require = createRequire(import.meta.url)
 const collectedLicenses = new Map<string, LicenseDependency>()
 
-type RolldownLicenseInfo = {
-  name: string
-  version: string
-  license: string
-  licenseText: string
-}
-
 type PackageManifest = {
   private?: boolean
   description?: string
@@ -29,7 +22,7 @@ type PackageManifest = {
   author?: string | {name?: string; email?: string}
 }
 
-const loadLicenseDependency = (dependency: RolldownLicenseInfo): LicenseDependency => {
+const loadLicenseDependency = (dependency: LicenseInfo): LicenseDependency => {
   try {
     const packagePath = require.resolve(`${dependency.name}/package.json`)
     const manifest = JSON.parse(fs.readFileSync(packagePath, 'utf8')) as PackageManifest
@@ -37,7 +30,6 @@ const loadLicenseDependency = (dependency: RolldownLicenseInfo): LicenseDependen
 
     return {
       ...dependency,
-      private: manifest.private,
       description: manifest.description,
       repository:
         typeof manifest.repository === 'string' ? manifest.repository
@@ -50,7 +42,7 @@ const loadLicenseDependency = (dependency: RolldownLicenseInfo): LicenseDependen
   }
 }
 
-const collectLicenses = (dependencies: RolldownLicenseInfo[]) => {
+const collectLicenses = (dependencies: LicenseInfo[]) => {
   for (const dependency of dependencies) {
     const hydratedDependency = loadLicenseDependency(dependency)
     collectedLicenses.set(
