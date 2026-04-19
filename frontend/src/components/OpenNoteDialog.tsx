@@ -38,7 +38,7 @@ import {ActionIconWithText} from './ActionIconWithText'
 import {useHotkeys} from '@mantine/hooks'
 import {IconDots} from './icons/IconDots'
 import {IconArchive} from './icons/IconArchive'
-import {isDesktop} from '../helpers/bowser'
+import {isDesktop, isIOS} from '../helpers/bowser'
 import {IconCopy} from './icons/IconCopy'
 import {notifications} from '@mantine/notifications'
 import {EditorView} from '@codemirror/view'
@@ -284,7 +284,7 @@ export const OpenNoteDialog = () => {
           position='top'
           withArrow
           shadow='md'
-          trapFocus
+          trapFocus={!isIOS()}
           closeOnEscape={false}
           closeOnClickOutside
           opened={labelDropdownOpen}

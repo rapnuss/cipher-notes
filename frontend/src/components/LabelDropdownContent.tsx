@@ -17,6 +17,7 @@ import {
 import {IconCrown} from './icons/IconCrown'
 import {IconPlus} from './icons/IconPlus'
 import {applyBulkLabels, selectSelectionActive} from '../state/selection'
+import {isIOS} from '../helpers/bowser'
 import {CrazyCheckbox} from './IconsCheckbox'
 import {ActionIconWithText} from './ActionIconWithText'
 import {IconChecks} from './icons/IconChecks'
@@ -31,18 +32,16 @@ export const LabelDropdownContent = ({noteId, fileId}: LabelDropdownContentProps
   const checkedLabels: string[] =
     useLiveQuery(
       () =>
-        noteId
-          ? db.notes.get(noteId).then((note) => note?.labels ?? [])
-          : fileId
-          ? db.files_meta.get(fileId).then((file) => file?.labels ?? [])
-          : [],
-      [noteId, fileId]
+        noteId ? db.notes.get(noteId).then((note) => note?.labels ?? [])
+        : fileId ? db.files_meta.get(fileId).then((file) => file?.labels ?? [])
+        : [],
+      [noteId, fileId],
     ) ?? []
   return (
     <>
       <Group align='end' gap='xs'>
         <TextInput
-          autoFocus
+          autoFocus={!isIOS()}
           flex={1}
           label='Label'
           placeholder='Search or create label'
@@ -53,7 +52,9 @@ export const LabelDropdownContent = ({noteId, fileId}: LabelDropdownContentProps
               title='Clear search'
               onClick={() => setSearch('')}
             >
-              {search.length === 0 ? <IconSearch /> : <IconX />}
+              {search.length === 0 ?
+                <IconSearch />
+              : <IconX />}
             </UnstyledButton>
           }
           value={search}
@@ -103,41 +104,37 @@ export const LabelDropdownContent = ({noteId, fileId}: LabelDropdownContentProps
               label={
                 <>
                   {label.name}
-                  {!checkedLabels.includes(label.id) ||
-                  checkedLabels.length <= 1 ? undefined : label.id === checkedLabels[0] ? (
+                  {!checkedLabels.includes(label.id) || checkedLabels.length <= 1 ?
+                    undefined
+                  : label.id === checkedLabels[0] ?
                     <IconCrown
                       onClick={(e) => {
                         e.stopPropagation()
                         e.preventDefault()
                       }}
                     />
-                  ) : (
-                    <ActionIcon
+                  : <ActionIcon
                       opacity={0.5}
                       size='md'
                       variant='outline'
                       color='gray'
                       onClick={() =>
-                        noteId
-                          ? setNoteMainLabel(noteId, label.id)
-                          : fileId
-                          ? setFileMainLabel(fileId, label.id)
-                          : undefined
+                        noteId ? setNoteMainLabel(noteId, label.id)
+                        : fileId ? setFileMainLabel(fileId, label.id)
+                        : undefined
                       }
                       title='Set as main label (effects color)'
                     >
                       <IconCrown />
                     </ActionIcon>
-                  )}
+                  }
                 </>
               }
               checked={checkedLabels.includes(label.id)}
               onChange={() =>
-                noteId
-                  ? toggleNoteLabel(noteId, label.id)
-                  : fileId
-                  ? toggleFileLabel(fileId, label.id)
-                  : undefined
+                noteId ? toggleNoteLabel(noteId, label.id)
+                : fileId ? toggleFileLabel(fileId, label.id)
+                : undefined
               }
               size='md'
             />
@@ -150,7 +147,7 @@ export const LabelDropdownContent = ({noteId, fileId}: LabelDropdownContentProps
 export const BulkLabelDropdownContent = ({opened}: {opened: boolean}) => {
   const [search, setSearch] = useState('')
   const [updatedLabelState, setUpdatedLabelState] = useState<Record<string, boolean | 'unchanged'>>(
-    {}
+    {},
   )
   const labels = useSelector(selectCachedLabels)
   const selected = useSelector((state) => state.selection.selected)
@@ -198,7 +195,7 @@ export const BulkLabelDropdownContent = ({opened}: {opened: boolean}) => {
     <>
       <Group align='end' gap='xs'>
         <TextInput
-          autoFocus
+          autoFocus={!isIOS()}
           flex={1}
           label='Label'
           placeholder='Search or create label'
@@ -209,7 +206,9 @@ export const BulkLabelDropdownContent = ({opened}: {opened: boolean}) => {
               title='Clear search'
               onClick={() => setSearch('')}
             >
-              {search.length === 0 ? <IconSearch /> : <IconX />}
+              {search.length === 0 ?
+                <IconSearch />
+              : <IconX />}
             </UnstyledButton>
           }
           value={search}

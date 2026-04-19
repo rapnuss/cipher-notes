@@ -32,7 +32,7 @@ import {useCloseOnBack} from '../helpers/useCloseOnBack'
 import {useEffect} from 'react'
 import {useHotkeys} from '@mantine/hooks'
 import {FileIconWithExtension} from './FileIconWithExtension'
-import {isAndroid} from '../helpers/bowser'
+import {isAndroid, isIOS} from '../helpers/bowser'
 import {IconCopy} from './icons/IconCopy'
 import {IconClockPlus} from './icons/IconClockPlus'
 import {IconClockEdit} from './icons/IconClockEdit'
@@ -247,7 +247,7 @@ export const OpenFileDialog = () => {
           position='top'
           withArrow
           shadow='md'
-          trapFocus
+          trapFocus={!isIOS()}
           closeOnEscape={false}
           closeOnClickOutside
           opened={labelDropdownOpen}

@@ -25,6 +25,7 @@ import {ActiveLabel, Note} from '../business/models'
 import {exportNotes, openImportDialog, openKeepImportDialog} from '../state/import'
 import {labelSelected, selectCachedLabels} from '../state/labels'
 import {delay} from '../util/misc'
+import {isIOS} from '../helpers/bowser'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import {openSettings} from '../state/settings'
 
@@ -232,7 +233,7 @@ export const CommandCenter = () => {
 
   const hotkeys: HotkeyItem[] = enabledCommands
     .filter(
-      (c): c is typeof c & {shortcut: string; onClick: () => void} => !!c.shortcut && !!c.onClick
+      (c): c is typeof c & {shortcut: string; onClick: () => void} => !!c.shortcut && !!c.onClick,
     )
     .map(
       (c) =>
@@ -245,7 +246,7 @@ export const CommandCenter = () => {
             c.onClick()
           },
           {preventDefault: true, usePhysicalKeys: true},
-        ] as const
+        ] as const,
     )
 
   useHotkeys(hotkeys, [], true)
@@ -291,6 +292,7 @@ export const CommandCenter = () => {
       tagsToIgnore={emptyArray}
       triggerOnContentEditable
       scrollable
+      trapFocus={!isIOS()}
       maxHeight='100%'
       disabled={commandCenterDisabled}
       limit={actions.length}

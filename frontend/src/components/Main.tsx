@@ -32,6 +32,7 @@ import {IconTrash} from './icons/IconTrash'
 import {BulkLabelDropdownContent} from './LabelDropdownContent'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
 import {IconChecks} from './icons/IconChecks'
+import {isIOS} from '../helpers/bowser'
 
 export const Main = () => (
   <>
@@ -96,7 +97,7 @@ const Header = () => {
               opened={bulkLabelOpen}
               onDismiss={closeBulkLabelDropdown}
               withArrow
-              trapFocus
+              trapFocus={!isIOS()}
               closeOnEscape={false}
             >
               <Popover.Target>
