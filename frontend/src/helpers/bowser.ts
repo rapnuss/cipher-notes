@@ -12,3 +12,6 @@ export const isDesktop = () => parser.getPlatformType(true) === 'desktop'
 export const isSafari = () => parser.getBrowserName(true) === 'safari'
 export const isSafariOnIOS = () => isSafari() && isIOS()
 export const isMac = () => parser.getOSName(true) === 'macos'
+
+const standaloneMatcher = window.matchMedia('(display-mode: standalone)')
+export const isStandalone = (): boolean => standaloneMatcher.matches

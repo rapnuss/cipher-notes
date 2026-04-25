@@ -1,13 +1,15 @@
 import {useMantineColorScheme} from '@mantine/core'
-import {getColorScheme} from '../util/misc'
 import {useEffect, useState} from 'react'
 import {ThemeName} from '../business/models'
 import {useSelector} from '../state/store'
+import {isStandalone} from './bowser'
 
 const matcher = window.matchMedia('(prefers-color-scheme: dark)')
+const getColorScheme = (): 'dark' | 'light' => (matcher.matches ? 'dark' : 'light')
 
 /** Use this only once in the app */
-export const useSetColorSchemeAndListenForChange = (delay = 0) => {
+export const useSetColorSchemeAndListenForChange = (): void => {
+  const delay = isStandalone() ? 100 : 0
   const [ready, setReady] = useState(delay === 0)
   const {colorScheme, setColorScheme} = useMantineColorScheme()
   const isAuto = colorScheme === 'auto'
@@ -19,10 +21,10 @@ export const useSetColorSchemeAndListenForChange = (delay = 0) => {
   }, [delay])
 
   useEffect(() => {
-    if (isAuto) {
+    if (isAuto && ready) {
       setColorScheme(getColorScheme())
     }
-  }, [isAuto, setColorScheme])
+  }, [isAuto, setColorScheme, ready])
 
   useEffect(() => {
     if (!ready) return
@@ -40,10 +42,8 @@ export const useSetColorSchemeAndListenForChange = (delay = 0) => {
 
 export const useMyColorScheme = (): 'dark' | 'light' => {
   const {colorScheme} = useMantineColorScheme()
-  const isAuto = colorScheme === 'auto'
-  if (isAuto) {
-    const systemScheme = getColorScheme()
-    return systemScheme
+  if (colorScheme === 'auto') {
+    return getColorScheme()
   }
   return colorScheme
 }

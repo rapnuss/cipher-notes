@@ -303,13 +303,6 @@ export const partitionBy = <T, Key extends string>(
   return res
 }
 
-export const getColorScheme = () => {
-  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'dark'
-  }
-  return 'light'
-}
-
 export const moveWithinListViaDnD = <Item>(
   list: Item[],
   dragIndex: number,
