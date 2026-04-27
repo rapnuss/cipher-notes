@@ -237,7 +237,7 @@ export const OpenNoteDialog = () => {
               {!note ? '' : formatDateTime(note.created_at)}
             </Menu.Item>
             <Menu.Item leftSection={<IconClockEdit />} disabled title='Updated'>
-              {!openNote ? '' : formatDateTime(openNote.updatedAt)}
+              {!note ? '' : formatDateTime(note.updated_at)}
             </Menu.Item>
             <Menu.Item
               leftSection={<IconCopy />}
