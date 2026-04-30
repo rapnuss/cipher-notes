@@ -10,7 +10,7 @@ import {
   placeholder as cmPlaceholder,
   Command,
 } from '@codemirror/view'
-import {defaultKeymap, indentWithTab} from '@codemirror/commands'
+import {defaultKeymap, indentWithTab, simplifySelection} from '@codemirror/commands'
 import {wrappedLineIndent} from 'codemirror-wrapped-line-indent'
 import {selectNextOccurrence} from '@codemirror/search'
 import {monospaceStyle} from '../business/misc'
@@ -86,7 +86,7 @@ export const Editor = ({
           opacity: 0.5,
         },
       }),
-    [isDark]
+    [isDark],
   )
 
   const baseExtensions = useMemo<Extension[]>(
@@ -106,7 +106,7 @@ export const Editor = ({
       TextToLink,
       hyperLinkStyle,
     ],
-    [theme, placeholder, focusHintId]
+    [theme, placeholder, focusHintId],
   )
 
   const keys = useMemo<Extension>(
@@ -138,13 +138,11 @@ export const Editor = ({
         },
         {
           key: 'Mod-Alt-ArrowUp',
-          linux: 'Shift-Alt-ArrowUp',
           run: addCursorUp,
           preventDefault: true,
         },
         {
           key: 'Mod-Alt-ArrowDown',
-          linux: 'Shift-Alt-ArrowDown',
           run: addCursorDown,
           preventDefault: true,
         },
@@ -160,11 +158,16 @@ export const Editor = ({
           },
           preventDefault: true,
         },
+        {
+          key: 'Escape',
+          run: simplifySelection,
+          stopPropagation: true,
+        },
         {key: 'Mod-d', run: selectNextOccurrence, preventDefault: true},
-        ...defaultKeymap,
+        ...defaultKeymap.filter((x) => x.key !== 'Escape'),
         indentWithTab,
       ]),
-    [onUndo, onRedo, onUp]
+    [onUndo, onRedo, onUp],
   )
 
   const updates = useMemo<Extension>(
@@ -182,16 +185,17 @@ export const Editor = ({
           setHasFocus(u.view.hasFocus)
         }
       }),
-    [onChange]
+    [onChange],
   )
 
   const onMount = useCurrentCallback(() => {
     if (!hostRef.current) throw new Error('hostRef.current is null')
 
     const clamp = (n: number) => Math.max(0, Math.min(n, value.length))
-    const initialSelection = selections?.length
-      ? EditorSelection.create(
-          selections.map((s) => EditorSelection.range(clamp(s.anchor), clamp(s.head)))
+    const initialSelection =
+      selections?.length ?
+        EditorSelection.create(
+          selections.map((s) => EditorSelection.range(clamp(s.anchor), clamp(s.head))),
         )
       : EditorSelection.cursor(value.length)
 
@@ -248,7 +252,7 @@ export const Editor = ({
       const docLen = needDoc ? value.length : curDoc.length
       const clamp = (n: number) => Math.max(0, Math.min(n, docLen))
       trSpec.selection = EditorSelection.create(
-        selections.map((s) => EditorSelection.range(clamp(s.anchor), clamp(s.head)))
+        selections.map((s) => EditorSelection.range(clamp(s.anchor), clamp(s.head))),
       )
       trSpec.scrollIntoView = true
     }
