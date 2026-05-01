@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest'
-import {partitionBy, splitFilename} from './misc'
+import {partitionBy, sliceUtf, splitFilename} from './misc'
 
 describe('splitFilenameExtension', () => {
   it('should split filename extension', () => {
@@ -37,4 +37,29 @@ describe('partitionBy', () => {
       '1': [1, 3, 5],
     })
   })
+})
+
+describe('sliceUtf', () => {
+  it('should slice utf', () => {
+    expect(sliceUtf('Hello, world!', 0, 5)).toBe('Hello')
+  })
+  it('should slice utf with surrogate pairs', () => {
+    const emoji = '\ud83e\udec4\ud83c\udffe'
+    const txt = `Hello${emoji}world!`
+    expect(splitUtf(txt, 6)).toEqual(['Hello', `${emoji}world!`])
+    expect(splitUtf(txt, 7)).toEqual(['Hello', `${emoji}world!`])
+    expect(splitUtf(txt, 8)).toEqual(['Hello', `${emoji}world!`])
+    expect(splitUtf(txt, 9)).toEqual([`Hello${emoji}`, 'world!'])
+    expect(splitUtf(txt, 10)).toEqual([`Hello${emoji}w`, 'orld!'])
+    expect(splitUtf(emoji, 0)).toEqual(['', emoji])
+    expect(splitUtf(emoji, 1)).toEqual(['', emoji])
+    expect(splitUtf(emoji, 2)).toEqual(['', emoji])
+    expect(splitUtf(emoji, 3)).toEqual(['', emoji])
+    expect(splitUtf(emoji, 4)).toEqual([emoji, ''])
+    expect(splitUtf(emoji, 11)).toEqual([emoji, ''])
+  })
+
+  function splitUtf(txt: string, index: number) {
+    return [sliceUtf(txt, 0, index), sliceUtf(txt, index)]
+  }
 })

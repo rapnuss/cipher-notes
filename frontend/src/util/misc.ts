@@ -218,7 +218,7 @@ export const deepEquals = (
     typeof a !== 'object' ||
     typeof b !== 'object'
   ) {
-    return Object.is(a, b)
+    return a === b || (a !== a && b !== b)
   }
   const ak = Object.keys(a)
   const bk = Object.keys(b)
@@ -390,4 +390,20 @@ export const formatDateTime = (date: string | number | Date) => {
   const day = d.getDate().toString().padStart(2, '0')
   const localTime = d.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'})
   return `${year}-${month}-${day} ${localTime}`
+}
+
+export const sliceUtf = (txt: string, start: number, end = txt.length) => {
+  start = Math.min(txt.length, Math.max(0, start))
+  end = Math.min(txt.length, Math.max(0, end))
+  if (start >= end) return ''
+
+  const segmenter = new Intl.Segmenter(undefined, {granularity: 'grapheme'})
+  for (const {index, segment} of segmenter.segment(txt)) {
+    const segmentEnd = index + segment.length
+    if (index < start && start < segmentEnd) start = index
+    if (index < end && end < segmentEnd) end = index
+    if (end <= index) break
+  }
+  if (start >= end) return ''
+  return txt.slice(start, end)
 }

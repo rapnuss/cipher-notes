@@ -51,6 +51,7 @@
     "healthcheck",
     "hitbox",
     "Hohenems",
+    "Idxs",
     "impressum",
     "inet",
     "INITDB",
@@ -138,5 +139,6 @@
   "[typescriptreact]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.formatOnSave": true
-  }
+  },
+  "typescript.tsdk": "./frontend/node_modules/typescript/lib"
 }
