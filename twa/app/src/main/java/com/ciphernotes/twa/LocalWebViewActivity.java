@@ -217,7 +217,11 @@ public class LocalWebViewActivity extends AppCompatActivity {
           return false;
         }
         Intent external = new Intent(Intent.ACTION_VIEW, uri);
-        startActivity(external);
+        try {
+            startActivity(external);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(v.getContext(), "No app found to open this link", Toast.LENGTH_SHORT).show();
+        }
         return true;
       }
     });
