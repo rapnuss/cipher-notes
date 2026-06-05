@@ -14,3 +14,7 @@
 ## v3.4 (7)
 
 - fix registration with hcaptcha
+
+## v3.5 (8)
+
+- handle opening of external link not supported

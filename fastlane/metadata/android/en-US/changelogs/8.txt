@@ -1,0 +1,1 @@
+handle opening of external link not supported

@@ -96,7 +96,9 @@ export default defineConfig({
     },
   },
   define: {
-    ENV_GIT_COMMIT: JSON.stringify(process.env.RENDER_GIT_COMMIT ?? 'unknown'),
+    ENV_GIT_COMMIT: JSON.stringify(
+      process.env.RENDER_GIT_COMMIT ?? getAndroidVersion() ?? 'unknown',
+    ),
     ENV_HOSTING_MODE: JSON.stringify(process.env.HOSTING_MODE ?? 'central'),
     ENV_HCAPTCHA_SITE_KEY: JSON.stringify(process.env.HCAPTCHA_SITE_KEY ?? ''),
     ENV_API_URL: JSON.stringify(process.env.API_URL ?? '/api'),
@@ -251,3 +253,13 @@ export default defineConfig({
     plugins: () => [comlink()],
   },
 })
+
+function getAndroidVersion(): string | undefined {
+  try {
+    return fs
+      .readFileSync(path.resolve(__dirname, '../twa/app/build.gradle'), 'utf8')
+      .match(/versionName "(\d+\.\d+(?:\.\d+)?)"/)?.[1]
+  } catch {
+    return undefined
+  }
+}
