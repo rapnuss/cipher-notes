@@ -1,4 +1,14 @@
-import {pgTable, varchar, text, integer, unique, bigint, pgEnum, boolean} from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  varchar,
+  text,
+  integer,
+  unique,
+  bigint,
+  pgEnum,
+  boolean,
+  index,
+} from 'drizzle-orm/pg-core'
 
 export const subscriptionTypeEnum = pgEnum('subscription_type', ['free', 'plus', 'pro'])
 
@@ -26,15 +36,19 @@ export const usersTbl = pgTable('users', {
   successful_login_at: bigint({mode: 'number'}),
 })
 
-export const sessionsTbl = pgTable('sessions', {
-  id: bigint({mode: 'number'}).generatedAlwaysAsIdentity().primaryKey(),
-  user_id: bigint({mode: 'number'})
-    .references(() => usersTbl.id)
-    .notNull(),
-  access_token_hash: varchar({length: 64}).notNull(),
-  access_token_salt: varchar({length: 32}).notNull(),
-  created_at: bigint({mode: 'number'}).$default(Date.now).notNull(),
-})
+export const sessionsTbl = pgTable(
+  'sessions',
+  {
+    id: bigint({mode: 'number'}).generatedAlwaysAsIdentity().primaryKey(),
+    user_id: bigint({mode: 'number'})
+      .references(() => usersTbl.id)
+      .notNull(),
+    access_token_hash: varchar({length: 64}).notNull(),
+    access_token_salt: varchar({length: 32}).notNull(),
+    created_at: bigint({mode: 'number'}).$default(Date.now).notNull(),
+  },
+  (t) => [index('sessions_user_id_idx').on(t.user_id)],
+)
 
 export const noteTypeEnum = pgEnum('note_type', ['note', 'todo', 'label', 'file'])
 
@@ -64,5 +78,8 @@ export const notesTbl = pgTable(
     //  Used to calculate s3 limit without knowing if the blob was actually uploaded.
     committed_size: integer().notNull().default(0),
   },
-  (t) => [unique('user_client_id').on(t.user_id, t.clientside_id)]
+  (t) => [
+    index('notes_user_id_idx').on(t.user_id),
+    unique('user_client_id').on(t.user_id, t.clientside_id),
+  ],
 )
