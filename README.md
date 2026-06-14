@@ -2,6 +2,8 @@
 
 The project is live on https://ciphernotes.com
 
+F-Droid Version: https://f-droid.org/en/packages/com.ciphernotes.twa/
+
 ## Disclaimer
 
 The notes are encrypted before being sent to the server,

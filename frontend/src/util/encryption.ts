@@ -6,10 +6,29 @@ export function generateSalt(length = 16): string {
   return binToBase64(crypto.getRandomValues(new Uint8Array(length)))
 }
 
-export function binToBase64(iv: Uint8Array): string {
-  return btoa(String.fromCharCode(...iv))
+export function binToBase64(data: Uint8Array): string {
+  const toBase64 = (data as Uint8Array & {toBase64?: () => string}).toBase64
+  if (typeof toBase64 === 'function') {
+    return toBase64.call(data)
+  }
+
+  const chunkSize = 0x8000
+  const chunks: string[] = []
+
+  for (let i = 0; i < data.length; i += chunkSize) {
+    chunks.push(String.fromCharCode(...data.subarray(i, i + chunkSize)))
+  }
+
+  return btoa(chunks.join(''))
 }
 export function base64ToBin(base64: string): Uint8Array {
+  const fromBase64 = (Uint8Array as Uint8ArrayConstructor & {
+    fromBase64?: (base64: string) => Uint8Array
+  }).fromBase64
+  if (typeof fromBase64 === 'function') {
+    return fromBase64(base64)
+  }
+
   return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0))
 }
 function ensureArrayBuffer(buffer: ArrayBufferLike): ArrayBuffer {
@@ -36,7 +55,7 @@ export async function generateKey(): Promise<string> {
   const key = await crypto.subtle.generateKey(
     {name: 'AES-GCM', length: 256}, // Algorithm and key size
     true, // The key can be exported
-    ['encrypt', 'decrypt'] // Usages
+    ['encrypt', 'decrypt'], // Usages
   )
   return await exportKey(key)
 }
@@ -54,14 +73,14 @@ export async function importKey(base64Key: string): Promise<CryptoKey> {
     arrayBuffer,
     {name: 'AES-GCM'}, // Algorithm
     true, // Whether the key can be exported again
-    ['encrypt', 'decrypt'] // Usages
+    ['encrypt', 'decrypt'], // Usages
   )
   return key
 }
 
 export async function encryptString(
   key: CryptoKey,
-  data: string
+  data: string,
 ): Promise<{cipher_text: string; iv: string}> {
   const encoder = new TextEncoder()
   const encodedData = encoder.encode(data)
@@ -70,7 +89,7 @@ export async function encryptString(
   const cipher_text = await crypto.subtle.encrypt(
     {name: 'AES-GCM', iv, tagLength: 128},
     key,
-    encodedData
+    encodedData,
   )
   return {cipher_text: arrayBufferToBase64(cipher_text), iv: binToBase64(iv)}
 }
@@ -78,7 +97,7 @@ export async function encryptString(
 export async function decryptString(
   key: CryptoKey,
   cipher_text: string,
-  ivBase64: string
+  ivBase64: string,
 ): Promise<string> {
   const iv = base64ToBin(ivBase64)
   const ivArrayBuffer = ensureArrayBuffer(iv.buffer)
@@ -86,7 +105,7 @@ export async function decryptString(
   const decryptedData = await crypto.subtle.decrypt(
     {name: 'AES-GCM', iv: ivArrayBuffer, tagLength: 128},
     key,
-    base64ToArrayBuffer(cipher_text)
+    base64ToArrayBuffer(cipher_text),
   )
   const decoder = new TextDecoder()
   return decoder.decode(decryptedData)
@@ -104,7 +123,7 @@ export async function encryptBlob(key: CryptoKey, blob: Blob): Promise<Blob> {
 export async function decryptBlob(
   key: CryptoKey,
   encryptedBlob: Blob,
-  mime: string
+  mime: string,
 ): Promise<Blob> {
   const encryptedArrayBuffer = await encryptedBlob.arrayBuffer()
   const iv = new Uint8Array(encryptedArrayBuffer.slice(0, 12))
@@ -116,7 +135,7 @@ export async function decryptBlob(
       tagLength: 128,
     },
     key,
-    cipherText
+    cipherText,
   )
   return new Blob([plaintextArrayBuffer], {type: mime})
 }
