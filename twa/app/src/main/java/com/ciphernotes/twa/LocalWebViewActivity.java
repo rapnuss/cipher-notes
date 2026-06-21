@@ -132,7 +132,7 @@ public class LocalWebViewActivity extends AppCompatActivity {
     CookieManager cookieManager = CookieManager.getInstance();
     cookieManager.setAcceptCookie(true);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-      cookieManager.setAcceptThirdPartyCookies(view, true);
+      cookieManager.setAcceptThirdPartyCookies(view, false);
     }
 
     view.setLayerType(View.LAYER_TYPE_HARDWARE, null);

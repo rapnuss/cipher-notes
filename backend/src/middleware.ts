@@ -20,14 +20,14 @@ export const authMiddleware = new Middleware({
       .where(eq(sessionsTbl.id, session_id))
       .limit(1)
     if (!session) {
-      throw createHttpError(401, 'Invalid session')
+      throw createHttpError(401, 'Invalid or expired session')
     }
     const {access_token_hash: storedHash, access_token_salt, created_at} = session
     if (!verifyToken(access_token, storedHash, access_token_salt)) {
-      throw createHttpError(401, 'Invalid access token')
+      throw createHttpError(401, 'Invalid or expired session')
     }
     if (Date.now() - created_at > 1000 * 60 * Number(env.SESSION_TTL_MIN)) {
-      throw createHttpError(401, 'Session expired')
+      throw createHttpError(401, 'Invalid or expired session')
     }
     return {user_id: session.user_id, session_id}
   },

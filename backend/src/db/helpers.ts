@@ -8,12 +8,13 @@ type Db = typeof db
 
 export const bulkUpdateCommittedSize = async (
   tx: Tx | Db,
-  values: {id: string; size: number}[]
+  user_id: number,
+  values: {id: string; size: number}[],
 ) => {
   if (values.length === 0) return
   const vals = sql.join(
     values.map((u) => sql`(${u.id}, ${u.size}::integer)`),
-    sql`, `
+    sql`, `,
   )
   await tx.execute(sql`
     UPDATE ${notesTbl}
@@ -21,7 +22,8 @@ export const bulkUpdateCommittedSize = async (
     FROM (
       VALUES ${vals}
     ) AS v(id, size)
-    WHERE ${notesTbl.clientside_id} = v.id;
+    WHERE ${notesTbl.clientside_id} = v.id
+      AND ${notesTbl.user_id} = ${user_id};
   `)
 }
 

@@ -24,7 +24,8 @@ class TextToLinkWidget extends WidgetType {
   toDOM() {
     const wrapper = document.createElement('a')
     wrapper.href = this.url
-    wrapper.target = '__blank'
+    wrapper.target = '_blank'
+    wrapper.rel = 'noopener noreferrer'
     wrapper.innerHTML = pathStr
     wrapper.className = 'cm-hyper-link-icon'
     return wrapper
@@ -57,15 +58,12 @@ const buildWidget = (lines: string, sep: string, pos: number) => {
 function textToLinkFunc(view: EditorView) {
   let widgets: ReturnType<typeof buildWidget> = []
   for (let {from, to} of view.visibleRanges) {
-    let pos
     let lastLine = view.state.doc.lineAt(to).number
     let currentLine = view.state.doc.lineAt(from)
-    let targetLine = currentLine.number
-    while (currentLine.number < lastLine) {
+    for (let targetLine = currentLine.number; targetLine <= lastLine; targetLine++) {
       currentLine = view.state.doc.line(targetLine)
-      pos = currentLine.from
+      const pos = currentLine.from
       widgets = widgets.concat(buildWidget(currentLine.text, ' ', pos))
-      targetLine++
     }
   }
   return Decoration.set(widgets)

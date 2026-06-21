@@ -17,5 +17,7 @@ export function verifyToken(
   storedSalt: string
 ): boolean {
   const computedHash = hashToken(providedToken, storedSalt)
-  return computedHash === storedHash
+  const computed = new Uint8Array(Buffer.from(computedHash, 'hex'))
+  const stored = new Uint8Array(Buffer.from(storedHash, 'hex'))
+  return computed.length === stored.length && crypto.timingSafeEqual(computed, stored)
 }

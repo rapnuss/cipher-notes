@@ -8,7 +8,7 @@
 
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-  <application android:name="Application" android:allowBackup="true"
+  <application android:name="Application" android:allowBackup="false"
     android:icon="@mipmap/ic_launcher" android:label="@string/appName"
     android:manageSpaceActivity="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
     android:supportsRtl="true" android:theme="@style/Theme.Ciphernotes">

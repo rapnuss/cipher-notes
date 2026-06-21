@@ -13,7 +13,7 @@ import {verifyPassword} from '../util/password.js'
 export const registerEmailEndpoint = endpointsFactory.build({
   method: 'post',
   input: z.object({
-    email: z.string().email(),
+    email: z.email(),
     captcha_token: z.string(),
   }),
   output: z.object({}),
@@ -27,7 +27,7 @@ export const registerEmailEndpoint = endpointsFactory.build({
     }
     const users = await db.select().from(usersTbl).where(eq(usersTbl.email, email))
     if (users.length === 1) {
-      throw createHttpError(400, 'User already exists')
+      return {}
     }
     await db.insert(usersTbl).values({email})
     return {}
@@ -37,7 +37,7 @@ export const registerEmailEndpoint = endpointsFactory.build({
 export const sendLoginCodeEndpoint = endpointsFactory.build({
   method: 'post',
   input: z.object({
-    email: z.string().email(),
+    email: z.email(),
   }),
   output: z.object({}),
   handler: async ({input: {email}}) => {
@@ -77,7 +77,7 @@ export const sendLoginCodeEndpoint = endpointsFactory.build({
 export const loginWithCodeEndpoint = endpointsFactory.build({
   method: 'post',
   input: z.object({
-    email: z.string().email(),
+    email: z.email(),
     login_code: z.string().length(6),
   }),
   output: z.object({
@@ -132,7 +132,7 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
     const jwtPromise = signSubscriptionToken(
       user.id,
       user.subscription,
-      Date.now() + 1000 * 60 * 60 * 24 * 31
+      Date.now() + 1000 * 60 * 60 * 24 * 31,
     )
 
     return await db.transaction(async (tx) => {
@@ -215,7 +215,7 @@ export const loginWithPasswordEndpoint = endpointsFactory.build({
     const jwtPromise = signSubscriptionToken(
       user.id,
       user.subscription,
-      Date.now() + 1000 * 60 * 60 * 24 * 31
+      Date.now() + 1000 * 60 * 60 * 24 * 31,
     )
     return await db.transaction(async (tx) => {
       const {accessToken, salt, hash} = generateSession()

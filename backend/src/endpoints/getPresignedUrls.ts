@@ -23,14 +23,14 @@ export const getPresignedUrlsEndpoint = authEndpointsFactory.build({
         note_id: z.uuidv4(),
         url: z.string(),
         fields: z.record(z.string(), z.string()),
-      })
+      }),
     ),
     hit_storage_limit: z.boolean(),
     download_urls: z.array(
       z.object({
         note_id: z.uuidv4(),
         url: z.string(),
-      })
+      }),
     ),
   }),
   handler: async ({input, ctx: {user_id}}) => {
@@ -45,7 +45,7 @@ export const getPresignedUrlsEndpoint = authEndpointsFactory.build({
 
 const getUploadUrls = async (
   uploads: {id: string; size: number}[],
-  user_id: number
+  user_id: number,
 ): Promise<{
   upload_urls: {note_id: string; url: string; fields: Record<string, string>}[]
   hit_storage_limit: boolean
@@ -62,8 +62,8 @@ const getUploadUrls = async (
         and(
           eq(notesTbl.user_id, user_id),
           eq(notesTbl.type, 'file'),
-          isNull(notesTbl.clientside_deleted_at)
-        )
+          isNull(notesTbl.clientside_deleted_at),
+        ),
       )
 
     let currentSize = 0
@@ -79,15 +79,13 @@ const getUploadUrls = async (
 
     for (const upload of uploads) {
       const note = notesById.get(upload.id)
-      if (!note) {
-        continue
-      } else if (note.committed_size > 0) {
-        selectedNotes.push(note)
+      if (!note || (note.committed_size !== 0 && note.committed_size !== upload.size)) {
         continue
       }
-      if (newSize + upload.size <= maxSize) {
+      const sizeDiff = note.committed_size === 0 ? upload.size : 0
+      if (newSize + sizeDiff <= maxSize) {
         selectedNotes.push(note)
-        newSize += upload.size
+        newSize += sizeDiff
       } else {
         hit_storage_limit = true
         // don't break to select all already committed files
@@ -96,10 +94,11 @@ const getUploadUrls = async (
 
     await bulkUpdateCommittedSize(
       tx,
+      user_id,
       selectedNotes.map((u) => ({
         id: u.clientside_id,
         size: uploadsById.get(u.clientside_id)!.size,
-      }))
+      })),
     )
 
     const upload_urls = await Promise.all(
@@ -119,7 +118,7 @@ const getUploadUrls = async (
           url: hostingMode !== 'self' ? url : url.replace(/http:\/\/[^\/]+\//, '/s3/'),
           fields,
         }
-      })
+      }),
     )
 
     return {upload_urls, hit_storage_limit}
@@ -136,8 +135,8 @@ const getDownloadUrls = async (note_ids: string[], user_id: number) => {
         inArray(notesTbl.clientside_id, note_ids),
         eq(notesTbl.type, 'file'),
         isNull(notesTbl.clientside_deleted_at),
-        gt(notesTbl.committed_size, 0)
-      )
+        gt(notesTbl.committed_size, 0),
+      ),
     )
   return await Promise.all(
     notes.map(async (note) => {
@@ -147,12 +146,12 @@ const getDownloadUrls = async (note_ids: string[], user_id: number) => {
           Bucket: env.S3_BUCKET,
           Key: `${user_id}/${note.clientside_id}`,
         }),
-        {expiresIn: 60}
+        {expiresIn: 60},
       )
       return {
         note_id: note.clientside_id,
         url: hostingMode !== 'self' ? url : url.replace(/http:\/\/[^\/]+\//, '/s3/'),
       }
-    })
+    }),
   )
 }
