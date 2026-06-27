@@ -1,0 +1,1 @@
+block all unneeded domains, bug fixes, disable android auto-backup

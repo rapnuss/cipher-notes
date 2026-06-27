@@ -18,3 +18,10 @@
 ## v3.5 (8)
 
 - handle opening of external link not supported
+
+## v3.6 (9)
+
+- block all unneeded domains
+- bug fixes
+- disable android auto-backup
+   - notes are not encrypted inside the app so you may not want them included in auto-backup

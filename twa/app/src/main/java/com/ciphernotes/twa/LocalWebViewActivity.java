@@ -1,7 +1,7 @@
 package com.ciphernotes.twa;
 
-import android.annotation.SuppressLint;
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.ContentValues;
@@ -18,22 +18,21 @@ import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.ServiceWorkerClient;
 import android.webkit.ServiceWorkerController;
 import android.webkit.ServiceWorkerWebSettings;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.webkit.ValueCallback;
+import android.widget.FrameLayout;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -46,7 +45,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.webkit.WebViewAssetLoader;
-
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -54,6 +53,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.Locale;
 
 /**
@@ -63,6 +64,7 @@ import java.util.Locale;
  * with the APK.
  */
 public class LocalWebViewActivity extends AppCompatActivity {
+
   private static final String TAG = "LocalWebViewActivity";
   private static final String LOCAL_HOST = "ciphernotes.com";
   private static final String LOCAL_INDEX_PATH = "https://" + LOCAL_HOST + "/index.html";
@@ -86,9 +88,9 @@ public class LocalWebViewActivity extends AppCompatActivity {
     setContentView(R.layout.activity_local_webview);
 
     assetLoader = new WebViewAssetLoader.Builder()
-        .setDomain(LOCAL_HOST)
-        .addPathHandler("/", this::openAsset)
-        .build();
+      .setDomain(LOCAL_HOST)
+      .addPathHandler("/", this::openAsset)
+      .build();
 
     webView = findViewById(R.id.webview);
     configureWebView(webView);
@@ -136,96 +138,122 @@ public class LocalWebViewActivity extends AppCompatActivity {
     }
 
     view.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-    view.setWebChromeClient(new WebChromeClient() {
-      // Android 5.0+ (API 21) path
-      @Override
-      public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback,
-          FileChooserParams fileChooserParams) {
-        LocalWebViewActivity.this.clearFileCallbacks();
-        LocalWebViewActivity.this.filePathCallback = filePathCallback;
-        if (!hasCameraPermission()) {
-          awaitingCameraPermissionForChooser = true;
-          pendingFileChooserParams = fileChooserParams;
-          ActivityCompat.requestPermissions(LocalWebViewActivity.this,
+    view.setWebChromeClient(
+      new WebChromeClient() {
+        // Android 5.0+ (API 21) path
+        @Override
+        public boolean onShowFileChooser(
+          WebView webView,
+          ValueCallback<Uri[]> filePathCallback,
+          FileChooserParams fileChooserParams
+        ) {
+          LocalWebViewActivity.this.clearFileCallbacks();
+          LocalWebViewActivity.this.filePathCallback = filePathCallback;
+          if (!hasCameraPermission()) {
+            awaitingCameraPermissionForChooser = true;
+            pendingFileChooserParams = fileChooserParams;
+            ActivityCompat.requestPermissions(
+              LocalWebViewActivity.this,
               new String[] { Manifest.permission.CAMERA },
-              FILE_CHOOSER_CAMERA_PERMISSION_REQUEST_CODE);
+              FILE_CHOOSER_CAMERA_PERMISSION_REQUEST_CODE
+            );
+            return true;
+          }
+          return launchFileChooser(fileChooserParams, true);
+        }
+
+        // Android 4.1 - 4.4 path
+        @SuppressWarnings("unused")
+        public void openFileChooser(
+          ValueCallback<Uri> uploadMsg,
+          String acceptType,
+          String capture
+        ) {
+          LocalWebViewActivity.this.clearFileCallbacks();
+          LocalWebViewActivity.this.legacyFilePathCallback = uploadMsg;
+          Intent intent = buildFilePickerIntent(
+            false,
+            acceptType != null ? new String[] { acceptType } : null
+          );
+          try {
+            startActivityForResult(intent, FILE_CHOOSER_REQUEST_CODE);
+          } catch (ActivityNotFoundException e) {
+            LocalWebViewActivity.this.clearFileCallbacks();
+          }
+        }
+
+        // Android 3.0+ path
+        @SuppressWarnings("unused")
+        public void openFileChooser(ValueCallback<Uri> uploadMsg, String acceptType) {
+          openFileChooser(uploadMsg, acceptType, null);
+        }
+
+        // Android <3.0 path
+        @SuppressWarnings("unused")
+        public void openFileChooser(ValueCallback<Uri> uploadMsg) {
+          openFileChooser(uploadMsg, "*/*", null);
+        }
+
+        @Override
+        public void onPermissionRequest(final PermissionRequest request) {
+          if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            super.onPermissionRequest(request);
+            return;
+          }
+          runOnUiThread(() -> handlePermissionRequest(request));
+        }
+
+        @Override
+        public void onPermissionRequestCanceled(PermissionRequest request) {
+          if (pendingPermissionRequest != null && pendingPermissionRequest == request) {
+            pendingPermissionRequest = null;
+          }
+          super.onPermissionRequestCanceled(request);
+        }
+      }
+    );
+    view.setWebViewClient(
+      new WebViewClient() {
+        @Override
+        public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest request) {
+          WebResourceResponse response = assetLoader.shouldInterceptRequest(request.getUrl());
+          if (response != null) {
+            return response;
+          }
+          if (!isAllowedWebViewUri(request.getUrl())) {
+            runOnUiThread(() ->
+              Toast.makeText(
+                LocalWebViewActivity.this,
+                "Request blocked: " + request.getUrl(),
+                Toast.LENGTH_SHORT
+              ).show()
+            );
+            return blockedWebViewResponse();
+          }
+          return super.shouldInterceptRequest(v, request);
+        }
+
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest request) {
+          Uri uri = request.getUrl();
+          String scheme = uri.getScheme();
+          if (isAllowedWebViewUri(uri)) {
+            return false;
+          }
+          Intent external = new Intent(Intent.ACTION_VIEW, uri);
+          try {
+            startActivity(external);
+          } catch (ActivityNotFoundException e) {
+            Toast.makeText(
+              LocalWebViewActivity.this,
+              "No app found to open this link",
+              Toast.LENGTH_SHORT
+            ).show();
+          }
           return true;
         }
-        return launchFileChooser(fileChooserParams, true);
       }
-
-      // Android 4.1 - 4.4 path
-      @SuppressWarnings("unused")
-      public void openFileChooser(ValueCallback<Uri> uploadMsg, String acceptType, String capture) {
-        LocalWebViewActivity.this.clearFileCallbacks();
-        LocalWebViewActivity.this.legacyFilePathCallback = uploadMsg;
-        Intent intent = buildFilePickerIntent(false, acceptType != null ? new String[] { acceptType } : null);
-        try {
-          startActivityForResult(intent, FILE_CHOOSER_REQUEST_CODE);
-        } catch (ActivityNotFoundException e) {
-          LocalWebViewActivity.this.clearFileCallbacks();
-        }
-      }
-
-      // Android 3.0+ path
-      @SuppressWarnings("unused")
-      public void openFileChooser(ValueCallback<Uri> uploadMsg, String acceptType) {
-        openFileChooser(uploadMsg, acceptType, null);
-      }
-
-      // Android <3.0 path
-      @SuppressWarnings("unused")
-      public void openFileChooser(ValueCallback<Uri> uploadMsg) {
-        openFileChooser(uploadMsg, "*/*", null);
-      }
-
-      @Override
-      public void onPermissionRequest(final PermissionRequest request) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
-          super.onPermissionRequest(request);
-          return;
-        }
-        runOnUiThread(() -> handlePermissionRequest(request));
-      }
-
-      @Override
-      public void onPermissionRequestCanceled(PermissionRequest request) {
-        if (pendingPermissionRequest != null && pendingPermissionRequest == request) {
-          pendingPermissionRequest = null;
-        }
-        super.onPermissionRequestCanceled(request);
-      }
-    });
-    view.setWebViewClient(new WebViewClient() {
-      @Override
-      public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest request) {
-        WebResourceResponse response = assetLoader.shouldInterceptRequest(request.getUrl());
-        if (response != null) {
-          return response;
-        }
-        return super.shouldInterceptRequest(v, request);
-      }
-
-      @Override
-      public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest request) {
-        Uri uri = request.getUrl();
-        String scheme = uri.getScheme();
-        if (LOCAL_HOST.equals(uri.getHost())
-            || "blob".equalsIgnoreCase(scheme)
-            || "data".equalsIgnoreCase(scheme)
-            || "about".equalsIgnoreCase(scheme)) {
-          return false;
-        }
-        Intent external = new Intent(Intent.ACTION_VIEW, uri);
-        try {
-            startActivity(external);
-        } catch (ActivityNotFoundException e) {
-            Toast.makeText(v.getContext(), "No app found to open this link", Toast.LENGTH_SHORT).show();
-        }
-        return true;
-      }
-    });
-
+    );
   }
 
   private View statusBarOverlay;
@@ -240,7 +268,12 @@ public class LocalWebViewActivity extends AppCompatActivity {
         Insets nb = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
         ensureStatusAndNavBarOverlay(sb.top, nb.bottom, android.graphics.Color.BLACK);
         if (webView != null) {
-					webView.setPadding(webView.getPaddingLeft(), sb.top, webView.getPaddingRight(), nb.bottom);
+          webView.setPadding(
+            webView.getPaddingLeft(),
+            sb.top,
+            webView.getPaddingRight(),
+            nb.bottom
+          );
         }
         return insets;
       });
@@ -265,11 +298,18 @@ public class LocalWebViewActivity extends AppCompatActivity {
     }
   }
 
-  private void ensureStatusAndNavBarOverlay(int statusBarHeight, int navigationBarHeight, int color) {
+  private void ensureStatusAndNavBarOverlay(
+    int statusBarHeight,
+    int navigationBarHeight,
+    int color
+  ) {
     ViewGroup decorGroup = (ViewGroup) getWindow().getDecorView();
     if (statusBarOverlay == null) {
       statusBarOverlay = new View(this);
-      FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, statusBarHeight);
+      FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        statusBarHeight
+      );
       lp.gravity = android.view.Gravity.TOP;
       statusBarOverlay.setLayoutParams(lp);
       statusBarOverlay.setBackgroundColor(color);
@@ -284,8 +324,10 @@ public class LocalWebViewActivity extends AppCompatActivity {
     }
     if (navigationBarOverlay == null) {
       navigationBarOverlay = new View(this);
-      FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-          navigationBarHeight);
+      FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+        ViewGroup.LayoutParams.MATCH_PARENT,
+        navigationBarHeight
+      );
       lp.gravity = android.view.Gravity.BOTTOM;
       navigationBarOverlay.setLayoutParams(lp);
       navigationBarOverlay.setBackgroundColor(color);
@@ -345,8 +387,10 @@ public class LocalWebViewActivity extends AppCompatActivity {
     }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
       try {
-        getContentResolver().takePersistableUriPermission(uri,
-            Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        getContentResolver().takePersistableUriPermission(
+          uri,
+          Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        );
       } catch (SecurityException ignored) {
         // Not all providers allow persistable permissions; ignore failures.
       }
@@ -365,7 +409,8 @@ public class LocalWebViewActivity extends AppCompatActivity {
   }
 
   private Intent buildFilePickerIntent(boolean allowMultiple, @Nullable String[] acceptTypes) {
-    Intent intent = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
+    Intent intent =
+      Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
         ? new Intent(Intent.ACTION_OPEN_DOCUMENT)
         : new Intent(Intent.ACTION_GET_CONTENT);
     intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -398,9 +443,15 @@ public class LocalWebViewActivity extends AppCompatActivity {
     }
     try {
       File photoFile = createCameraImageFile();
-      cameraImageUri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", photoFile);
+      cameraImageUri = FileProvider.getUriForFile(
+        this,
+        getPackageName() + ".fileprovider",
+        photoFile
+      );
       cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, cameraImageUri);
-      cameraIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+      cameraIntent.addFlags(
+        Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION
+      );
       return cameraIntent;
     } catch (IOException e) {
       Log.e(TAG, "Unable to create camera temp file", e);
@@ -417,8 +468,12 @@ public class LocalWebViewActivity extends AppCompatActivity {
     return File.createTempFile("ciphernotes_capture_", ".jpg", storageDir);
   }
 
-  private boolean launchFileChooser(@Nullable WebChromeClient.FileChooserParams params, boolean includeCamera) {
-    boolean allowMultiple = params != null && params.getMode() == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE;
+  private boolean launchFileChooser(
+    @Nullable WebChromeClient.FileChooserParams params,
+    boolean includeCamera
+  ) {
+    boolean allowMultiple =
+      params != null && params.getMode() == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE;
     String[] acceptTypes = params != null ? params.getAcceptTypes() : null;
     Intent pickerIntent = buildFilePickerIntent(allowMultiple, acceptTypes);
     Intent cameraIntent = null;
@@ -462,21 +517,29 @@ public class LocalWebViewActivity extends AppCompatActivity {
       request.grant(request.getResources());
     } else {
       pendingPermissionRequest = request;
-      ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.CAMERA },
-          CAMERA_PERMISSION_REQUEST_CODE);
+      ActivityCompat.requestPermissions(
+        this,
+        new String[] { Manifest.permission.CAMERA },
+        CAMERA_PERMISSION_REQUEST_CODE
+      );
     }
   }
 
   private boolean hasCameraPermission() {
-    return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+    return (
+      ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+      PackageManager.PERMISSION_GRANTED
+    );
   }
 
   private boolean hasStoragePermission() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       return true;
     }
-    return ContextCompat.checkSelfPermission(this,
-        Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+    return (
+      ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+      PackageManager.PERMISSION_GRANTED
+    );
   }
 
   private void handleDownloadRequest(String dataUrl, String filename) {
@@ -484,16 +547,18 @@ public class LocalWebViewActivity extends AppCompatActivity {
       new Thread(() -> saveDataUrlToDownloads(dataUrl, filename)).start();
     } else {
       pendingDownload = new PendingDownload(dataUrl, filename);
-      ActivityCompat.requestPermissions(this, new String[] { Manifest.permission.WRITE_EXTERNAL_STORAGE },
-          STORAGE_PERMISSION_REQUEST_CODE);
+      ActivityCompat.requestPermissions(
+        this,
+        new String[] { Manifest.permission.WRITE_EXTERNAL_STORAGE },
+        STORAGE_PERMISSION_REQUEST_CODE
+      );
     }
   }
 
   private void saveDataUrlToDownloads(String dataUrl, String filename) {
     try {
       int commaIndex = dataUrl.indexOf(',');
-      if (commaIndex == -1)
-        throw new IllegalArgumentException("Invalid data URL");
+      if (commaIndex == -1) throw new IllegalArgumentException("Invalid data URL");
       String meta = dataUrl.substring(0, commaIndex);
       String base64Data = dataUrl.substring(commaIndex + 1);
       String mimeType = "application/octet-stream";
@@ -512,24 +577,28 @@ public class LocalWebViewActivity extends AppCompatActivity {
       runOnUiThread(() -> Toast.makeText(this, "Exported to Downloads", Toast.LENGTH_LONG).show());
     } catch (Exception e) {
       Log.e(TAG, "Export failed", e);
-      runOnUiThread(() -> Toast.makeText(this, "Export failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
+      runOnUiThread(() ->
+        Toast.makeText(this, "Export failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
+      );
     }
   }
 
-  private void saveViaMediaStore(byte[] bytes, String mimeType, String filename) throws IOException {
+  private void saveViaMediaStore(byte[] bytes, String mimeType, String filename)
+    throws IOException {
     ContentValues values = new ContentValues();
     values.put(MediaStore.Downloads.DISPLAY_NAME, filename);
     values.put(MediaStore.Downloads.MIME_TYPE, mimeType);
-    values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/Ciphernotes");
+    values.put(
+      MediaStore.Downloads.RELATIVE_PATH,
+      Environment.DIRECTORY_DOWNLOADS + "/Ciphernotes"
+    );
     values.put(MediaStore.Downloads.IS_PENDING, 1);
 
     Uri collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
     Uri item = getContentResolver().insert(collection, values);
-    if (item == null)
-      throw new IOException("Unable to create download entry");
+    if (item == null) throw new IOException("Unable to create download entry");
     try (OutputStream out = getContentResolver().openOutputStream(item)) {
-      if (out == null)
-        throw new IOException("Unable to open output stream");
+      if (out == null) throw new IOException("Unable to open output stream");
       out.write(bytes);
     }
     values.put(MediaStore.Downloads.IS_PENDING, 0);
@@ -546,11 +615,20 @@ public class LocalWebViewActivity extends AppCompatActivity {
     try (FileOutputStream fos = new FileOutputStream(outFile)) {
       fos.write(bytes);
     }
-    MediaScannerConnection.scanFile(this, new String[] { outFile.getAbsolutePath() }, new String[] { mimeType }, null);
+    MediaScannerConnection.scanFile(
+      this,
+      new String[] { outFile.getAbsolutePath() },
+      new String[] { mimeType },
+      null
+    );
   }
 
   @Override
-  public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+  public void onRequestPermissionsResult(
+    int requestCode,
+    @NonNull String[] permissions,
+    @NonNull int[] grantResults
+  ) {
     super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     if (requestCode == CAMERA_PERMISSION_REQUEST_CODE) {
       if (pendingPermissionRequest != null) {
@@ -568,13 +646,16 @@ public class LocalWebViewActivity extends AppCompatActivity {
           pendingDownload = null;
           new Thread(() -> saveDataUrlToDownloads(download.dataUrl, download.filename)).start();
         } else {
-          runOnUiThread(() -> Toast.makeText(this, "Storage permission denied", Toast.LENGTH_LONG).show());
+          runOnUiThread(() ->
+            Toast.makeText(this, "Storage permission denied", Toast.LENGTH_LONG).show()
+          );
           pendingDownload = null;
         }
       }
     } else if (requestCode == FILE_CHOOSER_CAMERA_PERMISSION_REQUEST_CODE) {
       if (awaitingCameraPermissionForChooser) {
-        boolean granted = grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+        boolean granted =
+          grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED;
         launchFileChooser(pendingFileChooserParams, granted);
         awaitingCameraPermissionForChooser = false;
         pendingFileChooserParams = null;
@@ -591,16 +672,85 @@ public class LocalWebViewActivity extends AppCompatActivity {
     settings.setAllowContentAccess(false);
     settings.setAllowFileAccess(false);
     settings.setBlockNetworkLoads(false);
-    controller.setServiceWorkerClient(new ServiceWorkerClient() {
-      @Override
-      public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
-        WebResourceResponse response = loader.shouldInterceptRequest(request.getUrl());
-        if (response != null) {
-          return response;
+    controller.setServiceWorkerClient(
+      new ServiceWorkerClient() {
+        @Override
+        public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+          WebResourceResponse response = loader.shouldInterceptRequest(request.getUrl());
+          if (response != null) {
+            return response;
+          }
+          if (!isAllowedWebViewUri(request.getUrl())) {
+            runOnUiThread(() ->
+              Toast.makeText(
+                LocalWebViewActivity.this,
+                "Request blocked: " + request.getUrl(),
+                Toast.LENGTH_SHORT
+              ).show()
+            );
+            return blockedWebViewResponse();
+          }
+          return super.shouldInterceptRequest(request);
         }
-        return super.shouldInterceptRequest(request);
       }
-    });
+    );
+  }
+
+  private boolean isAllowedWebViewUri(Uri uri) {
+    String scheme = uri.getScheme();
+    if (isAppLocalScheme(scheme)) {
+      return true;
+    }
+    if (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme)) {
+      return false;
+    }
+    String host = uri.getHost();
+    if (host == null) {
+      return false;
+    }
+    host = host.toLowerCase(Locale.US);
+    return LOCAL_HOST.equals(host) || isLocalhost(host) || isAllowedWasabiUri(uri);
+  }
+
+  private boolean isAppLocalScheme(String scheme) {
+    return (
+      "blob".equalsIgnoreCase(scheme) ||
+      "data".equalsIgnoreCase(scheme) ||
+      "about".equalsIgnoreCase(scheme)
+    );
+  }
+
+  private boolean isLocalhost(String host) {
+    return "localhost".equals(host) || "127.0.0.1".equals(host) || "::1".equals(host);
+  }
+
+  private boolean isAllowedWasabiUri(Uri uri) {
+    String scheme = uri.getScheme();
+    if (!"https".equalsIgnoreCase(scheme)) {
+      return false;
+    }
+    String host = uri.getHost();
+    if (host == null) {
+      return false;
+    }
+    String path = uri.getPath();
+    if (!"wasabisys.com".equals(host) && !host.endsWith(".wasabisys.com")) {
+      return false;
+    }
+    return "/ciphernotes".equals(path) || (path != null && path.startsWith("/ciphernotes/"));
+  }
+
+  private WebResourceResponse blockedWebViewResponse() {
+    return new WebResourceResponse(
+      "text/plain",
+      "utf-8",
+      403,
+      "Forbidden",
+      Collections.emptyMap(),
+      new ByteArrayInputStream(
+        "Blocked by Ciphernotes host allowlist".getBytes(StandardCharsets.UTF_8)
+      )
+    );
   }
 
   private void loadInitialUrl(Intent intent) {
@@ -694,15 +844,19 @@ public class LocalWebViewActivity extends AppCompatActivity {
   }
 
   private boolean shouldUseUtf8(String mimeType) {
-    return mimeType != null && (mimeType.startsWith("text/")
-        || mimeType.equals("application/javascript")
-        || mimeType.equals("application/json")
-        || mimeType.equals("application/manifest+json")
-        || mimeType.equals("application/xml")
-        || mimeType.equals("image/svg+xml"));
+    return (
+      mimeType != null &&
+      (mimeType.startsWith("text/") ||
+        mimeType.equals("application/javascript") ||
+        mimeType.equals("application/json") ||
+        mimeType.equals("application/manifest+json") ||
+        mimeType.equals("application/xml") ||
+        mimeType.equals("image/svg+xml"))
+    );
   }
 
   private static class PendingDownload {
+
     final String dataUrl;
     final String filename;
 
@@ -713,6 +867,7 @@ public class LocalWebViewActivity extends AppCompatActivity {
   }
 
   private static class DownloadBridge {
+
     private final WeakReference<LocalWebViewActivity> activityRef;
 
     DownloadBridge(LocalWebViewActivity activity) {

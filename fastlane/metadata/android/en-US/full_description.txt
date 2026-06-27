@@ -6,7 +6,7 @@ Key features:
 - Text and files are encrypted before they're synced.
 - No ads, no trackers, no unnecessary cookies.
 - No account required for local use.
-- Synchs immediately across all platforms.
+- Syncs immediately across all platforms.
 - Dark- and Light-Mode.
 - Todo lists with sub-tasks.
 - Import and view images and videos.
@@ -21,3 +21,9 @@ Key features:
 - Share encryption key via QR-Code directly from app to app
 
 Ciphernotes is a PWA hosted on https://ciphernotes.com the Android app bundles the assets and serves them locally using a WebView.
+
+Encryption:
+- Encrypted in transit/storage from the server’s perspective. Notes are decrypted locally, edited locally, then encrypted before sync/upload.
+- Not encrypted at rest inside the app/device. Local IndexedDB data stores plaintext notes and decrypted file blobs.
+- Device compromise exposes notes. Malware, physical device access, malicious extensions (web version), or WebView data extraction can read plaintext local data and the key.
+- Server/operator compromise alone should not expose note contents.
