@@ -50,7 +50,7 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
   input: z.object({
     last_synced_to: z.number().int().nonnegative(),
     puts: putsSchema,
-    sync_token: z.string().base64().length(24),
+    sync_token: z.base64().length(24),
   }),
   output: z.object({
     puts: putsSchema,
@@ -75,7 +75,10 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
       const conflicts: IndeterminatePut[] = []
       const nonConflicts: Put[] = []
 
-      const dbNotes = await tx
+        const dbNotes =
+          clientPuts.length === 0 ?
+            []
+          : await tx
         .select()
         .from(notesTbl)
         .where(
@@ -83,9 +86,9 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
             eq(notesTbl.user_id, user.id),
             inArray(
               notesTbl.clientside_id,
-              clientPuts.map((n) => n.id)
-            )
-          )
+              clientPuts.map((n) => n.id),
+            ),
+          ),
         )
 
       const existingMap = new Map(dbNotes.map((n) => [n.clientside_id, n]))
@@ -111,7 +114,7 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
       const [updates, inserts] = bisectBy(nonConflicts, (p) => existingMap.has(p.id))
       const [values, unmatchedDeletes] = bisectBy(
         inserts,
-        (c) => c.cipher_text !== null && c.iv !== null
+        (c) => c.cipher_text !== null && c.iv !== null,
       )
       if (values.length > 0) {
         await tx.insert(notesTbl).values(
@@ -124,7 +127,7 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
             clientside_created_at: c.created_at,
             clientside_updated_at: c.updated_at,
             version: 1,
-          }))
+          })),
         )
       }
 
@@ -151,22 +154,20 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
             gt(notesTbl.serverside_updated_at, last_synced_to),
             notInArray(
               notesTbl.clientside_id,
-              conflicts.map((c) => c.id)
-            )
-          )
+              conflicts.map((c) => c.id),
+            ),
+          ),
         )
-      const pullPuts = dbPuts.map(
-        (n): IndeterminatePut => ({
-          id: n.clientside_id,
-          type: n.type,
-          created_at: n.clientside_created_at,
-          updated_at: n.clientside_updated_at,
-          cipher_text: n.cipher_text,
-          iv: n.iv,
-          version: n.version,
-          deleted_at: n.clientside_deleted_at,
-        })
-      )
+      const pullPuts = dbPuts.map((n): IndeterminatePut => ({
+        id: n.clientside_id,
+        type: n.type,
+        created_at: n.clientside_created_at,
+        updated_at: n.clientside_updated_at,
+        cipher_text: n.cipher_text,
+        iv: n.iv,
+        version: n.version,
+        deleted_at: n.clientside_deleted_at,
+      }))
       const maxPutAt = Math.max(...dbPuts.map((c) => c.serverside_updated_at))
 
       const cipherTextLength = await getCipherTextLength(tx, user.id)
@@ -217,20 +218,24 @@ const deleteBlobs = async (user_id: number): Promise<number> => {
         eq(notesTbl.user_id, user_id),
         eq(notesTbl.type, 'file'),
         isNotNull(notesTbl.clientside_deleted_at),
-        gt(notesTbl.committed_size, 0)
-      )
+        gt(notesTbl.committed_size, 0),
+      ),
     )
     .limit(1000)
 
   if (deletedFiles.length === 0) return 0
 
-  const {deletedKeys, errorKeys} = await s3DeleteKeys(
-    deletedFiles.map((f) => `${user_id}/${f.clientside_id}`)
+  const {deletedKeys, errorKeys, missingKeys} = await s3DeleteKeys(
+    deletedFiles.map((f) => `${user_id}/${f.clientside_id}`),
   )
-  const deletedIds = deletedKeys.map((k) => k.split('/')[1]).filter((k) => k !== undefined)
+  const deletedIds = deletedKeys
+    .concat(missingKeys)
+    .map((k) => k.split('/')[1])
+    .filter((k) => k !== undefined)
   if (errorKeys.length > 0) {
     console.warn('Failed to delete some keys:', errorKeys)
   }
+  if (deletedIds.length === 0) return 0
   await db
     .update(notesTbl)
     .set({committed_size: 0})

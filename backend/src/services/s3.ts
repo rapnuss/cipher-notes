@@ -16,10 +16,20 @@ export const s3 = new S3Client({
   forcePathStyle: env.S3_ENDPOINT ? true : undefined,
 })
 
+export const s3Public = new S3Client({
+  credentials: {
+    accessKeyId: env.S3_ACCESS_KEY_ID,
+    secretAccessKey: env.S3_ACCESS_KEY_SECRET,
+  },
+  region: env.S3_REGION || undefined,
+  endpoint: env.S3_PUBLIC_ENDPOINT || env.S3_ENDPOINT || undefined,
+  forcePathStyle: env.S3_PUBLIC_ENDPOINT || env.S3_ENDPOINT ? true : undefined,
+})
+
 export async function s3DeleteKeys(
-  keys: string[]
-): Promise<{deletedKeys: string[]; errorKeys: string[]}> {
-  if (keys.length === 0) return {deletedKeys: [], errorKeys: []}
+  keys: string[],
+): Promise<{deletedKeys: string[]; errorKeys: string[]; missingKeys: string[]}> {
+  if (keys.length === 0) return {deletedKeys: [], errorKeys: [], missingKeys: []}
   if (keys.length > 1000) {
     throw new Error('Too many keys to delete')
   }
@@ -30,15 +40,16 @@ export async function s3DeleteKeys(
         Quiet: true,
         Objects: keys.map((k) => ({Key: k})),
       },
-    })
+    }),
   )
   const deletedKeys = res.Deleted?.map((d) => d.Key).filter((k) => k !== undefined) ?? []
   const errorKeys = res.Errors?.map((e) => e.Key).filter((k) => k !== undefined) ?? []
-  return {deletedKeys, errorKeys}
+  const missingKeys = keys.filter((k) => !deletedKeys.includes(k) && !errorKeys.includes(k))
+  return {deletedKeys, errorKeys, missingKeys}
 }
 
 export async function s3DeletePrefix(
-  prefix: string
+  prefix: string,
 ): Promise<{deletedKeys: string[]; errorKeys: string[]}> {
   let continuationToken: string | undefined = undefined
   let deletedKeys: string[] = []
@@ -50,14 +61,18 @@ export async function s3DeletePrefix(
         Prefix: prefix,
         ContinuationToken: continuationToken,
         MaxKeys: 1000,
-      })
+      }),
     )
 
     const keys: string[] = listRes.Contents?.map((obj) => obj.Key!) ?? []
     if (keys.length > 0) {
-      const {deletedKeys: deletedKeysForThisBatch, errorKeys: errorKeysForThisBatch} =
-        await s3DeleteKeys(keys)
+      const {
+        deletedKeys: deletedKeysForThisBatch,
+        errorKeys: errorKeysForThisBatch,
+        missingKeys: missingKeysForThisBatch,
+      } = await s3DeleteKeys(keys)
       deletedKeys.push(...deletedKeysForThisBatch)
+      deletedKeys.push(...missingKeysForThisBatch)
       errorKeys.push(...errorKeysForThisBatch)
     }
 

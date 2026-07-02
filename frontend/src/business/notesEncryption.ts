@@ -34,16 +34,16 @@ export const decryptSyncData = async (cryptoKey: string, puts: EncPut[]): Promis
   return await Promise.all(
     puts.map(async (p) => {
       const res: Put & {cipher_text?: string | null; iv?: string | null} =
-        p.deleted_at === null && p.cipher_text !== null && p.iv !== null
-          ? await decryptString(key, p.cipher_text, p.iv).then((txt) => ({
-              ...p,
-              txt,
-            }))
-          : {...p, txt: null}
+        p.deleted_at === null && p.cipher_text !== null && p.iv !== null ?
+          await decryptString(key, p.cipher_text, p.iv).then((txt) => ({
+            ...p,
+            txt,
+          }))
+        : {...p, txt: null}
       delete res.cipher_text
       delete res.iv
       return res
-    })
+    }),
   )
 }
 
@@ -52,17 +52,17 @@ export const encryptSyncData = async (cryptoKey: string, puts: Put[]): Promise<E
   return await Promise.all(
     puts.map(async (p) => {
       const res: EncPut & {txt?: string | null} =
-        p.txt === null || p.deleted_at !== null
-          ? {...p, cipher_text: null, iv: null}
-          : await encryptString(key, p.txt).then(({cipher_text, iv}) => ({
-              ...p,
-              cipher_text,
-              iv,
-              deleted_at: null,
-            }))
+        p.txt === null || p.deleted_at !== null ?
+          {...p, cipher_text: null, iv: null}
+        : await encryptString(key, p.txt).then(({cipher_text, iv}) => ({
+            ...p,
+            cipher_text,
+            iv,
+            deleted_at: null,
+          }))
       delete res.txt
       return res
-    })
+    }),
   )
 }
 
@@ -78,8 +78,8 @@ export const isValidKeyTokenPair = (keyTokenPair: string) => {
     cryptoKey &&
     syncToken &&
     checksum &&
-    z.string().base64().length(44).safeParse(cryptoKey).success &&
-    z.string().base64().length(24).safeParse(syncToken).success &&
+    z.base64().length(44).safeParse(cryptoKey).success &&
+    z.base64().length(24).safeParse(syncToken).success &&
     calcChecksum(cryptoKey, syncToken) === Number(checksum)
   )
 }

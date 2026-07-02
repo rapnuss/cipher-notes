@@ -27,7 +27,7 @@ const centralRequired = [
   'MAIL_FROM',
 ] as const
 
-const optional = ['ADMIN_USERNAME', 'ADMIN_PASSWORD'] as const
+const optional = ['ADMIN_USERNAME', 'ADMIN_PASSWORD', 'S3_PUBLIC_ENDPOINT'] as const
 
 const allKeys = [...requiredAlways, ...centralRequired, ...optional] as const
 

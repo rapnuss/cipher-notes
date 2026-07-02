@@ -1,7 +1,7 @@
 import {z} from 'zod'
 import {safeJsonParse} from './misc'
 
-export const zodParseString = <Schema extends z.ZodTypeAny>(
+export const zodParseString = <Schema extends z.ZodType>(
   schema: Schema,
   str: unknown
 ): z.infer<Schema> | undefined => {

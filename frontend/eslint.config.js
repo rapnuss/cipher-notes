@@ -46,6 +46,7 @@ export default [
       'no-redeclare': 'off',
       'no-dupe-class-members': 'off',
       'no-empty': 'off',
+      '@typescript-eslint/no-deprecated': 'warn',
     },
   },
 ]

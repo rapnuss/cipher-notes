@@ -12,8 +12,8 @@ import {verifyConfirmCodeOrThrow} from '../business/confirm'
 export const sendChangeEmailCodesEndpoint = endpointsFactory.build({
   method: 'post',
   input: z.object({
-    new_email: z.string().email(),
-    old_email: z.string().email(),
+    new_email: z.email(),
+    old_email: z.email(),
   }),
   output: z.object({}),
   handler: async ({input: {new_email, old_email}}) => {
@@ -59,7 +59,7 @@ export const sendChangeEmailCodesEndpoint = endpointsFactory.build({
 export const changeEmailEndpoint = endpointsFactory.build({
   method: 'post',
   input: z.object({
-    old_email: z.string().email(),
+    old_email: z.email(),
     old_email_code: z.string().length(6),
     new_email_code: z.string().length(6),
   }),

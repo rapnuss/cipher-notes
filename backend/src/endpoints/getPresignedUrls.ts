@@ -3,13 +3,18 @@ import {authEndpointsFactory} from '../endpointsFactory'
 import {db} from '../db'
 import {notesTbl} from '../db/schema'
 import {and, eq, gt, inArray, isNull} from 'drizzle-orm'
-import {s3} from '../services/s3'
+import {s3Public} from '../services/s3'
 import {indexByProp} from '../util/misc'
 import {env, hostingMode} from '../env'
 import {GetObjectCommand} from '@aws-sdk/client-s3'
 import {getSignedUrl} from '@aws-sdk/s3-request-presigner'
 import {createPresignedPost} from '@aws-sdk/s3-presigned-post'
 import {bulkUpdateCommittedSize} from '../db/helpers'
+
+const toBrowserS3Url = (url: string) => {
+  if (env.S3_PUBLIC_ENDPOINT || hostingMode !== 'self') return url
+  return url.replace(/^https?:\/\/[^/]+\//, '/s3/')
+}
 
 export const getPresignedUrlsEndpoint = authEndpointsFactory.build({
   method: 'post',
@@ -104,7 +109,7 @@ const getUploadUrls = async (
     const upload_urls = await Promise.all(
       selectedNotes.map(async (note) => {
         const size = uploadsById.get(note.clientside_id)!.size
-        const {url, fields} = await createPresignedPost(s3, {
+        const {url, fields} = await createPresignedPost(s3Public, {
           Bucket: env.S3_BUCKET,
           Key: `${user_id}/${note.clientside_id}`,
           Conditions: [
@@ -115,7 +120,7 @@ const getUploadUrls = async (
         })
         return {
           note_id: note.clientside_id,
-          url: hostingMode !== 'self' ? url : url.replace(/http:\/\/[^\/]+\//, '/s3/'),
+          url: toBrowserS3Url(url),
           fields,
         }
       }),
@@ -141,7 +146,7 @@ const getDownloadUrls = async (note_ids: string[], user_id: number) => {
   return await Promise.all(
     notes.map(async (note) => {
       const url = await getSignedUrl(
-        s3,
+        s3Public,
         new GetObjectCommand({
           Bucket: env.S3_BUCKET,
           Key: `${user_id}/${note.clientside_id}`,
@@ -150,7 +155,7 @@ const getDownloadUrls = async (note_ids: string[], user_id: number) => {
       )
       return {
         note_id: note.clientside_id,
-        url: hostingMode !== 'self' ? url : url.replace(/http:\/\/[^\/]+\//, '/s3/'),
+        url: toBrowserS3Url(url),
       }
     }),
   )
