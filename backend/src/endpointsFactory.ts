@@ -30,7 +30,7 @@ const resultHandler = new ResultHandler({
           maxAge: 1000 * 60 * Number(env.SESSION_TTL_MIN),
           sameSite: 'strict',
           signed: true,
-        }
+        },
       )
     } else if (remove_session_cookie) {
       response.clearCookie('session')

@@ -71,117 +71,125 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
       throw createHttpError(400, 'Invalid sync token')
     }
 
-    const res = await db.transaction(async (tx) => {
-      const conflicts: IndeterminatePut[] = []
-      const nonConflicts: Put[] = []
+    const txStart = performance.now()
+    const res = await db
+      .transaction(async (tx) => {
+        const conflicts: IndeterminatePut[] = []
+        const nonConflicts: Put[] = []
 
         const dbNotes =
           clientPuts.length === 0 ?
             []
           : await tx
-        .select()
-        .from(notesTbl)
-        .where(
-          and(
-            eq(notesTbl.user_id, user.id),
-            inArray(
-              notesTbl.clientside_id,
-              clientPuts.map((n) => n.id),
-            ),
-          ),
-        )
+              .select()
+              .from(notesTbl)
+              .where(
+                and(
+                  eq(notesTbl.user_id, user.id),
+                  inArray(
+                    notesTbl.clientside_id,
+                    clientPuts.map((n) => n.id),
+                  ),
+                ),
+              )
 
-      const existingMap = new Map(dbNotes.map((n) => [n.clientside_id, n]))
+        const existingMap = new Map(dbNotes.map((n) => [n.clientside_id, n]))
 
-      for (const put of clientPuts) {
-        const existing = existingMap.get(put.id)
-        if (!existing || put.version > existing.version) {
-          nonConflicts.push(put)
-        } else if (!putIsEqualToDbNote(put, existing)) {
-          conflicts.push({
-            id: existing.clientside_id,
-            type: existing.type,
-            created_at: existing.clientside_created_at,
-            updated_at: existing.clientside_updated_at,
-            cipher_text: existing.cipher_text,
-            iv: existing.iv,
-            version: existing.version,
-            deleted_at: existing.clientside_deleted_at,
-          })
+        for (const put of clientPuts) {
+          const existing = existingMap.get(put.id)
+          if (!existing || put.version > existing.version) {
+            nonConflicts.push(put)
+          } else if (!putIsEqualToDbNote(put, existing)) {
+            conflicts.push({
+              id: existing.clientside_id,
+              type: existing.type,
+              created_at: existing.clientside_created_at,
+              updated_at: existing.clientside_updated_at,
+              cipher_text: existing.cipher_text,
+              iv: existing.iv,
+              version: existing.version,
+              deleted_at: existing.clientside_deleted_at,
+            })
+          }
         }
-      }
 
-      const [updates, inserts] = bisectBy(nonConflicts, (p) => existingMap.has(p.id))
-      const [values, unmatchedDeletes] = bisectBy(
-        inserts,
-        (c) => c.cipher_text !== null && c.iv !== null,
-      )
-      if (values.length > 0) {
-        await tx.insert(notesTbl).values(
-          values.map((c): typeof notesTbl.$inferInsert => ({
-            type: c.type,
-            user_id: user.id,
-            clientside_id: c.id,
-            cipher_text: c.cipher_text,
-            iv: c.iv,
-            clientside_created_at: c.created_at,
-            clientside_updated_at: c.updated_at,
-            version: 1,
-          })),
+        const [updates, inserts] = bisectBy(nonConflicts, (p) => existingMap.has(p.id))
+        const [values, unmatchedDeletes] = bisectBy(
+          inserts,
+          (c) => c.cipher_text !== null && c.iv !== null,
         )
-      }
+        if (values.length > 0) {
+          await tx.insert(notesTbl).values(
+            values.map((c): typeof notesTbl.$inferInsert => ({
+              type: c.type,
+              user_id: user.id,
+              clientside_id: c.id,
+              cipher_text: c.cipher_text,
+              iv: c.iv,
+              clientside_created_at: c.created_at,
+              clientside_updated_at: c.updated_at,
+              version: 1,
+            })),
+          )
+        }
 
-      for (const u of updates) {
-        await tx
-          .update(notesTbl)
-          .set({
-            type: u.type,
-            cipher_text: u.cipher_text,
-            iv: u.iv,
-            clientside_created_at: u.created_at,
-            clientside_updated_at: u.updated_at,
-            clientside_deleted_at: u.deleted_at,
-            version: u.version,
-          })
-          .where(and(eq(notesTbl.user_id, user.id), eq(notesTbl.clientside_id, u.id)))
-      }
-      const dbPuts = await tx
-        .select()
-        .from(notesTbl)
-        .where(
-          and(
-            eq(notesTbl.user_id, user.id),
-            gt(notesTbl.serverside_updated_at, last_synced_to),
-            notInArray(
-              notesTbl.clientside_id,
-              conflicts.map((c) => c.id),
+        for (const u of updates) {
+          await tx
+            .update(notesTbl)
+            .set({
+              type: u.type,
+              cipher_text: u.cipher_text,
+              iv: u.iv,
+              clientside_created_at: u.created_at,
+              clientside_updated_at: u.updated_at,
+              clientside_deleted_at: u.deleted_at,
+              version: u.version,
+            })
+            .where(and(eq(notesTbl.user_id, user.id), eq(notesTbl.clientside_id, u.id)))
+        }
+        const dbPuts = await tx
+          .select()
+          .from(notesTbl)
+          .where(
+            and(
+              eq(notesTbl.user_id, user.id),
+              gt(notesTbl.serverside_updated_at, last_synced_to),
+              notInArray(
+                notesTbl.clientside_id,
+                conflicts.map((c) => c.id),
+              ),
             ),
-          ),
+          )
+        const pullPuts = dbPuts.map(
+          (n): IndeterminatePut => ({
+            id: n.clientside_id,
+            type: n.type,
+            created_at: n.clientside_created_at,
+            updated_at: n.clientside_updated_at,
+            cipher_text: n.cipher_text,
+            iv: n.iv,
+            version: n.version,
+            deleted_at: n.clientside_deleted_at,
+          }),
         )
-      const pullPuts = dbPuts.map((n): IndeterminatePut => ({
-        id: n.clientside_id,
-        type: n.type,
-        created_at: n.clientside_created_at,
-        updated_at: n.clientside_updated_at,
-        cipher_text: n.cipher_text,
-        iv: n.iv,
-        version: n.version,
-        deleted_at: n.clientside_deleted_at,
-      }))
-      const maxPutAt = Math.max(...dbPuts.map((c) => c.serverside_updated_at))
+        const maxPutAt = Math.max(...dbPuts.map((c) => c.serverside_updated_at))
 
-      const cipherTextLength = await getCipherTextLength(tx, user.id)
-      if (cipherTextLength > Number(env.NOTES_STORAGE_LIMIT)) {
-        throw createHttpError(400, 'notes storage limit exceeded')
-      }
+        const cipherTextLength = await getCipherTextLength(tx, user.id)
+        if (cipherTextLength > Number(env.NOTES_STORAGE_LIMIT)) {
+          throw createHttpError(400, 'notes storage limit exceeded')
+        }
 
-      return {
-        puts: putsSchema.parse(pullPuts.concat(unmatchedDeletes)),
-        synced_to: Math.max(last_synced_to, maxPutAt),
-        conflicts: putsSchema.parse(conflicts),
-        pushedIds: updates.map((u) => u.id).concat(inserts.map((i) => i.id)),
-      }
-    })
+        return {
+          puts: putsSchema.parse(pullPuts.concat(unmatchedDeletes)),
+          synced_to: Math.max(last_synced_to, maxPutAt),
+          conflicts: putsSchema.parse(conflicts),
+          pushedIds: updates.map((u) => u.id).concat(inserts.map((i) => i.id)),
+        }
+      })
+      .finally(() => {
+        const durationMs = performance.now() - txStart
+        console.info(`syncNotes transaction duration: ${durationMs.toFixed(1)} ms`)
+      })
 
     const sessionToSocket = userToSessionToSocket.get(user.id)
     if (sessionToSocket && res.pushedIds.length > 0) {
