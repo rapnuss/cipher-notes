@@ -186,7 +186,10 @@ export const downloadBlob = (blob: Blob, filename: string) => {
   a.click()
 
   document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+
+  // WebKit resolves blob URL navigations asynchronously. Revoking the URL in the
+  // same task makes downloads fail on iOS with `WebKitBlobResource error 1`.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 export const safeJsonParse = (str: string): unknown => {
