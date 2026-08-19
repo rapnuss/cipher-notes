@@ -28,9 +28,6 @@ export const config = createConfig({
       })
     )
     app.use(cookieParser(env.COOKIE_SECRET))
-    app.get('/ip', (req, res) => {
-      res.send(req.ip)
-    })
   },
   startupLogo: false,
 })

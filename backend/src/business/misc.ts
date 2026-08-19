@@ -1,3 +1,4 @@
+import {randomInt} from 'crypto'
 import {SubscriptionType} from '../db/schema'
 import {hostingMode} from '../env'
 import {signJwt} from '../services/jwt'
@@ -7,10 +8,7 @@ import {generateSalt, hashToken} from '../util/hash'
 const CODE_CHARS = '123456789abcdefghijkmnopqrstuvwxyz'
 
 export const generateLoginCode = () => {
-  return Array.from(
-    {length: 6},
-    () => CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]
-  ).join('')
+  return Array.from({length: 6}, () => CODE_CHARS[randomInt(CODE_CHARS.length)]).join('')
 }
 
 export const generateSession = () => {

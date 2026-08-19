@@ -239,6 +239,6 @@ const deleteBlobs = async (user_id: number): Promise<number> => {
   await db
     .update(notesTbl)
     .set({committed_size: 0})
-    .where(inArray(notesTbl.clientside_id, deletedIds))
+    .where(and(eq(notesTbl.user_id, user_id), inArray(notesTbl.clientside_id, deletedIds)))
   return deletedIds.length
 }

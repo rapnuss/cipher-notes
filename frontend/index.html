@@ -25,12 +25,6 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-        try {
-          window.BarcodeDetector = {getSupportedFormats: async () => []}
-        } catch (e) {
-          console.error('Error setting BarcodeDetector:', e)
-        }
-    </script>
+    <script src="/barcode-stub.js"></script>
   </body>
 </html>
