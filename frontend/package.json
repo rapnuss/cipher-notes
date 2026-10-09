@@ -33,7 +33,6 @@
     "@mantine/notifications": "^9.7.1",
     "@mantine/spotlight": "^9.7.1",
     "@tanstack/react-virtual": "^3.14.13",
-    "@use-gesture/react": "^10.3.1",
     "bowser": "^2.14.1",
     "codemirror": "^6.0.2",
     "codemirror-wrapped-line-indent": "^1.0.9",

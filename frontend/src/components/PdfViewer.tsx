@@ -1,7 +1,14 @@
 import {useVirtualizer} from '@tanstack/react-virtual'
-import {useGesture} from '@use-gesture/react'
 import type {PDFDocumentProxy} from 'pdfjs-dist'
-import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import {Document, Page, pdfjs} from 'react-pdf'
 import styles from './PdfViewer.module.css'
 
@@ -33,6 +40,21 @@ type PageSize = {
 type PendingScroll = {
   left: number
   top: number
+}
+
+type PointerPosition = {
+  x: number
+  y: number
+}
+
+type PanGesture = PointerPosition &
+  PendingScroll & {
+    pointerId: number
+  }
+
+type PinchGesture = {
+  distance: number
+  scale: number
 }
 
 type PdfViewerProps = {
@@ -89,6 +111,9 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const scaleRef = useRef(1)
   const pendingScrollRef = useRef<PendingScroll | null>(null)
+  const pointersRef = useRef(new Map<number, PointerPosition>())
+  const panGestureRef = useRef<PanGesture | null>(null)
+  const pinchGestureRef = useRef<PinchGesture | null>(null)
   const [viewportWidth, setViewportWidth] = useState(0)
   const [scale, setScale] = useState(1)
   const [initialScale, setInitialScale] = useState<number | null>(null)
@@ -197,38 +222,125 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
     [initialScale, pageOffsets, pageSizes, widestPage],
   )
 
-  useGesture(
-    {
-      onDrag: ({first, movement: [x, y], memo, pinching}) => {
-        const scroller = scrollerRef.current
-        if (!scroller || pinching) return memo
-        const start = first ? [scroller.scrollLeft, scroller.scrollTop] : memo
-        if (!Array.isArray(start)) return memo
-        scroller.scrollLeft = start[0] - x
-        scroller.scrollTop = start[1] - y
-        return start
-      },
-      onPinch: ({offset: [nextScale], origin}) => zoomAt(nextScale, origin),
+  useEffect(() => {
+    const scroller = scrollerRef.current
+    if (!scroller) return
+
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey) return
+      event.preventDefault()
+      const pixels =
+        event.deltaMode === WheelEvent.DOM_DELTA_LINE ? event.deltaY * 16
+        : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? event.deltaY * scroller.clientHeight
+        : event.deltaY
+      zoomAt(scaleRef.current * Math.exp(-pixels * 0.002), [event.clientX, event.clientY])
+    }
+
+    scroller.addEventListener('wheel', onWheel, {passive: false})
+    return () => scroller.removeEventListener('wheel', onWheel)
+  }, [zoomAt])
+
+  const getCurrentScroll = useCallback(() => {
+    const scroller = scrollerRef.current
+    return (
+      pendingScrollRef.current ?? {
+        left: scroller?.scrollLeft ?? 0,
+        top: scroller?.scrollTop ?? 0,
+      }
+    )
+  }, [])
+
+  const startPinch = useCallback(() => {
+    const points = [...pointersRef.current.values()]
+    const first = points[0]
+    const second = points[1]
+    if (!first || !second) return
+    pinchGestureRef.current = {
+      distance: Math.max(1, Math.hypot(second.x - first.x, second.y - first.y)),
+      scale: scaleRef.current,
+    }
+    panGestureRef.current = null
+  }, [])
+
+  const startPan = useCallback(
+    (pointerId: number, point: PointerPosition) => {
+      const scroll = getCurrentScroll()
+      panGestureRef.current = {...point, ...scroll, pointerId}
+      pinchGestureRef.current = null
     },
-    {
-      target: scrollerRef,
-      eventOptions: {passive: false},
-      drag: {
-        filterTaps: true,
-        preventDefault: true,
-        pointer: {buttons: 1},
-      },
-      pinch: {
-        from: () => [scaleRef.current, 0],
-        modifierKey: 'ctrlKey',
-        pinchOnWheel: true,
-        preventDefault: true,
-        scaleBounds: () => ({
-          min: (initialScale ?? 1) * MIN_ZOOM_FACTOR,
-          max: (initialScale ?? 1) * MAX_ZOOM_FACTOR,
-        }),
-      },
+    [getCurrentScroll],
+  )
+
+  const onPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return
+      event.preventDefault()
+      event.currentTarget.setPointerCapture(event.pointerId)
+      const point = {x: event.clientX, y: event.clientY}
+      pointersRef.current.set(event.pointerId, point)
+
+      if (pointersRef.current.size === 1) startPan(event.pointerId, point)
+      else startPinch()
     },
+    [startPan, startPinch],
+  )
+
+  const onPointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const pointers = pointersRef.current
+      if (!pointers.has(event.pointerId)) return
+      event.preventDefault()
+      pointers.set(event.pointerId, {x: event.clientX, y: event.clientY})
+
+      if (pointers.size >= 2) {
+        if (!pinchGestureRef.current) startPinch()
+        const pinch = pinchGestureRef.current
+        const points = [...pointers.values()]
+        const first = points[0]
+        const second = points[1]
+        if (!pinch || !first || !second) return
+        const distance = Math.max(1, Math.hypot(second.x - first.x, second.y - first.y))
+        zoomAt(pinch.scale * (distance / pinch.distance), [
+          (first.x + second.x) / 2,
+          (first.y + second.y) / 2,
+        ])
+        return
+      }
+
+      const pan = panGestureRef.current
+      const scroller = scrollerRef.current
+      if (!pan || !scroller || pan.pointerId !== event.pointerId) return
+      const nextScroll = {
+        left: pan.left - (event.clientX - pan.x),
+        top: pan.top - (event.clientY - pan.y),
+      }
+      scroller.scrollLeft = nextScroll.left
+      scroller.scrollTop = nextScroll.top
+      if (pendingScrollRef.current) pendingScrollRef.current = nextScroll
+    },
+    [startPinch, zoomAt],
+  )
+
+  const onPointerEnd = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const pointers = pointersRef.current
+      if (!pointers.delete(event.pointerId)) return
+
+      if (pointers.size >= 2) {
+        startPinch()
+        return
+      }
+
+      const remaining = pointers.entries().next().value as
+        | [number, PointerPosition]
+        | undefined
+      if (remaining) startPan(remaining[0], remaining[1])
+      else {
+        panGestureRef.current = null
+        pinchGestureRef.current = null
+      }
+    },
+    [startPan, startPinch],
   )
 
   return (
@@ -237,6 +349,11 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
       className={styles.scroller}
       aria-label='PDF viewer. Drag to pan, pinch or Control-scroll to zoom.'
       role='region'
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerEnd}
+      onPointerCancel={onPointerEnd}
+      onLostPointerCapture={onPointerEnd}
     >
       {initialScale === null ?
         <div className={styles.message}>Preparing PDF…</div>
