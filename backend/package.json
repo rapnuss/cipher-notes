@@ -9,7 +9,7 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "build": "NODE_ENV=production bun build src/index.ts --outdir dist --target bun --minify --sourcemap",
+    "build": "NODE_ENV=production bun run build.ts",
     "start": "NODE_ENV=production bun dist/index.js",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.ts\""
@@ -37,6 +37,7 @@
     "@types/express": "^5.0.6",
     "@types/http-errors": "^2.0.5",
     "@types/pg": "^8.23.1",
+    "bun-plugin-pino": "^1.5.0",
     "bun-types": "^1.4.2",
     "drizzle-kit": "^0.31.11",
     "prettier": "^3.9.9"
