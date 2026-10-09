@@ -23,6 +23,7 @@ const MIN_ZOOM_FACTOR = 0.25
 const MAX_ZOOM_FACTOR = 8
 const MAX_RENDER_DIMENSION = 4096
 const PAGE_METADATA_CONCURRENCY = 8
+const WHEEL_RENDER_SETTLE_MS = 160
 
 const documentOptions = {
   cMapUrl: '/pdfjs/cmaps/',
@@ -107,15 +108,95 @@ const getPageSizes = async (pdf: PDFDocumentProxy) => {
   return pageSizes
 }
 
+type BufferedPdfPageProps = {
+  pageNumber: number
+  pageSize: PageSize
+  renderScale: number
+  viewScale: number
+}
+
+const BufferedPdfPage = ({
+  pageNumber,
+  pageSize,
+  renderScale,
+  viewScale,
+}: BufferedPdfPageProps) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const bufferRef = useRef<HTMLCanvasElement>(null)
+  const previousRenderScaleRef = useRef(renderScale)
+  const renderedWidth = pageSize.width * renderScale
+  const renderedHeight = pageSize.height * renderScale
+  const viewWidth = pageSize.width * viewScale
+  const viewHeight = pageSize.height * viewScale
+  const previewScale = viewScale / renderScale
+  const devicePixelRatio = Math.min(
+    window.devicePixelRatio,
+    MAX_RENDER_DIMENSION / Math.max(renderedWidth, renderedHeight),
+  )
+
+  useLayoutEffect(() => {
+    if (previousRenderScaleRef.current === renderScale) return
+    previousRenderScaleRef.current = renderScale
+
+    const source = canvasRef.current
+    const buffer = bufferRef.current
+    if (!source || !buffer || source.width === 0 || source.height === 0) return
+    if (source.style.visibility === 'hidden') return
+
+    buffer.width = source.width
+    buffer.height = source.height
+    const context = buffer.getContext('2d', {alpha: false})
+    if (!context) return
+    context.drawImage(source, 0, 0)
+    buffer.style.visibility = 'visible'
+  }, [renderScale])
+
+  const onRenderSuccess = useCallback(() => {
+    const buffer = bufferRef.current
+    if (!buffer) return
+    buffer.style.visibility = 'hidden'
+    buffer.width = 0
+    buffer.height = 0
+  }, [])
+
+  return (
+    <div className={styles.page} style={{width: viewWidth, height: viewHeight}}>
+      <div
+        className={styles.pageRender}
+        style={{
+          width: renderedWidth,
+          height: renderedHeight,
+          transform: `scale(${previewScale})`,
+        }}
+      >
+        <Page
+          canvasRef={canvasRef}
+          pageNumber={pageNumber}
+          width={renderedWidth}
+          devicePixelRatio={devicePixelRatio}
+          onRenderSuccess={onRenderSuccess}
+          renderAnnotationLayer={false}
+          renderTextLayer={false}
+          suspense={false}
+        />
+      </div>
+      <canvas ref={bufferRef} className={styles.renderBuffer} />
+    </div>
+  )
+}
+
 const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const scaleRef = useRef(1)
+  const renderScaleRef = useRef(1)
+  const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingScrollRef = useRef<PendingScroll | null>(null)
   const pointersRef = useRef(new Map<number, PointerPosition>())
   const panGestureRef = useRef<PanGesture | null>(null)
   const pinchGestureRef = useRef<PinchGesture | null>(null)
   const [viewportWidth, setViewportWidth] = useState(0)
   const [scale, setScale] = useState(1)
+  const [renderScale, setRenderScale] = useState(1)
   const [initialScale, setInitialScale] = useState<number | null>(null)
 
   const widestPage = pageSizes.reduce((widest, page) => Math.max(widest, page.width), 0)
@@ -155,7 +236,9 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
     if (initialScale !== null || viewportWidth === 0 || widestPage === 0) return
     const fittedScale = Math.max(1, viewportWidth - HORIZONTAL_PADDING) / widestPage
     scaleRef.current = fittedScale
+    renderScaleRef.current = fittedScale
     setScale(fittedScale)
+    setRenderScale(fittedScale)
     setInitialScale(fittedScale)
   }, [initialScale, viewportWidth, widestPage])
 
@@ -222,6 +305,27 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
     [initialScale, pageOffsets, pageSizes, widestPage],
   )
 
+  const clearRenderTimer = useCallback(() => {
+    if (renderTimerRef.current === null) return
+    clearTimeout(renderTimerRef.current)
+    renderTimerRef.current = null
+  }, [])
+
+  const commitRenderScale = useCallback(() => {
+    clearRenderTimer()
+    const nextRenderScale = scaleRef.current
+    if (Math.abs(nextRenderScale - renderScaleRef.current) < 0.0001) return
+    renderScaleRef.current = nextRenderScale
+    setRenderScale(nextRenderScale)
+  }, [clearRenderTimer])
+
+  const scheduleRenderScale = useCallback(() => {
+    clearRenderTimer()
+    renderTimerRef.current = setTimeout(commitRenderScale, WHEEL_RENDER_SETTLE_MS)
+  }, [clearRenderTimer, commitRenderScale])
+
+  useEffect(() => clearRenderTimer, [clearRenderTimer])
+
   useEffect(() => {
     const scroller = scrollerRef.current
     if (!scroller) return
@@ -234,11 +338,12 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
         : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? event.deltaY * scroller.clientHeight
         : event.deltaY
       zoomAt(scaleRef.current * Math.exp(-pixels * 0.002), [event.clientX, event.clientY])
+      scheduleRenderScale()
     }
 
     scroller.addEventListener('wheel', onWheel, {passive: false})
     return () => scroller.removeEventListener('wheel', onWheel)
-  }, [zoomAt])
+  }, [scheduleRenderScale, zoomAt])
 
   const getCurrentScroll = useCallback(() => {
     const scroller = scrollerRef.current
@@ -251,6 +356,7 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
   }, [])
 
   const startPinch = useCallback(() => {
+    clearRenderTimer()
     const points = [...pointersRef.current.values()]
     const first = points[0]
     const second = points[1]
@@ -260,7 +366,7 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
       scale: scaleRef.current,
     }
     panGestureRef.current = null
-  }, [])
+  }, [clearRenderTimer])
 
   const startPan = useCallback(
     (pointerId: number, point: PointerPosition) => {
@@ -324,6 +430,7 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
   const onPointerEnd = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       const pointers = pointersRef.current
+      const wasPinching = pointers.size >= 2
       if (!pointers.delete(event.pointerId)) return
 
       if (pointers.size >= 2) {
@@ -334,13 +441,14 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
       const remaining = pointers.entries().next().value as
         | [number, PointerPosition]
         | undefined
+      if (wasPinching) commitRenderScale()
       if (remaining) startPan(remaining[0], remaining[1])
       else {
         panGestureRef.current = null
         pinchGestureRef.current = null
       }
     },
-    [startPan, startPinch],
+    [commitRenderScale, startPan, startPinch],
   )
 
   return (
@@ -364,30 +472,22 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
           {virtualizer.getVirtualItems().map((virtualPage) => {
             const pageSize = pageSizes[virtualPage.index]
             if (!pageSize) return null
-            const renderedWidth = pageSize.width * scale
-            const renderedHeight = pageSize.height * scale
-            const devicePixelRatio = Math.min(
-              window.devicePixelRatio,
-              MAX_RENDER_DIMENSION / Math.max(renderedWidth, renderedHeight),
-            )
+            const viewHeight = pageSize.height * scale
             return (
               <div
                 key={virtualPage.key}
                 className={styles.pageRow}
                 style={{
                   width: contentWidth,
-                  height: renderedHeight,
+                  height: viewHeight,
                   transform: `translateY(${virtualPage.start}px)`,
                 }}
               >
-                <Page
-                  className={styles.page}
+                <BufferedPdfPage
                   pageNumber={virtualPage.index + 1}
-                  width={renderedWidth}
-                  devicePixelRatio={devicePixelRatio}
-                  renderAnnotationLayer={false}
-                  renderTextLayer={false}
-                  suspense={false}
+                  pageSize={pageSize}
+                  renderScale={renderScale}
+                  viewScale={scale}
                 />
               </div>
             )
