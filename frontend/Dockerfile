@@ -5,7 +5,7 @@ WORKDIR /app
 RUN corepack enable
 
 # Install dependencies first for better layer caching
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Copy the rest of the source and build
