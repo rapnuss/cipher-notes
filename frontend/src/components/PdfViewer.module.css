@@ -1,0 +1,68 @@
+.root,
+.document,
+.scroller {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.root {
+  flex: 1 1 0;
+  overflow: hidden;
+}
+
+.document {
+  display: block;
+}
+
+.scroller {
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  scrollbar-gutter: stable;
+}
+
+.scroller:active {
+  cursor: grabbing;
+}
+
+.pages {
+  position: relative;
+  min-height: 100%;
+}
+
+.pageRow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.page {
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.28);
+}
+
+.page canvas {
+  display: block;
+}
+
+.message {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box;
+  text-align: center;
+}

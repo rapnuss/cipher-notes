@@ -1,6 +1,6 @@
 /// <reference types="node" />
 import {VitePWA} from 'vite-plugin-pwa'
-import {defineConfig, type Plugin} from 'vite'
+import {defineConfig, normalizePath, type Plugin} from 'vite'
 import react, {reactCompilerPreset} from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 import {comlink} from 'vite-plugin-comlink'
@@ -9,11 +9,13 @@ import {LicenseInfo, licensePlugin} from 'rolldown-license-plugin'
 import fs from 'fs'
 import path from 'path'
 import {licensesTemplate, type LicenseDependency} from './licensesTemplate.ts'
+import {viteStaticCopy} from 'vite-plugin-static-copy'
 
 const isDev = process.env.NODE_ENV === 'development'
 const isPreview = process.env.PREVIEW === 'true'
 const require = createRequire(import.meta.url)
 const collectedLicenses = new Map<string, LicenseDependency>()
+const pdfjsDistPath = path.dirname(require.resolve('pdfjs-dist/package.json'))
 
 type PackageManifest = {
   private?: boolean
@@ -119,6 +121,13 @@ export default defineConfig({
   },
   plugins: [
     writeLicensesFilePlugin(),
+    viteStaticCopy({
+      targets: ['cmaps', 'standard_fonts', 'wasm'].map((directory) => ({
+        src: normalizePath(path.join(pdfjsDistPath, directory, '*')),
+        dest: `pdfjs/${directory}`,
+        rename: {stripBase: true},
+      })),
+    }),
     comlink(),
     react(),
     babel({presets: [reactCompilerPreset()]}),
@@ -235,7 +244,9 @@ export default defineConfig({
         ],
       },
 
-      injectManifest: {globPatterns: ['**/*.{js,css,html,svg,png,ico,txt,xml}']},
+      injectManifest: {
+        globPatterns: ['**/*.{js,mjs,css,html,svg,png,ico,txt,xml,bcmap,wasm,ttf,pfb}'],
+      },
 
       devOptions: {
         enabled: true,

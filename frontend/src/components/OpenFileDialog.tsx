@@ -29,13 +29,17 @@ import {IconDownload} from './icons/IconDownload'
 import {downloadBlob, formatDateTime} from '../util/misc'
 import {notifications} from '@mantine/notifications'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
-import {useEffect} from 'react'
+import {lazy, Suspense, useEffect} from 'react'
 import {useHotkeys} from '@mantine/hooks'
 import {FileIconWithExtension} from './FileIconWithExtension'
 import {isAndroid, isIOS} from '../helpers/bowser'
 import {IconCopy} from './icons/IconCopy'
 import {IconClockPlus} from './icons/IconClockPlus'
 import {IconClockEdit} from './icons/IconClockEdit'
+
+const PdfViewer = lazy(() =>
+  import('./PdfViewer').then((module) => ({default: module.PdfViewer})),
+)
 
 const fileNotFound = Symbol('file not found')
 
@@ -48,6 +52,10 @@ export const OpenFileDialog = () => {
   const file = useLiveQuery(
     async () => (openFile ? (await db.files_meta.get(openFile.id)) ?? fileNotFound : undefined),
     [openFile?.id]
+  )
+  const fileBlob = useLiveQuery(
+    async () => (openFile ? (await db.files_blob.get(openFile.id))?.blob : undefined),
+    [openFile?.id],
   )
   useCloseOnBack({id: 'open-file-dialog', open, onClose: fileClosed})
   useEffect(() => {
@@ -152,12 +160,28 @@ export const OpenFileDialog = () => {
       ) : file.mime.startsWith('image/') ? (
         <ImageViewer src={src} alt={file.title} />
       ) : file.mime === 'application/pdf' ? (
-        <iframe
-          style={{flex: '1 1 0', border: 'none'}}
-          key={file.id}
-          src={src}
-          title={file.title}
-        />
+        <Suspense
+          fallback={
+            <div
+              style={{flex: '1 1 0', display: 'flex', justifyContent: 'center', alignItems: 'center'}}
+            >
+              Loading PDF viewer…
+            </div>
+          }
+        >
+          {fileBlob ?
+            <PdfViewer key={file.id} file={fileBlob} title={file.title} />
+          : <div
+              style={{
+                flex: '1 1 0',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              Loading PDF…
+            </div>}
+        </Suspense>
       ) : file.mime.startsWith('video/') ? (
         <video style={{flex: '1 1 0', minHeight: 0}} src={src} controls />
       ) : file.mime.startsWith('audio/') ? (
