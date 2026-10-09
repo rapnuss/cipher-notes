@@ -15,7 +15,7 @@ const distDir = join(frontendRoot, 'dist');
 const twaAssetsDir = resolve(frontendRoot, '..', 'twa', 'app', 'src', 'main', 'assets', 'www');
 
 if (!existsSync(distDir)) {
-  console.error('dist/ was not found. Run `yarn build` first to generate the frontend bundle.');
+  console.error('dist/ was not found. Run `pnpm build` first to generate the frontend bundle.');
   process.exit(1);
 }
 
