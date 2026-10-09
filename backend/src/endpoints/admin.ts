@@ -16,10 +16,7 @@ const assertAdmin = async (user_id: number) => {
 
 export const adminCreateUserEndpoint = authEndpointsFactory.build({
   method: 'post',
-  input: z.object({
-    username: z.string().min(1),
-    password: z.string().min(1),
-  }),
+  input: z.object({username: z.string().min(1), password: z.string().min(1)}),
   output: z.object({}),
   handler: async ({input, ctx: {user_id}}) => {
     if (hostingMode !== 'self') throw createHttpError(400, 'Only in self-hosted')
@@ -31,13 +28,15 @@ export const adminCreateUserEndpoint = authEndpointsFactory.build({
       .limit(1)
     if (existing) throw createHttpError(400, 'User exists')
     const password_hash = await hashPassword(input.password)
-    await db.insert(usersTbl).values({
-      email: input.username,
-      password_hash,
-      is_admin: false,
-      login_tries_left: 3,
-      login_code_created_at: null,
-    })
+    await db
+      .insert(usersTbl)
+      .values({
+        email: input.username,
+        password_hash,
+        is_admin: false,
+        login_tries_left: 3,
+        login_code_created_at: null,
+      })
     return {}
   },
 })

@@ -6,5 +6,6 @@
   "jsxSingleQuote": true,
   "bracketSpacing": false,
   "printWidth": 100,
-  "experimentalTernaries": true
+  "experimentalTernaries": true,
+  "objectWrap": "collapse"
 }

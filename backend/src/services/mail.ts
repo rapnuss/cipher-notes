@@ -21,10 +21,7 @@ const sendMail = async (to: string, subject: string, text: string, html?: string
     body: JSON.stringify({
       Messages: [
         {
-          From: {
-            Email: env.MAIL_FROM,
-            Name: 'Raphael Nußbaumer BSc',
-          },
+          From: {Email: env.MAIL_FROM, Name: 'Raphael Nußbaumer BSc'},
           To: [{Email: to}],
           Subject: subject,
           TextPart: text,

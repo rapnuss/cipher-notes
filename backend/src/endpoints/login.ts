@@ -12,10 +12,7 @@ import {verifyPassword} from '../util/password.js'
 
 export const registerEmailEndpoint = endpointsFactory.build({
   method: 'post',
-  input: z.object({
-    email: z.email(),
-    captcha_token: z.string(),
-  }),
+  input: z.object({email: z.email(), captcha_token: z.string()}),
   output: z.object({}),
   handler: async ({input: {email, captcha_token}}) => {
     if (hostingMode === 'self') {
@@ -36,9 +33,7 @@ export const registerEmailEndpoint = endpointsFactory.build({
 
 export const sendLoginCodeEndpoint = endpointsFactory.build({
   method: 'post',
-  input: z.object({
-    email: z.email(),
-  }),
+  input: z.object({email: z.email()}),
   output: z.object({}),
   handler: async ({input: {email}}) => {
     if (hostingMode === 'self') {
@@ -76,10 +71,7 @@ export const sendLoginCodeEndpoint = endpointsFactory.build({
 
 export const loginWithCodeEndpoint = endpointsFactory.build({
   method: 'post',
-  input: z.object({
-    email: z.email(),
-    login_code: z.string().length(6),
-  }),
+  input: z.object({email: z.email(), login_code: z.string().length(6)}),
   output: z.object({
     access_token: z.string(),
     session_id: z.number(),
@@ -139,11 +131,7 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
       const {accessToken, salt, hash} = generateSession()
       const [{session_id} = {}] = await tx
         .insert(sessionsTbl)
-        .values({
-          user_id: user.id,
-          access_token_hash: hash,
-          access_token_salt: salt,
-        })
+        .values({user_id: user.id, access_token_hash: hash, access_token_salt: salt})
         .returning({session_id: sessionsTbl.id})
       return {
         access_token: accessToken,
@@ -157,10 +145,7 @@ export const loginWithCodeEndpoint = endpointsFactory.build({
 
 export const loginWithPasswordEndpoint = endpointsFactory.build({
   method: 'post',
-  input: z.object({
-    identifier: z.string().min(1),
-    password: z.string().min(1),
-  }),
+  input: z.object({identifier: z.string().min(1), password: z.string().min(1)}),
   output: z.object({
     access_token: z.string(),
     session_id: z.number(),
@@ -205,11 +190,7 @@ export const loginWithPasswordEndpoint = endpointsFactory.build({
     }
     await db
       .update(usersTbl)
-      .set({
-        login_tries_left: 3,
-        successful_login_at: Date.now(),
-        login_code_created_at: null,
-      })
+      .set({login_tries_left: 3, successful_login_at: Date.now(), login_code_created_at: null})
       .where(eq(usersTbl.id, user.id))
 
     const jwtPromise = signSubscriptionToken(
@@ -221,11 +202,7 @@ export const loginWithPasswordEndpoint = endpointsFactory.build({
       const {accessToken, salt, hash} = generateSession()
       const [{session_id} = {}] = await tx
         .insert(sessionsTbl)
-        .values({
-          user_id: user.id,
-          access_token_hash: hash,
-          access_token_salt: salt,
-        })
+        .values({user_id: user.id, access_token_hash: hash, access_token_salt: salt})
         .returning({session_id: sessionsTbl.id})
       return {
         access_token: accessToken,

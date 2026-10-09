@@ -7,20 +7,14 @@ import {
 import {env} from '../env'
 
 export const s3 = new S3Client({
-  credentials: {
-    accessKeyId: env.S3_ACCESS_KEY_ID,
-    secretAccessKey: env.S3_ACCESS_KEY_SECRET,
-  },
+  credentials: {accessKeyId: env.S3_ACCESS_KEY_ID, secretAccessKey: env.S3_ACCESS_KEY_SECRET},
   region: env.S3_REGION || undefined,
   endpoint: env.S3_ENDPOINT || undefined,
   forcePathStyle: env.S3_ENDPOINT ? true : undefined,
 })
 
 export const s3Public = new S3Client({
-  credentials: {
-    accessKeyId: env.S3_ACCESS_KEY_ID,
-    secretAccessKey: env.S3_ACCESS_KEY_SECRET,
-  },
+  credentials: {accessKeyId: env.S3_ACCESS_KEY_ID, secretAccessKey: env.S3_ACCESS_KEY_SECRET},
   region: env.S3_REGION || undefined,
   endpoint: env.S3_PUBLIC_ENDPOINT || env.S3_ENDPOINT || undefined,
   forcePathStyle: env.S3_PUBLIC_ENDPOINT || env.S3_ENDPOINT ? true : undefined,
@@ -36,10 +30,7 @@ export async function s3DeleteKeys(
   const res = await s3.send(
     new DeleteObjectsCommand({
       Bucket: env.S3_BUCKET,
-      Delete: {
-        Quiet: true,
-        Objects: keys.map((k) => ({Key: k})),
-      },
+      Delete: {Quiet: true, Objects: keys.map((k) => ({Key: k}))},
     }),
   )
   const deletedKeys = res.Deleted?.map((d) => d.Key).filter((k) => k !== undefined) ?? []

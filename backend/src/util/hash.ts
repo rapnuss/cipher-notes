@@ -14,7 +14,7 @@ export function hashToken(token: string, salt: string): string {
 export function verifyToken(
   providedToken: string,
   storedHash: string,
-  storedSalt: string
+  storedSalt: string,
 ): boolean {
   const computedHash = hashToken(providedToken, storedSalt)
   const computed = new Uint8Array(Buffer.from(computedHash, 'hex'))

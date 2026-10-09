@@ -39,7 +39,7 @@ export const getFeaturesArr = (subscription: SubscriptionType): Features[] => {
 export const signSubscriptionToken = (
   userId: number,
   subscription: SubscriptionType,
-  expiry: number
+  expiry: number,
 ) => {
   const effectiveSubscription: SubscriptionType = hostingMode === 'self' ? 'pro' : subscription
   return signJwt({sub: userId.toString(), features: getFeaturesArr(effectiveSubscription)}, expiry)

@@ -15,8 +15,8 @@ export const cleanupDb = async () => {
     .where(
       and(
         isNotNull(notesTbl.clientside_deleted_at),
-        lt(notesTbl.serverside_updated_at, cutoffDeletedNotes)
-      )
+        lt(notesTbl.serverside_updated_at, cutoffDeletedNotes),
+      ),
     )
 
   console.info('Cleaned up DB')

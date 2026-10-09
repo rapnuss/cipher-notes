@@ -15,7 +15,7 @@ export type UserConfirmFields = {
 export const verifyConfirmCodeOrThrow = async (
   dbOrTx: DbOrTx,
   user: UserConfirmFields,
-  providedCode: string | undefined
+  providedCode: string | undefined,
 ) => {
   if (!providedCode) {
     throw createHttpError(400, 'Confirm code required')

@@ -38,11 +38,7 @@ type Put = z.infer<typeof putSchema>
 
 type IndeterminatePut = Overwrite<
   Put,
-  {
-    cipher_text: string | null
-    iv: string | null
-    deleted_at: number | null
-  }
+  {cipher_text: string | null; iv: string | null; deleted_at: number | null}
 >
 
 export const syncNotesEndpoint = authEndpointsFactory.build({
@@ -75,21 +71,21 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
       const conflicts: IndeterminatePut[] = []
       const nonConflicts: Put[] = []
 
-        const dbNotes =
-          clientPuts.length === 0 ?
-            []
-          : await tx
-        .select()
-        .from(notesTbl)
-        .where(
-          and(
-            eq(notesTbl.user_id, user.id),
-            inArray(
-              notesTbl.clientside_id,
-              clientPuts.map((n) => n.id),
-            ),
-          ),
-        )
+      const dbNotes =
+        clientPuts.length === 0 ?
+          []
+        : await tx
+            .select()
+            .from(notesTbl)
+            .where(
+              and(
+                eq(notesTbl.user_id, user.id),
+                inArray(
+                  notesTbl.clientside_id,
+                  clientPuts.map((n) => n.id),
+                ),
+              ),
+            )
 
       const existingMap = new Map(dbNotes.map((n) => [n.clientside_id, n]))
 
@@ -117,18 +113,20 @@ export const syncNotesEndpoint = authEndpointsFactory.build({
         (c) => c.cipher_text !== null && c.iv !== null,
       )
       if (values.length > 0) {
-        await tx.insert(notesTbl).values(
-          values.map((c): typeof notesTbl.$inferInsert => ({
-            type: c.type,
-            user_id: user.id,
-            clientside_id: c.id,
-            cipher_text: c.cipher_text,
-            iv: c.iv,
-            clientside_created_at: c.created_at,
-            clientside_updated_at: c.updated_at,
-            version: 1,
-          })),
-        )
+        await tx
+          .insert(notesTbl)
+          .values(
+            values.map((c): typeof notesTbl.$inferInsert => ({
+              type: c.type,
+              user_id: user.id,
+              clientside_id: c.id,
+              cipher_text: c.cipher_text,
+              iv: c.iv,
+              clientside_created_at: c.created_at,
+              clientside_updated_at: c.updated_at,
+              version: 1,
+            })),
+          )
       }
 
       for (const u of updates) {

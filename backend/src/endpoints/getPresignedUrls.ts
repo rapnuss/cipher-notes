@@ -24,19 +24,10 @@ export const getPresignedUrlsEndpoint = authEndpointsFactory.build({
   }),
   output: z.object({
     upload_urls: z.array(
-      z.object({
-        note_id: z.uuidv4(),
-        url: z.string(),
-        fields: z.record(z.string(), z.string()),
-      }),
+      z.object({note_id: z.uuidv4(), url: z.string(), fields: z.record(z.string(), z.string())}),
     ),
     hit_storage_limit: z.boolean(),
-    download_urls: z.array(
-      z.object({
-        note_id: z.uuidv4(),
-        url: z.string(),
-      }),
-    ),
+    download_urls: z.array(z.object({note_id: z.uuidv4(), url: z.string()})),
   }),
   handler: async ({input, ctx: {user_id}}) => {
     const [download_urls, uploadResult] = await Promise.all([
@@ -58,10 +49,7 @@ const getUploadUrls = async (
   return await db.transaction(async (tx) => {
     // TODO: read transaction semantics
     const notes = await tx
-      .select({
-        clientside_id: notesTbl.clientside_id,
-        committed_size: notesTbl.committed_size,
-      })
+      .select({clientside_id: notesTbl.clientside_id, committed_size: notesTbl.committed_size})
       .from(notesTbl)
       .where(
         and(
@@ -118,11 +106,7 @@ const getUploadUrls = async (
           ],
           Expires: 60,
         })
-        return {
-          note_id: note.clientside_id,
-          url: toBrowserS3Url(url),
-          fields,
-        }
+        return {note_id: note.clientside_id, url: toBrowserS3Url(url), fields}
       }),
     )
 
@@ -147,16 +131,10 @@ const getDownloadUrls = async (note_ids: string[], user_id: number) => {
     notes.map(async (note) => {
       const url = await getSignedUrl(
         s3Public,
-        new GetObjectCommand({
-          Bucket: env.S3_BUCKET,
-          Key: `${user_id}/${note.clientside_id}`,
-        }),
+        new GetObjectCommand({Bucket: env.S3_BUCKET, Key: `${user_id}/${note.clientside_id}`}),
         {expiresIn: 60},
       )
-      return {
-        note_id: note.clientside_id,
-        url: toBrowserS3Url(url),
-      }
+      return {note_id: note.clientside_id, url: toBrowserS3Url(url)}
     }),
   )
 }

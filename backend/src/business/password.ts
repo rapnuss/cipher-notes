@@ -16,7 +16,7 @@ export type UserPasswordRateLimitFields = {
 export const verifyPasswordWithRateLimitOrThrow = async (
   dbOrTx: DbOrTx,
   user: UserPasswordRateLimitFields,
-  providedPassword: string | undefined
+  providedPassword: string | undefined,
 ) => {
   if (!user.password_hash) throw createHttpError(400, 'No password set')
   if (!providedPassword) throw createHttpError(400, 'Password required')
@@ -35,9 +35,9 @@ export const verifyPasswordWithRateLimitOrThrow = async (
         confirm_code_tries_left:
           user.confirm_code_tries_left === 0 ? 2 : Math.max(0, user.confirm_code_tries_left - 1),
         confirm_code_created_at:
-          user.confirm_code_tries_left === 3 || user.confirm_code_tries_left === 0
-            ? Date.now()
-            : undefined,
+          user.confirm_code_tries_left === 3 || user.confirm_code_tries_left === 0 ?
+            Date.now()
+          : undefined,
       })
       .where(eq(usersTbl.id, user.id))
     throw createHttpError(400, 'Invalid password')

@@ -1,4 +1,4 @@
-import {JsonAny, JsonRoot} from './type'
+import {FnArgs, JsonAny, JsonRoot} from './type'
 
 export const compare = (a: any, b: any) => {
   if (Array.isArray(a) && Array.isArray(b)) {
@@ -394,3 +394,16 @@ export const formatDateTime = (date: string | number | Date) => {
   const localTime = d.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'})
   return `${year}-${month}-${day} ${localTime}`
 }
+
+export const has = <T extends object>(obj: T, key: keyof T): boolean =>
+  Object.prototype.hasOwnProperty.call(obj, key)
+
+export const plain = <T extends object>(obj: T = {} as T): T =>
+  Object.assign(Object.create(null), obj) as T
+
+export const noProto: FnArgs<typeof JSON.parse>[1] = (_, value) =>
+  value && typeof value === 'object' && !Array.isArray(value) ?
+    Object.assign(Object.create(null), value)
+  : value
+
+export const parseJson = <T>(json: string): T => JSON.parse(json, noProto)

@@ -25,11 +25,7 @@ if (hostingMode === 'self' && env.ADMIN_USERNAME && env.ADMIN_PASSWORD) {
     .limit(1)
   const password_hash = await hashPassword(env.ADMIN_PASSWORD)
   if (!user) {
-    await db.insert(usersTbl).values({
-      email: env.ADMIN_USERNAME,
-      password_hash,
-      is_admin: true,
-    })
+    await db.insert(usersTbl).values({email: env.ADMIN_USERNAME, password_hash, is_admin: true})
     console.info('Admin user created')
   } else {
     await db.update(usersTbl).set({password_hash, is_admin: true}).where(eq(usersTbl.id, user.id))
