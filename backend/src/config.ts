@@ -3,9 +3,13 @@ import {env} from './env'
 import cookieParser from 'cookie-parser'
 import rateLimit from 'express-rate-limit'
 import express, {Application} from 'express'
+import pino, {Logger} from 'pino'
+
+const logger = pino({transport: {target: 'pino-pretty', options: {colorize: true}}})
 
 export const config = createConfig({
   http: {listen: env.PORT},
+  logger,
   cors: false,
   jsonParser: express.json({limit: env.LIMIT_JSON}),
   rawParser: express.raw({limit: env.LIMIT_RAW}),
@@ -25,3 +29,7 @@ export const config = createConfig({
   },
   startupLogo: false,
 })
+
+declare module 'express-zod-api' {
+  interface LoggerOverrides extends Logger {}
+}
