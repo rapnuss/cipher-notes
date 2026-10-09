@@ -2,11 +2,9 @@ import {Divider, Flex, Stack, UnstyledButton} from '@mantine/core'
 import {Todo, Todos} from '../business/models'
 import {useEffect, useMemo, useRef, useState} from 'react'
 import {draggable, dropTargetForElements} from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
-import {
-  attachClosestEdge,
-  Edge,
-  extractClosestEdge,
-} from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge'
+import {attachClosestEdge} from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge/attach-closest-edge'
+import {extractClosestEdge} from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge/extract-closest-edge'
+import type {Edge} from '@atlaskit/pragmatic-drag-and-drop-hitbox/types'
 import {IconGridDots} from './icons/IconGridDots'
 import {IconTrash} from './icons/IconTrash'
 import {IconPlus} from './icons/IconPlus'
