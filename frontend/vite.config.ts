@@ -8,7 +8,7 @@ import {createRequire} from 'module'
 import {LicenseInfo, licensePlugin} from 'rolldown-license-plugin'
 import fs from 'fs'
 import path from 'path'
-import {licensesTemplate, type LicenseDependency} from './licensesTemplate'
+import {licensesTemplate, type LicenseDependency} from './licensesTemplate.ts'
 
 const isDev = process.env.NODE_ENV === 'development'
 const isPreview = process.env.PREVIEW === 'true'
@@ -60,7 +60,7 @@ const writeLicensesFilePlugin = (): Plugin => ({
     collectedLicenses.clear()
   },
   closeBundle() {
-    const outputPath = path.resolve(__dirname, 'dist/licenses.html')
+    const outputPath = path.resolve(import.meta.dirname, 'dist/licenses.html')
     fs.mkdirSync(path.dirname(outputPath), {recursive: true})
     fs.writeFileSync(
       outputPath,
@@ -77,8 +77,14 @@ export default defineConfig({
   server: {
     host: true,
     https: {
-      key: isDev || isPreview ? fs.readFileSync(path.resolve(__dirname, 'key.pem')) : undefined,
-      cert: isDev || isPreview ? fs.readFileSync(path.resolve(__dirname, 'cert.pem')) : undefined,
+      key:
+        isDev || isPreview ?
+          fs.readFileSync(path.resolve(import.meta.dirname, 'key.pem'))
+        : undefined,
+      cert:
+        isDev || isPreview ?
+          fs.readFileSync(path.resolve(import.meta.dirname, 'cert.pem'))
+        : undefined,
     },
     proxy: {
       '/api': {
@@ -87,12 +93,7 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
       },
-      '/socket.io': {
-        target: 'http://localhost:5100',
-        changeOrigin: true,
-        secure: true,
-        ws: true,
-      },
+      '/socket.io': {target: 'http://localhost:5100', changeOrigin: true, secure: true, ws: true},
     },
   },
   define: {
@@ -129,10 +130,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: false,
 
-      pwaAssets: {
-        disabled: true,
-        config: true,
-      },
+      pwaAssets: {disabled: true, config: true},
 
       manifest: {
         name: 'ciphernotes',
@@ -237,9 +235,7 @@ export default defineConfig({
         ],
       },
 
-      injectManifest: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,txt,xml}'],
-      },
+      injectManifest: {globPatterns: ['**/*.{js,css,html,svg,png,ico,txt,xml}']},
 
       devOptions: {
         enabled: true,
@@ -249,15 +245,13 @@ export default defineConfig({
       },
     }),
   ],
-  worker: {
-    plugins: () => [comlink()],
-  },
+  worker: {plugins: () => [comlink()]},
 })
 
 function getAndroidVersion(): string | undefined {
   try {
     return fs
-      .readFileSync(path.resolve(__dirname, '../twa/app/build.gradle'), 'utf8')
+      .readFileSync(path.resolve(import.meta.dirname, '../twa/app/build.gradle'), 'utf8')
       .match(/versionName "(\d+\.\d+(?:\.\d+)?)"/)?.[1]
   } catch {
     return undefined

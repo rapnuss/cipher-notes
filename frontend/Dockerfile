@@ -1,12 +1,12 @@
 FROM node:24-alpine AS build
 WORKDIR /app
 
-# Enable corepack to ensure Yarn is available and versioned correctly
+# Enable Corepack so the packageManager version from package.json is used
 RUN corepack enable
 
 # Install dependencies first for better layer caching
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # Copy the rest of the source and build
 COPY . .
@@ -18,7 +18,7 @@ ENV NODE_ENV=production \
     HOSTING_MODE=$HOSTING_MODE \
     HCAPTCHA_SITE_KEY=$HCAPTCHA_SITE_KEY
 
-RUN yarn build
+RUN pnpm build
 
 FROM nginx:1.27-alpine AS runtime
 

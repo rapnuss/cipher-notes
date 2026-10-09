@@ -2,6 +2,7 @@
   "name": "ciphernotes",
   "private": true,
   "version": "0.0.0",
+  "packageManager": "pnpm@12.10.1",
   "type": "module",
   "scripts": {
     "dev": "dotenv vite",
@@ -12,8 +13,8 @@
     "test:run": "vitest --run",
     "typecheck": "tsc --noEmit",
     "typecheck:node": "tsc --noEmit --project tsconfig.node.json",
-    "check:all": "yarn typecheck && yarn typecheck:node && yarn lint",
-    "build:twa": "cross-env API_URL='https://ciphernotes.com/api' HCAPTCHA_SITE_KEY='d79424e2-e326-4dca-8dce-4aa2e8844fb6' yarn build && node ./scripts/sync-twa-dist.mjs"
+    "check:all": "pnpm typecheck && pnpm typecheck:node && pnpm lint",
+    "build:twa": "cross-env API_URL='https://ciphernotes.com/api' HCAPTCHA_SITE_KEY='d79424e2-e326-4dca-8dce-4aa2e8844fb6' pnpm build && node ./scripts/sync-twa-dist.mjs"
   },
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "^1.8.0",
@@ -71,7 +72,6 @@
     "postcss": "^8.5.10",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",
-    "postinstall-postinstall": "^2.1.0",
     "rolldown-license-plugin": "^3.0.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.8",
@@ -84,8 +84,5 @@
     "workbox-routing": "^7.4.0",
     "workbox-strategies": "^7.4.0",
     "workbox-window": "^7.4.0"
-  },
-  "resolutions": {
-    "vite": "^8.0.0"
   }
 }
