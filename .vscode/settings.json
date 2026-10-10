@@ -24,6 +24,7 @@
     "ciphertext",
     "clientside",
     "clipb",
+    "cmaps",
     "comlink",
     "Consolas",
     "createdb",
@@ -80,6 +81,7 @@
     "openssl",
     "outdir",
     "outform",
+    "overscan",
     "panzoom",
     "passwortloser",
     "PGDATA",
@@ -118,7 +120,7 @@
     "uuid",
     "uuidv",
     "Vite",
-    "Wickenburggasse",
+    "Wickenburggasse"
   ],
   "cSpell.ignorePaths": ["**/yarn.lock"],
   "cssVariables.lookupFiles": [
