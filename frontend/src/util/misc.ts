@@ -411,3 +411,6 @@ export const parseJson = <T>(json: string): T => JSON.parse(json, noProto)
 export const fireAndForget = <Fn extends () => Promise<any>>(fn: Fn): void => {
   Promise.resolve().then(fn).catch(console.error)
 }
+
+export const clamp = (n: number, min: number, max: number): number =>
+  Math.max(min, Math.min(n, max))
