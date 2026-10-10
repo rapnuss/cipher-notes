@@ -11,6 +11,7 @@ import {
 import {Document, Page} from 'react-pdf'
 import {pdfDocumentOptions} from '../helpers/pdf'
 import styles from './PdfViewer.module.css'
+import {clamp} from '../util/misc'
 
 const PAGE_GAP = 16
 const HORIZONTAL_PADDING = 32
@@ -41,8 +42,6 @@ type PinchGesture = {distance: number; scale: number}
 type PanVelocity = {x: number; y: number; time: number}
 
 type PdfViewerProps = {file: Blob; title?: string}
-
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
 const getPageStart = (pageOffsets: number[], pageIndex: number, scale: number) =>
   (pageOffsets[pageIndex] ?? 0) * scale + pageIndex * PAGE_GAP
@@ -387,28 +386,32 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
       const initialSpeed = Math.hypot(velocityX, velocityY)
       if (initialSpeed < INERTIA_STOP_VELOCITY) return
       const velocityLimit = Math.min(1, MAX_INERTIA_VELOCITY / initialSpeed)
-      let x = velocityX * velocityLimit
-      let y = velocityY * velocityLimit
+      const position = {x: scroller.scrollLeft, y: scroller.scrollTop}
+      const velocity = {x: velocityX * velocityLimit, y: velocityY * velocityLimit}
       let previousTime = performance.now()
 
       const move = (time: number) => {
         const elapsed = Math.max(1, Math.min(32, time - previousTime))
         previousTime = time
         const decay = Math.exp(-INERTIA_FRICTION * elapsed)
-        x *= decay
-        y *= decay
+        velocity.x *= decay
+        velocity.y *= decay
 
-        const previousLeft = scroller.scrollLeft
-        const previousTop = scroller.scrollTop
-        scroller.scrollLeft += x * elapsed
-        scroller.scrollTop += y * elapsed
+        const maxX = Math.max(0, scroller.scrollWidth - scroller.clientWidth)
+        const maxY = Math.max(0, scroller.scrollHeight - scroller.clientHeight)
+        const requestedX = position.x + velocity.x * elapsed
+        const requestedY = position.y + velocity.y * elapsed
+        position.x = clamp(requestedX, 0, maxX)
+        position.y = clamp(requestedY, 0, maxY)
+        scroller.scrollLeft = position.x
+        scroller.scrollTop = position.y
         if (pendingScrollRef.current) {
-          pendingScrollRef.current = {left: scroller.scrollLeft, top: scroller.scrollTop}
+          pendingScrollRef.current = {left: position.x, top: position.y}
         }
 
-        if (scroller.scrollLeft === previousLeft) x = 0
-        if (scroller.scrollTop === previousTop) y = 0
-        if (Math.hypot(x, y) < INERTIA_STOP_VELOCITY) {
+        if (requestedX !== position.x) velocity.x = 0
+        if (requestedY !== position.y) velocity.y = 0
+        if (Math.hypot(velocity.x, velocity.y) < INERTIA_STOP_VELOCITY) {
           inertiaFrameRef.current = null
           return
         }
