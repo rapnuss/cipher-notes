@@ -122,7 +122,7 @@ export default defineConfig({
   plugins: [
     writeLicensesFilePlugin(),
     viteStaticCopy({
-      targets: ['cmaps', 'standard_fonts', 'wasm'].map((directory) => ({
+      targets: ['cmaps', 'iccs', 'standard_fonts', 'wasm'].map((directory) => ({
         src: normalizePath(path.join(pdfjsDistPath, directory, '*')),
         dest: `pdfjs/${directory}`,
         rename: {stripBase: true},
@@ -245,7 +245,7 @@ export default defineConfig({
       },
 
       injectManifest: {
-        globPatterns: ['**/*.{js,mjs,css,html,svg,png,ico,txt,xml,bcmap,wasm,ttf,pfb}'],
+        globPatterns: ['**/*.{js,mjs,css,html,svg,png,ico,icc,txt,xml,bcmap,wasm,ttf,pfb}'],
       },
 
       devOptions: {
