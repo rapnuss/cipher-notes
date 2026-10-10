@@ -4,14 +4,15 @@ import {db} from './db'
 import {GetPresignedUrlsReq, reqGetPresignedUrls} from './services/backend'
 import {decryptBlob, encryptBlob, encryptedBlobSize, importKey} from './util/encryption'
 import {canvasSupportedImageMimeTypes, generateThumbnail} from './util/images'
-import {indexByProp, nonConcurrent, takeSum} from './util/misc'
+import {pdfMimeType, generatePdfThumbnail} from './helpers/pdf'
+import {fireAndForget, indexByProp, nonConcurrent, takeSum} from './util/misc'
 import XSet from './util/XSet'
 import {thumbnailWidth, thumbnailHeight} from './config'
 
 export const generateThumbnails = nonConcurrent(async (): Promise<void> => {
   const ids = await db.files_meta
     .where('mime')
-    .anyOf(canvasSupportedImageMimeTypes)
+    .anyOf(canvasSupportedImageMimeTypes.concat(pdfMimeType))
     .and(({has_thumb, blob_state}) => has_thumb === 0 && blob_state !== 'remote')
     .primaryKeys()
 
@@ -21,7 +22,10 @@ export const generateThumbnails = nonConcurrent(async (): Promise<void> => {
 
   const promises = blobs.map(async (blob) => {
     try {
-      const thumb = await generateThumbnail(blob.blob, thumbnailWidth, thumbnailHeight)
+      const thumb =
+        blob.blob.type === pdfMimeType ?
+          await generatePdfThumbnail(blob.blob, thumbnailWidth, thumbnailHeight)
+        : await generateThumbnail(blob.blob, thumbnailWidth, thumbnailHeight)
       return {id: blob.id, blob: thumb}
     } catch (e) {
       console.error(e)
@@ -46,7 +50,7 @@ export const generateThumbnails = nonConcurrent(async (): Promise<void> => {
   }
 
   if (ids.length > blobs.length) {
-    queueMicrotask(generateThumbnails)
+    fireAndForget(generateThumbnails)
   }
 })
 
@@ -64,7 +68,7 @@ export const upDownloadBlobs = async (
     }
   }
 
-  queueMicrotask(generateThumbnails)
+  fireAndForget(generateThumbnails)
   return {selectedAll, hit_storage_limit}
 }
 

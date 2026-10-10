@@ -24,6 +24,7 @@ import {Feature} from '../business/models'
 import {parseSubscriptionToken} from '../business/misc'
 import {hostingMode} from '../config'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
+import {fireAndForget} from '../util/misc'
 
 export type UserState = {
   user: {
@@ -292,7 +293,7 @@ export const loginWithPassword = async (identifier: string, password: string) =>
 export const socketConnectionChanged = (connected: boolean) => {
   setState((state) => {
     if (state.user.connected === false && connected && !state.notes.sync.syncing) {
-      queueMicrotask(syncNotes)
+      fireAndForget(syncNotes)
     }
     state.user.connected = connected
   })
