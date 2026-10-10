@@ -1,4 +1,3 @@
-import {useVirtualizer} from '@tanstack/react-virtual'
 import type {PDFDocumentProxy} from 'pdfjs-dist'
 import {
   useCallback,
@@ -18,6 +17,7 @@ const HORIZONTAL_PADDING = 32
 const MIN_ZOOM_FACTOR = 0.25
 const MAX_ZOOM_FACTOR = 8
 const MAX_RENDER_DIMENSION = 4096
+const PAGE_OVERSCAN = 1
 const PAGE_METADATA_CONCURRENCY = 8
 const WHEEL_RENDER_SETTLE_MS = 160
 const MAX_INERTIA_VELOCITY = 6
@@ -46,6 +46,16 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 
 const getPageStart = (pageOffsets: number[], pageIndex: number, scale: number) =>
   (pageOffsets[pageIndex] ?? 0) * scale + pageIndex * PAGE_GAP
+
+const getPageOffsets = (pageSizes: PageSize[]) => {
+  const offsets = new Array<number>(pageSizes.length)
+  let offset = 0
+  for (const [index, page] of pageSizes.entries()) {
+    offsets[index] = offset
+    offset += page.height
+  }
+  return offsets
+}
 
 const getVerticalAnchor = (
   pageSizes: PageSize[],
@@ -91,10 +101,12 @@ type BufferedPdfPageProps = {
   pageSize: PageSize
   renderScale: number
   viewScale: number
+  canReleaseBuffer: (completedRenderScale: number) => boolean
   registerBufferCapture: (pageNumber: number, capture: (() => void) | null) => void
 }
 
 const BufferedPdfPage = ({
+  canReleaseBuffer,
   pageNumber,
   pageSize,
   registerBufferCapture,
@@ -128,17 +140,25 @@ const BufferedPdfPage = ({
   }, [])
 
   useLayoutEffect(() => {
+    const buffer = bufferRef.current
     registerBufferCapture(pageNumber, captureBuffer)
-    return () => registerBufferCapture(pageNumber, null)
+    return () => {
+      registerBufferCapture(pageNumber, null)
+      if (!buffer) return
+      buffer.style.visibility = 'hidden'
+      buffer.width = 0
+      buffer.height = 0
+    }
   }, [captureBuffer, pageNumber, registerBufferCapture])
 
   const onRenderSuccess = useCallback(() => {
+    if (!canReleaseBuffer(renderScale)) return
     const buffer = bufferRef.current
     if (!buffer) return
     buffer.style.visibility = 'hidden'
     buffer.width = 0
     buffer.height = 0
-  }, [])
+  }, [canReleaseBuffer, renderScale])
 
   return (
     <div className={styles.page} style={{width: viewWidth, height: viewHeight}}>
@@ -166,7 +186,9 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const scaleRef = useRef(1)
   const renderScaleRef = useRef(1)
+  const initialScaleRef = useRef<number | null>(null)
   const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scrollFrameRef = useRef<number | null>(null)
   const bufferCapturesRef = useRef(new Map<number, () => void>())
   const inertiaFrameRef = useRef<number | null>(null)
   const pendingScrollRef = useRef<PendingScroll | null>(null)
@@ -175,62 +197,90 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
   const pinchGestureRef = useRef<PinchGesture | null>(null)
   const panVelocityRef = useRef<PanVelocity | null>(null)
   const [viewportWidth, setViewportWidth] = useState(0)
+  const [viewportHeight, setViewportHeight] = useState(0)
+  const [scrollTop, setScrollTop] = useState(0)
   const [scale, setScale] = useState(1)
   const [renderScale, setRenderScale] = useState(1)
   const [initialScale, setInitialScale] = useState<number | null>(null)
+  const [zoomPinnedPages, setZoomPinnedPages] = useState<number[] | null>(null)
 
-  const widestPage = pageSizes.reduce((widest, page) => Math.max(widest, page.width), 0)
-  const pageOffsets = useMemo(() => {
-    let offset = 0
-    return pageSizes.map((page) => {
-      const currentOffset = offset
-      offset += page.height
-      return currentOffset
-    })
-  }, [pageSizes])
+  const widestPage = useMemo(
+    () => pageSizes.reduce((widest, page) => Math.max(widest, page.width), 0),
+    [pageSizes],
+  )
+  const pageOffsets = useMemo(() => getPageOffsets(pageSizes), [pageSizes])
   const contentWidth = Math.max(viewportWidth, widestPage * scale + HORIZONTAL_PADDING)
-
-  // TanStack Virtual intentionally returns mutable imperative functions.
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const virtualizer = useVirtualizer({
-    count: pageSizes.length,
-    getScrollElement: () => scrollerRef.current,
-    estimateSize: (index) => (pageSizes[index]?.height ?? 0) * scale + PAGE_GAP,
-    overscan: 1,
-  })
+  const lastPage = pageSizes[pageSizes.length - 1]
+  const totalHeight =
+    ((pageOffsets[pageOffsets.length - 1] ?? 0) + (lastPage?.height ?? 0)) * scale +
+    pageSizes.length * PAGE_GAP
+  const virtualPageIndexes = useMemo(() => {
+    const firstVisible = getVerticalAnchor(pageSizes, pageOffsets, scrollTop, scale).index
+    const lastVisible = getVerticalAnchor(
+      pageSizes,
+      pageOffsets,
+      scrollTop + viewportHeight,
+      scale,
+    ).index
+    const first = Math.max(0, firstVisible - PAGE_OVERSCAN)
+    const last = Math.min(pageSizes.length - 1, lastVisible + PAGE_OVERSCAN)
+    const indexes = Array.from({length: last - first + 1}, (_, offset) => first + offset)
+    if (!zoomPinnedPages) return indexes
+    return [...new Set([...zoomPinnedPages, ...indexes])].sort((a, b) => a - b)
+  }, [pageOffsets, pageSizes, scale, scrollTop, viewportHeight, zoomPinnedPages])
 
   useLayoutEffect(() => {
     const scroller = scrollerRef.current
     if (!scroller) return
 
     const resizeObserver = new ResizeObserver(([entry]) => {
-      if (entry) setViewportWidth(entry.contentRect.width)
+      if (!entry) return
+      const {width, height} = entry.contentRect
+      setViewportWidth(width)
+      setViewportHeight(height)
+      if (initialScaleRef.current !== null || width === 0 || widestPage === 0) return
+
+      const fittedScale = Math.max(1, width - HORIZONTAL_PADDING) / widestPage
+      initialScaleRef.current = fittedScale
+      scaleRef.current = fittedScale
+      renderScaleRef.current = fittedScale
+      setScale(fittedScale)
+      setRenderScale(fittedScale)
+      setInitialScale(fittedScale)
     })
     resizeObserver.observe(scroller)
-    setViewportWidth(scroller.clientWidth)
 
     return () => resizeObserver.disconnect()
+  }, [widestPage])
+
+  useEffect(() => {
+    const scroller = scrollerRef.current
+    if (!scroller) return
+
+    const updateScrollTop = () => {
+      if (scrollFrameRef.current !== null) return
+      scrollFrameRef.current = requestAnimationFrame(() => {
+        scrollFrameRef.current = null
+        setScrollTop(scroller.scrollTop)
+      })
+    }
+    scroller.addEventListener('scroll', updateScrollTop, {passive: true})
+    return () => {
+      scroller.removeEventListener('scroll', updateScrollTop)
+      if (scrollFrameRef.current !== null) cancelAnimationFrame(scrollFrameRef.current)
+      scrollFrameRef.current = null
+    }
   }, [])
 
   useLayoutEffect(() => {
-    if (initialScale !== null || viewportWidth === 0 || widestPage === 0) return
-    const fittedScale = Math.max(1, viewportWidth - HORIZONTAL_PADDING) / widestPage
-    scaleRef.current = fittedScale
-    renderScaleRef.current = fittedScale
-    setScale(fittedScale)
-    setRenderScale(fittedScale)
-    setInitialScale(fittedScale)
-  }, [initialScale, viewportWidth, widestPage])
-
-  useLayoutEffect(() => {
-    virtualizer.measure()
     const pendingScroll = pendingScrollRef.current
     const scroller = scrollerRef.current
     if (!pendingScroll || !scroller) return
     pendingScrollRef.current = null
     scroller.scrollLeft = pendingScroll.left
     scroller.scrollTop = pendingScroll.top
-  }, [scale, virtualizer])
+    setScrollTop(scroller.scrollTop)
+  }, [scale])
 
   const zoomAt = useCallback(
     (requestedScale: number, origin: [number, number]) => {
@@ -279,7 +329,7 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
       scaleRef.current = nextScale
       setScale(nextScale)
     },
-    [initialScale, pageOffsets, pageSizes, widestPage],
+    [initialScale, pageOffsets, pageSizes, setScale, widestPage],
   )
 
   const clearRenderTimer = useCallback(() => {
@@ -297,6 +347,15 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
     for (const capture of bufferCapturesRef.current.values()) capture()
   }, [])
 
+  const canReleaseBuffer = useCallback(
+    (completedRenderScale: number) =>
+      pinchGestureRef.current === null &&
+      renderTimerRef.current === null &&
+      Math.abs(scaleRef.current - completedRenderScale) < 0.0001 &&
+      Math.abs(renderScaleRef.current - completedRenderScale) < 0.0001,
+    [],
+  )
+
   const commitRenderScale = useCallback(() => {
     clearRenderTimer()
     const nextRenderScale = scaleRef.current
@@ -304,7 +363,7 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
     captureRenderedPages()
     renderScaleRef.current = nextRenderScale
     setRenderScale(nextRenderScale)
-  }, [captureRenderedPages, clearRenderTimer])
+  }, [captureRenderedPages, clearRenderTimer, setRenderScale])
 
   const scheduleRenderScale = useCallback(() => {
     clearRenderTimer()
@@ -397,12 +456,13 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
     const first = points[0]
     const second = points[1]
     if (!first || !second) return
+    if (!zoomPinnedPages) setZoomPinnedPages(virtualPageIndexes)
     pinchGestureRef.current = {
       distance: Math.max(1, Math.hypot(second.x - first.x, second.y - first.y)),
       scale: scaleRef.current,
     }
     panGestureRef.current = null
-  }, [clearRenderTimer])
+  }, [clearRenderTimer, setZoomPinnedPages, virtualPageIndexes, zoomPinnedPages])
 
   const startPan = useCallback(
     (pointerId: number, point: PointerPosition, active = true) => {
@@ -543,7 +603,10 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
       }
 
       const remaining = pointers.entries().next().value as [number, PointerPosition] | undefined
-      if (wasPinching) commitRenderScale()
+      if (wasPinching) {
+        commitRenderScale()
+        setZoomPinnedPages(null)
+      }
       if (remaining) startPan(remaining[0], remaining[1], !wasPinching)
       else {
         panGestureRef.current = null
@@ -555,7 +618,7 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
         }
       }
     },
-    [commitRenderScale, startInertia, startPan, startPinch],
+    [commitRenderScale, setZoomPinnedPages, startInertia, startPan, startPinch],
   )
 
   const onPointerCaptureLost = useCallback(
@@ -572,7 +635,10 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
         }
 
         const remaining = pointers.entries().next().value as [number, PointerPosition] | undefined
-        if (wasPinching) commitRenderScale()
+        if (wasPinching) {
+          commitRenderScale()
+          setZoomPinnedPages(null)
+        }
         if (remaining) startPan(remaining[0], remaining[1], !wasPinching)
         else {
           panGestureRef.current = null
@@ -581,7 +647,7 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
         }
       })
     },
-    [commitRenderScale, startPan, startPinch],
+    [commitRenderScale, setZoomPinnedPages, startPan, startPinch],
   )
 
   return (
@@ -598,26 +664,24 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
     >
       {initialScale === null ?
         <div className={styles.message}>Preparing PDF…</div>
-      : <div
-          className={styles.pages}
-          style={{width: contentWidth, height: virtualizer.getTotalSize()}}
-        >
-          {virtualizer.getVirtualItems().map((virtualPage) => {
-            const pageSize = pageSizes[virtualPage.index]
+      : <div className={styles.pages} style={{width: contentWidth, height: totalHeight}}>
+          {virtualPageIndexes.map((pageIndex) => {
+            const pageSize = pageSizes[pageIndex]
             if (!pageSize) return null
             const viewHeight = pageSize.height * scale
             return (
               <div
-                key={virtualPage.key}
+                key={pageIndex}
                 className={styles.pageRow}
                 style={{
                   width: contentWidth,
                   height: viewHeight,
-                  transform: `translateY(${virtualPage.start}px)`,
+                  transform: `translateY(${getPageStart(pageOffsets, pageIndex, scale)}px)`,
                 }}
               >
                 <BufferedPdfPage
-                  pageNumber={virtualPage.index + 1}
+                  canReleaseBuffer={canReleaseBuffer}
+                  pageNumber={pageIndex + 1}
                   pageSize={pageSize}
                   registerBufferCapture={registerBufferCapture}
                   renderScale={renderScale}
