@@ -17,11 +17,7 @@ import {notifications} from '@mantine/notifications'
 import {comlink} from '../comlink'
 
 export type ImportState = {
-  importDialog: {
-    open: boolean
-    file: File | null
-    error: string | null
-  }
+  importDialog: {open: boolean; file: File | null; error: string | null}
   keepImportDialog: {
     open: boolean
     file: File | null
@@ -93,10 +89,13 @@ export const exportNotes = async () => {
   const mapLabelIdsToNames = (ids?: string[]) =>
     ids?.map((id) => labelsCache[id]?.name).filter((v): v is string => !!v)
 
-  const labelColors = Object.values(labelsCache ?? {}).reduce((acc, label) => {
-    acc[label.name] = label.hue
-    return acc
-  }, {} as Record<string, Hue>)
+  const labelColors = Object.values(labelsCache ?? {}).reduce(
+    (acc, label) => {
+      acc[label.name] = label.hue
+      return acc
+    },
+    {} as Record<string, Hue>,
+  )
 
   const idToBlob = Object.fromEntries(filesBlobs.map((b) => [b.id, b.blob]))
 
@@ -124,7 +123,7 @@ export const exportNotes = async () => {
           deleted_at: f.deleted_at,
           archived: f.archived === 1,
           labels: mapLabelIdsToNames(f.labels),
-        } satisfies ImportFileMeta)
+        }) satisfies ImportFileMeta,
     ),
     labelColors,
   }
@@ -172,7 +171,7 @@ export const importNotes = async (): Promise<void> => {
       createdLabels.push(await createLabel(name, parsed.labelColors?.[name] ?? null))
     }
     const nameToId = Object.fromEntries(
-      [...cachedLabels, ...createdLabels].map((l) => [l.name, l.id])
+      [...cachedLabels, ...createdLabels].map((l) => [l.name, l.id]),
     )
 
     // Prepare notes to upsert similar to previous import logic, resolving label names
@@ -188,10 +187,9 @@ export const importNotes = async (): Promise<void> => {
 
       const updated_at = Math.max(importedNote.updated_at ?? 0, existing?.updated_at ?? 0)
       const created_at = existing?.created_at ?? importedNote.created_at ?? now
-      const version = !existing
-        ? 1
-        : existing.state === 'dirty'
-        ? existing.version
+      const version =
+        !existing ? 1
+        : existing.state === 'dirty' ? existing.version
         : existing.version + 1
 
       const labels = (importedNote.labels ?? [])
@@ -245,10 +243,9 @@ export const importNotes = async (): Promise<void> => {
         !existing || existing.deleted_at !== 0 || (meta.updated_at ?? 0) > existing.updated_at
       if (!shouldInsertOrUpdate) continue
 
-      const version = !existing
-        ? 1
-        : existing.state === 'dirty'
-        ? existing.version
+      const version =
+        !existing ? 1
+        : existing.state === 'dirty' ? existing.version
         : existing.version + 1
 
       const entry = zip.file(`${meta.id}${meta.ext ?? ''}`)
@@ -336,7 +333,7 @@ export const keepImportNotes = async (): Promise<void> => {
 
     const importLabels = XSet.fromItr(
       importNotes.flatMap((n) => n.labels ?? []),
-      (l) => l.name
+      (l) => l.name,
     )
     const newLabels = importLabels.without(existingLabels).toArray()
     const createdLabels: Label[] = []
@@ -344,7 +341,7 @@ export const keepImportNotes = async (): Promise<void> => {
       createdLabels.push(await createLabel(name))
     }
     const nameToId = Object.fromEntries(
-      [...cachedLabels, ...createdLabels].map((l) => [l.name, l.id])
+      [...cachedLabels, ...createdLabels].map((l) => [l.name, l.id]),
     )
 
     for (const importNote of importNotes) {
@@ -393,11 +390,7 @@ export const keepImportNotes = async (): Promise<void> => {
       }
       resFiles.push(...filesMeta)
       if ('textContent' in importNote) {
-        const note: Note = {
-          ...noteCommon,
-          type: 'note',
-          txt: importNote.textContent,
-        }
+        const note: Note = {...noteCommon, type: 'note', txt: importNote.textContent}
         res.push(note)
       } else if ('listContent' in importNote) {
         const note: Note = {

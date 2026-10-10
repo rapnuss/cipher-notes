@@ -24,65 +24,51 @@ export const ConflictDialog = () => {
         <Stack flex='1 1 0' gap='xs'>
           <Text size='xl'>Local Note</Text>
           <Text c='dimmed'>
-            {localNote.deleted_at
-              ? formatDateTime(localNote.deleted_at)
-              : formatDateTime(localNote.updated_at)}
+            {localNote.deleted_at ?
+              formatDateTime(localNote.deleted_at)
+            : formatDateTime(localNote.updated_at)}
           </Text>
-          {localNote.deleted_at ? (
+          {localNote.deleted_at ?
             <Text style={{whiteSpace: 'pre-wrap'}} ff='monospace'>
               DELETED
             </Text>
-          ) : localNote.type === 'todo' ? (
+          : localNote.type === 'todo' ?
             <>
               <Text size='lg'>{localNote.title}</Text>
               <TodoControl todos={localNote.todos} />
             </>
-          ) : (
-            <>
+          : <>
               <Text size='lg'>{localNote.title}</Text>
-              <Text
-                style={{
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  ...monospaceStyle,
-                }}
-              >
+              <Text style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', ...monospaceStyle}}>
                 {localNote.txt}
               </Text>
             </>
-          )}
+          }
           <Button onClick={pickLocalNote}>Use Local</Button>
         </Stack>
         <Stack flex='1 1 0' gap='xs'>
           <Text size='xl'>Server Note</Text>
           <Text c='dimmed'>
-            {serverNote.deleted_at
-              ? formatDateTime(serverNote.deleted_at)
-              : formatDateTime(serverNote.updated_at)}
+            {serverNote.deleted_at ?
+              formatDateTime(serverNote.deleted_at)
+            : formatDateTime(serverNote.updated_at)}
           </Text>
-          {serverNote.deleted_at ? (
+          {serverNote.deleted_at ?
             <Text style={{whiteSpace: 'pre-wrap'}} ff='monospace'>
               DELETED
             </Text>
-          ) : serverNote.type === 'todo' ? (
+          : serverNote.type === 'todo' ?
             <>
               <Text size='lg'>{serverNote.title}</Text>
               <TodoControl todos={serverNote.todos} />
             </>
-          ) : (
-            <>
+          : <>
               <Text size='lg'>{serverNote.title}</Text>
-              <Text
-                style={{
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  ...monospaceStyle,
-                }}
-              >
+              <Text style={{whiteSpace: 'pre-wrap', wordBreak: 'break-word', ...monospaceStyle}}>
                 {serverNote.txt}
               </Text>
             </>
-          )}
+          }
           <Button onClick={pickServerNote}>Use Server</Button>
         </Stack>
       </Flex>

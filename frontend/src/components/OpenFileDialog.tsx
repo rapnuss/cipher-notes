@@ -37,9 +37,7 @@ import {IconCopy} from './icons/IconCopy'
 import {IconClockPlus} from './icons/IconClockPlus'
 import {IconClockEdit} from './icons/IconClockEdit'
 
-const PdfViewer = lazy(() =>
-  import('./PdfViewer').then((module) => ({default: module.PdfViewer})),
-)
+const PdfViewer = lazy(() => import('./PdfViewer').then((module) => ({default: module.PdfViewer})))
 
 const fileNotFound = Symbol('file not found')
 
@@ -50,8 +48,8 @@ export const OpenFileDialog = () => {
   const labelsCache = useSelector((state) => state.labels.labelsCache)
   const open = openFile !== null
   const file = useLiveQuery(
-    async () => (openFile ? (await db.files_meta.get(openFile.id)) ?? fileNotFound : undefined),
-    [openFile?.id]
+    async () => (openFile ? ((await db.files_meta.get(openFile.id)) ?? fileNotFound) : undefined),
+    [openFile?.id],
   )
   const fileBlob = useLiveQuery(
     async () => (openFile ? (await db.files_blob.get(openFile.id))?.blob : undefined),
@@ -87,11 +85,11 @@ export const OpenFileDialog = () => {
       ],
     ],
     [],
-    true
+    true,
   )
   if (!file || file === fileNotFound) return null
   const openNoteLabel = file.labels[0]
-  const hue: Hue = openNoteLabel ? labelsCache[openNoteLabel]?.hue ?? null : null
+  const hue: Hue = openNoteLabel ? (labelsCache[openNoteLabel]?.hue ?? null) : null
   const borderColor = labelBorderColor(hue, theme)
   const src = `/files/${file.id}`
   return (
@@ -139,31 +137,29 @@ export const OpenFileDialog = () => {
           onChange={(e) => openFileTitleChanged(e.target.value)}
         />
         {file.ext && (
-          <div
-            style={{
-              flex: '0 0 auto',
-              fontSize: '1.5rem',
-              opacity: 0.5,
-              fontWeight: 'bold',
-            }}
-          >
+          <div style={{flex: '0 0 auto', fontSize: '1.5rem', opacity: 0.5, fontWeight: 'bold'}}>
             {file.ext}
           </div>
         )}
       </Flex>
-      {file.blob_state === 'remote' ? (
+      {file.blob_state === 'remote' ?
         <div
           style={{flex: '1 1 0', display: 'flex', justifyContent: 'center', alignItems: 'center'}}
         >
           File not downloaded
         </div>
-      ) : file.mime.startsWith('image/') ? (
+      : file.mime.startsWith('image/') ?
         <ImageViewer src={src} alt={file.title} />
-      ) : file.mime === 'application/pdf' ? (
+      : file.mime === 'application/pdf' ?
         <Suspense
           fallback={
             <div
-              style={{flex: '1 1 0', display: 'flex', justifyContent: 'center', alignItems: 'center'}}
+              style={{
+                flex: '1 1 0',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
             >
               Loading PDF viewer…
             </div>
@@ -180,11 +176,12 @@ export const OpenFileDialog = () => {
               }}
             >
               Loading PDF…
-            </div>}
+            </div>
+          }
         </Suspense>
-      ) : file.mime.startsWith('video/') ? (
+      : file.mime.startsWith('video/') ?
         <video style={{flex: '1 1 0', minHeight: 0}} src={src} controls />
-      ) : file.mime.startsWith('audio/') ? (
+      : file.mime.startsWith('audio/') ?
         <div
           style={{
             flex: '1 1 0',
@@ -195,15 +192,14 @@ export const OpenFileDialog = () => {
         >
           <audio style={{flex: '0 0 auto'}} src={src} controls />
         </div>
-      ) : file.mime.startsWith('text/') || file.mime === 'application/json' ? (
+      : file.mime.startsWith('text/') || file.mime === 'application/json' ?
         <TextViewer src={src} />
-      ) : (
-        <div
+      : <div
           style={{flex: '1 1 0', display: 'flex', justifyContent: 'center', alignItems: 'center'}}
         >
           <FileIconWithExtension ext={file.ext} />
         </div>
-      )}
+      }
       <Flex gap='xs'>
         <Menu
           closeOnEscape={false}

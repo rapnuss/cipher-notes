@@ -22,7 +22,9 @@ export const NotesSortSelect = () => {
         title={desc ? 'Sort ascending' : 'Sort descending'}
         onClick={sortDirectionChanged}
       >
-        {desc ? <IconSortAscending /> : <IconSortDescending />}
+        {desc ?
+          <IconSortAscending />
+        : <IconSortDescending />}
       </ActionIcon>
     </>
   )

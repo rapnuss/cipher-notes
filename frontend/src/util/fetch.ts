@@ -16,14 +16,14 @@ export const fetchJson = <D>(
   url: RequestInfo | URL,
   options: RequestInit = {},
   timeout: number = 8 * 1000,
-  abortController: AbortController = new AbortController()
+  abortController: AbortController = new AbortController(),
 ): Promise<D> => {
   options.signal = options.signal || abortController.signal
   const timeoutPromise = new Promise((_, reject) =>
     setTimeout(() => {
       reject(new TimeoutError(timeout))
       abortController.abort()
-    }, timeout)
+    }, timeout),
   )
   const fetchPromise = fetch(url, options)
     .then(async (response) => await response.json())

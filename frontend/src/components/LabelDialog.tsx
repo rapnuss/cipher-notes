@@ -16,11 +16,7 @@ export const LabelDialog = () => {
   const {hue, name, open, id} = useSelector((state) => state.labels.dialog)
   const theme = useThemeName()
   const isMinimalTheme = theme === 'white' || theme === 'black'
-  useCloseOnBack({
-    id: 'label-dialog',
-    open,
-    onClose: closeLabelDialog,
-  })
+  useCloseOnBack({id: 'label-dialog', open, onClose: closeLabelDialog})
   return (
     <Modal opened={open} onClose={closeLabelDialog} title={id ? 'Edit Label' : 'Create Label'}>
       <TextInput
@@ -35,15 +31,15 @@ export const LabelDialog = () => {
             size='lg'
             variant={'default'}
             style={{
-              border: !isMinimalTheme
-                ? h === hue
-                  ? '2px solid var(--mantine-color-bright)'
+              border:
+                !isMinimalTheme ?
+                  h === hue ?
+                    '2px solid var(--mantine-color-bright)'
                   : undefined
                 : `2px solid ${labelBorderColor(h, theme)}`,
-              outline: !isMinimalTheme
-                ? undefined
-                : h === hue
-                ? `2px solid ${labelBorderColor(h, theme)}`
+              outline:
+                !isMinimalTheme ? undefined
+                : h === hue ? `2px solid ${labelBorderColor(h, theme)}`
                 : undefined,
             }}
             id={String(h)}

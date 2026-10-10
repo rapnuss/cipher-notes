@@ -28,20 +28,17 @@ export const NotesGrid = () => {
     const notes = [...allNotes, ...allFiles]
       .filter(
         (n) =>
-          (activeLabel === 'archived'
-            ? n.archived === 1
-            : activeLabel === 'all'
-            ? n.archived === 0
-            : true) &&
+          (activeLabel === 'archived' ? n.archived === 1
+          : activeLabel === 'all' ? n.archived === 0
+          : true) &&
           (activeLabel !== 'unlabeled' || !n.labels || n.labels.length === 0) &&
           (!activeLabelIsUuid(activeLabel) || n.labels?.includes(activeLabel)) &&
           (!query ||
             n.title.toLocaleLowerCase().includes(queryLower) ||
-            (n.type === 'note'
-              ? n.txt.toLocaleLowerCase().includes(queryLower)
-              : n.type === 'todo'
-              ? n.todos.some((todo) => todo.txt.toLocaleLowerCase().includes(queryLower))
-              : n.type === 'file' && n.ext.toLocaleLowerCase().includes(queryLower)))
+            (n.type === 'note' ? n.txt.toLocaleLowerCase().includes(queryLower)
+            : n.type === 'todo' ?
+              n.todos.some((todo) => todo.txt.toLocaleLowerCase().includes(queryLower))
+            : n.type === 'file' && n.ext.toLocaleLowerCase().includes(queryLower))),
       )
       .sort(byProp(sort.prop, sort.desc))
     return bisectBy(notes ?? [], (n) => n.archived === 1)
@@ -56,13 +53,7 @@ export const NotesGrid = () => {
     updateCurrentNotes(activeNotes, archivedNotes)
   }, [activeNotes, archivedNotes])
   return (
-    <div
-      style={{
-        padding: '1rem',
-        overflowY: 'auto',
-        height: '100%',
-      }}
-    >
+    <div style={{padding: '1rem', overflowY: 'auto', height: '100%'}}>
       <style
         children={`button:focus {
           outline: 1px solid var(--mantine-primary-color-5);
@@ -152,38 +143,31 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
           alignItems: 'stretch',
         }}
         onClick={() =>
-          selectionActive
-            ? toggleSelection(note.id, note.type === 'file' ? 'file' : 'note')
-            : note.type === 'file'
-            ? fileOpened(note.id)
-            : noteOpened(note.id)
+          selectionActive ? toggleSelection(note.id, note.type === 'file' ? 'file' : 'note')
+          : note.type === 'file' ? fileOpened(note.id)
+          : noteOpened(note.id)
         }
       >
         <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>
           {note.type === 'file' ? getFilename(note) : note.title}
         </div>
-        {note.type === 'note' ? (
+        {note.type === 'note' ?
           truncateWithEllipsis(note.txt)
-        ) : note.type === 'todo' ? (
+        : note.type === 'todo' ?
           <TodosPreview todos={note.todos} />
-        ) : note.type === 'file' && note.has_thumb ? (
+        : note.type === 'file' && note.has_thumb ?
           <img
             alt={getFilename(note)}
             src={`/thumbnails/${note.id}`}
             style={{maxHeight: 200, objectFit: 'contain'}}
           />
-        ) : note.type === 'file' ? (
+        : note.type === 'file' ?
           <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              flex: '1 1 0',
-            }}
+            style={{display: 'flex', justifyContent: 'center', alignItems: 'center', flex: '1 1 0'}}
           >
             <FileIconWithExtension ext={note.ext} size={100} />
           </div>
-        ) : null}
+        : null}
       </UnstyledButton>
       <Flex justify='flex-end'>
         <Menu shadow='md'>
@@ -206,9 +190,9 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
             </Menu.Item>
             <Menu.Item
               onClick={() =>
-                note.type === 'file'
-                  ? setFileArchived(note.id, !note.archived)
-                  : setNoteArchived(note.id, !note.archived)
+                note.type === 'file' ?
+                  setFileArchived(note.id, !note.archived)
+                : setNoteArchived(note.id, !note.archived)
               }
             >
               {note.archived ? 'Unarchive' : 'Archive'}
@@ -246,13 +230,7 @@ const TodosPreview = ({todos}: {todos: Todo[]}) => {
   for (let i = 0; i < undoneCount; i++) {
     const id = visualOrderUndone[i]!
     const todo = idToTodo[id]!
-    result.push({
-      id,
-      indent: !!todo.parent,
-      done: false,
-      txt: todo.txt,
-      translucent: false,
-    })
+    result.push({id, indent: !!todo.parent, done: false, txt: todo.txt, translucent: false})
   }
   const remainingSlots = Math.max(0, 5 - undoneCount)
   for (let i = 0; i < remainingSlots && i < visualOrderDone.length; i++) {
@@ -275,13 +253,11 @@ const TodosPreview = ({todos}: {todos: Todo[]}) => {
       style={{textDecoration: todo.done === true ? 'line-through' : 'none'}}
       opacity={todo.translucent ? 0.5 : 1}
     >
-      {todo.done === true ? (
+      {todo.done === true ?
         <IconCheckbox style={{flex: '0 0 auto'}} />
-      ) : todo.done === 'indeterminate' ? (
+      : todo.done === 'indeterminate' ?
         <IconSquareMinus style={{flex: '0 0 auto'}} />
-      ) : (
-        <IconSquare style={{flex: '0 0 auto'}} />
-      )}
+      : <IconSquare style={{flex: '0 0 auto'}} />}
       {truncateWithEllipsis(todo.txt, 1, 50)}
     </Flex>
   ))

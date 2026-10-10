@@ -50,10 +50,7 @@ function registerPeriodicSync(period: number, swUrl: string, r: ServiceWorkerReg
 
     const resp = await fetch(swUrl, {
       cache: 'no-store',
-      headers: {
-        cache: 'no-store',
-        'cache-control': 'no-cache',
-      },
+      headers: {cache: 'no-store', 'cache-control': 'no-cache'},
     })
 
     if (resp?.status === 200) {

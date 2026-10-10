@@ -5,9 +5,10 @@ export type Without<T, U> = {[P in Exclude<keyof T, keyof U>]?: never}
  * https://stackoverflow.com/questions/42123407/does-typescript-support-mutually-exclusive-types
  * https://github.com/maninak/ts-xor/blob/master/src/types/Xor.type.ts
  */
-export type XOR<T, U> = T extends object
-  ? U extends object
-    ? (Without<T, U> & U) | (Without<U, T> & T)
+export type XOR<T, U> =
+  T extends object ?
+    U extends object ?
+      (Without<T, U> & U) | (Without<U, T> & T)
     : U
   : T
 
@@ -33,8 +34,6 @@ export type JsonObj = {[key: string]: JsonValue | JsonArr | JsonObj}
 export type JsonRoot = JsonArr | JsonObj
 export type JsonAny = JsonValue | JsonArr | JsonObj
 
-export type Prettify<T> = {
-  [K in keyof T]: T[K]
-} & unknown
+export type Prettify<T> = {[K in keyof T]: T[K]} & unknown
 
 export type EmptyObject = Record<never, never>

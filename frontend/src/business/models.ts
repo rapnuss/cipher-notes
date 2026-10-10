@@ -40,14 +40,8 @@ export type FileMeta = {
   has_thumb: 0 | 1
   size: number
 }
-export type FileBlob = {
-  id: string
-  blob: Blob
-}
-export type FileThumb = {
-  id: string
-  blob: Blob
-}
+export type FileBlob = {id: string; blob: Blob}
+export type FileThumb = {id: string; blob: Blob}
 
 export const filePullDellKeys = Object.freeze([
   'id',
@@ -76,7 +70,7 @@ const filePullDefExtraKeysEnum: {[K in FilePullDefExtraKeys]: K} = {
 }
 type FilePullDefExtraKeys = Exclude<keyof FilePullDef, FilePullDellKeys>
 export const filePullDefExtraKeys: Readonly<FilePullDefExtraKeys[]> = Object.freeze(
-  Object.values(filePullDefExtraKeysEnum)
+  Object.values(filePullDefExtraKeysEnum),
 )
 
 export const noteSortProps = ['created_at', 'updated_at'] satisfies (keyof Note)[]
@@ -99,14 +93,8 @@ export type Todo = z.infer<typeof todoSchema>
 export const todosSchema = z.array(todoSchema)
 export type Todos = z.infer<typeof todosSchema>
 
-export type CMSelection = {
-  anchor: number
-  head: number
-}
-export const defaultSelection: Readonly<CMSelection> = Object.freeze({
-  anchor: 0,
-  head: 0,
-})
+export type CMSelection = {anchor: number; head: number}
+export const defaultSelection: Readonly<CMSelection> = Object.freeze({anchor: 0, head: 0})
 export type TextOpenNote = {
   type: 'note'
   id: string
@@ -127,8 +115,7 @@ export type TodoOpenNote = {
 export type OpenNote = XOR<TextOpenNote, TodoOpenNote>
 
 export type NoteHistoryItem =
-  | {type: 'note'; txt: string; selections: CMSelection[]}
-  | {type: 'todo'; todos: Todos}
+  {type: 'note'; txt: string; selections: CMSelection[]} | {type: 'todo'; todos: Todos}
 
 export const hueOptions = [null, 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330] as const
 export type Hue = (typeof hueOptions)[number]
@@ -175,10 +162,7 @@ export const hueSchema = z.union([
   z.literal(330),
 ])
 
-export const labelPutTxtSchema = z.object({
-  name: z.string(),
-  hue: hueSchema,
-})
+export const labelPutTxtSchema = z.object({name: z.string(), hue: hueSchema})
 export type LabelPutTxt = z.infer<typeof labelPutTxtSchema>
 
 export const filePutTxtSchema = z.object({
@@ -194,10 +178,7 @@ export type FilePutTxt = z.infer<typeof filePutTxtSchema>
 export const features = ['password_protected_notes', 'reminders'] as const
 export type Feature = (typeof features)[number]
 
-export const jwtPayloadSchema = z.object({
-  sub: z.string(),
-  features: z.array(z.enum(features)),
-})
+export const jwtPayloadSchema = z.object({sub: z.string(), features: z.array(z.enum(features))})
 
 export type MyJwtPayload = z.infer<typeof jwtPayloadSchema>
 

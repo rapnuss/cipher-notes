@@ -2,17 +2,11 @@ import {SettingsOptions} from '../business/models'
 import {loadSettingsOptions, storeSettingsOptions} from '../services/localStorage'
 import {setState, subscribe} from './store'
 
-export type SettingsState = {
-  open: boolean
-  options: SettingsOptions
-}
+export type SettingsState = {open: boolean; options: SettingsOptions}
 
 export const settingsInit: SettingsState = {
   open: false,
-  options: {
-    lightTheme: 'light',
-    darkTheme: 'dark',
-  },
+  options: {lightTheme: 'light', darkTheme: 'dark'},
 }
 
 loadSettingsOptions().then((options) => {

@@ -134,10 +134,7 @@ export const OpenNoteDialog = () => {
           flexDirection: 'column',
           gap: '1rem',
         },
-        inner: {
-          maxWidth: '750px',
-          left: 'max(0px, (100vw - 750px) / 2)',
-        },
+        inner: {maxWidth: '750px', left: 'max(0px, (100vw - 750px) / 2)'},
       }}
     >
       <input

@@ -30,11 +30,7 @@ export const LabelSelector = () => {
   const labels = useSelector(selectCachedLabels)
   const theme = useThemeName()
   const colorScheme = useMyColorScheme()
-  useCloseOnBack({
-    id: 'label-selector',
-    open: labelSelectorOpen,
-    onClose: toggleLabelSelector,
-  })
+  useCloseOnBack({id: 'label-selector', open: labelSelectorOpen, onClose: toggleLabelSelector})
   return (
     <Drawer
       opened={labelSelectorOpen}
@@ -132,10 +128,7 @@ export const LabelSelector = () => {
   )
 }
 
-type LabelSelectorItemProps = Label & {
-  active: boolean
-  theme: ThemeName
-}
+type LabelSelectorItemProps = Label & {active: boolean; theme: ThemeName}
 
 const LabelSelectorItem = ({active, theme, ...label}: LabelSelectorItemProps) => {
   const borderColor = labelBorderColor(label.hue, theme)
@@ -153,9 +146,7 @@ const LabelSelectorItem = ({active, theme, ...label}: LabelSelectorItemProps) =>
       }
       fw={themeHasBorder && active ? 'bold' : undefined}
       p='xs'
-      style={{
-        outlineOffset: '2px',
-      }}
+      style={{outlineOffset: '2px'}}
       bg={bgColor}
       className='label-selector-item'
     >

@@ -6,20 +6,8 @@ export type StorageUsageState = {
   open: boolean
   fetching: boolean
   calculating: boolean
-  local: {
-    used: number
-    limit: number
-  } | null
-  remote: {
-    files: {
-      used: number
-      limit: number
-    }
-    notes: {
-      used: number
-      limit: number
-    }
-  } | null
+  local: {used: number; limit: number} | null
+  remote: {files: {used: number; limit: number}; notes: {used: number; limit: number}} | null
 }
 
 export const storageUsageInit: StorageUsageState = {
@@ -42,10 +30,7 @@ export const calcLocalStorageUsage = async () => {
     return
   }
   setState((state) => {
-    state.storageUsage.local = {
-      used: usage,
-      limit: quota,
-    }
+    state.storageUsage.local = {used: usage, limit: quota}
   })
 }
 
@@ -59,11 +44,7 @@ export const fetchStorageUsage = async () => {
       state.storageUsage.remote = res.data
     })
   } else {
-    notifications.show({
-      title: 'Failed to fetch storage usage',
-      message: res.error,
-      color: 'red',
-    })
+    notifications.show({title: 'Failed to fetch storage usage', message: res.error, color: 'red'})
     if (isUnauthorizedRes(res)) {
       setState((state) => {
         state.user.user.loggedIn = false
