@@ -9,13 +9,9 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import {Document, Page, pdfjs} from 'react-pdf'
+import {Document, Page} from 'react-pdf'
+import {pdfDocumentOptions} from '../helpers/pdf'
 import styles from './PdfViewer.module.css'
-
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString()
 
 const PAGE_GAP = 16
 const HORIZONTAL_PADDING = 32
@@ -31,15 +27,6 @@ const INERTIA_RELEASE_MAX_AGE_MS = 160
 const INERTIA_RELEASE_FRICTION = 0.01
 const VELOCITY_SMOOTHING = 0.3
 const POST_PINCH_PAN_THRESHOLD = 10
-
-const documentOptions = {
-  cMapUrl: '/pdfjs/cmaps/',
-  cMapPacked: true,
-  iccUrl: '/pdfjs/iccs/',
-  standardFontDataUrl: '/pdfjs/standard_fonts/',
-  wasmUrl: '/pdfjs/wasm/',
-  isEvalSupported: false,
-}
 
 type PageSize = {width: number; height: number}
 
@@ -680,7 +667,7 @@ export const PdfViewer = ({file, title = 'PDF document'}: PdfViewerProps) => {
       <Document
         className={styles.document}
         file={file}
-        options={documentOptions}
+        options={pdfDocumentOptions}
         onLoadSuccess={onLoadSuccess}
         loading={<div className={styles.message}>Loading PDF…</div>}
         error={<div className={styles.message}>Could not load PDF.</div>}

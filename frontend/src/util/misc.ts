@@ -407,3 +407,7 @@ export const noProto: FnArgs<typeof JSON.parse>[1] = (_, value) =>
   : value
 
 export const parseJson = <T>(json: string): T => JSON.parse(json, noProto)
+
+export const fireAndForget = <Fn extends () => Promise<any>>(fn: Fn): void => {
+  Promise.resolve().then(fn).catch(console.error)
+}

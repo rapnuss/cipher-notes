@@ -1,6 +1,7 @@
 import {notifications} from '@mantine/notifications'
 import {isUnauthorizedRes, reqStorageUsage} from '../services/backend'
 import {getState, setState} from './store'
+import {fireAndForget} from '../util/misc'
 
 export type StorageUsageState = {
   open: boolean
@@ -62,9 +63,9 @@ export const openStorageUsageDialog = () => {
   setState((s) => {
     s.storageUsage.open = true
   })
-  queueMicrotask(calcLocalStorageUsage)
+  fireAndForget(calcLocalStorageUsage)
   if (state.user.user.loggedIn) {
-    queueMicrotask(fetchStorageUsage)
+    fireAndForget(fetchStorageUsage)
   }
 }
 
