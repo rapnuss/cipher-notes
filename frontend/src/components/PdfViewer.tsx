@@ -103,12 +103,18 @@ type BufferedPdfPageProps = {
   pageSize: PageSize
   renderScale: number
   viewScale: number
+  registerBufferCapture: (pageNumber: number, capture: (() => void) | null) => void
 }
 
-const BufferedPdfPage = ({pageNumber, pageSize, renderScale, viewScale}: BufferedPdfPageProps) => {
+const BufferedPdfPage = ({
+  pageNumber,
+  pageSize,
+  registerBufferCapture,
+  renderScale,
+  viewScale,
+}: BufferedPdfPageProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const bufferRef = useRef<HTMLCanvasElement>(null)
-  const previousRenderScaleRef = useRef(renderScale)
   const renderedWidth = pageSize.width * renderScale
   const renderedHeight = pageSize.height * renderScale
   const viewWidth = pageSize.width * viewScale
@@ -119,10 +125,7 @@ const BufferedPdfPage = ({pageNumber, pageSize, renderScale, viewScale}: Buffere
     MAX_RENDER_DIMENSION / Math.max(renderedWidth, renderedHeight),
   )
 
-  useLayoutEffect(() => {
-    if (previousRenderScaleRef.current === renderScale) return
-    previousRenderScaleRef.current = renderScale
-
+  const captureBuffer = useCallback(() => {
     const source = canvasRef.current
     const buffer = bufferRef.current
     if (!source || !buffer || source.width === 0 || source.height === 0) return
@@ -134,7 +137,12 @@ const BufferedPdfPage = ({pageNumber, pageSize, renderScale, viewScale}: Buffere
     if (!context) return
     context.drawImage(source, 0, 0)
     buffer.style.visibility = 'visible'
-  }, [renderScale])
+  }, [])
+
+  useLayoutEffect(() => {
+    registerBufferCapture(pageNumber, captureBuffer)
+    return () => registerBufferCapture(pageNumber, null)
+  }, [captureBuffer, pageNumber, registerBufferCapture])
 
   const onRenderSuccess = useCallback(() => {
     const buffer = bufferRef.current
@@ -171,6 +179,7 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
   const scaleRef = useRef(1)
   const renderScaleRef = useRef(1)
   const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const bufferCapturesRef = useRef(new Map<number, () => void>())
   const inertiaFrameRef = useRef<number | null>(null)
   const pendingScrollRef = useRef<PendingScroll | null>(null)
   const pointersRef = useRef(new Map<number, PointerPosition>())
@@ -291,13 +300,23 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
     renderTimerRef.current = null
   }, [])
 
+  const registerBufferCapture = useCallback((pageNumber: number, capture: (() => void) | null) => {
+    if (capture) bufferCapturesRef.current.set(pageNumber, capture)
+    else bufferCapturesRef.current.delete(pageNumber)
+  }, [])
+
+  const captureRenderedPages = useCallback(() => {
+    for (const capture of bufferCapturesRef.current.values()) capture()
+  }, [])
+
   const commitRenderScale = useCallback(() => {
     clearRenderTimer()
     const nextRenderScale = scaleRef.current
     if (Math.abs(nextRenderScale - renderScaleRef.current) < 0.0001) return
+    captureRenderedPages()
     renderScaleRef.current = nextRenderScale
     setRenderScale(nextRenderScale)
-  }, [clearRenderTimer])
+  }, [captureRenderedPages, clearRenderTimer])
 
   const scheduleRenderScale = useCallback(() => {
     clearRenderTimer()
@@ -612,6 +631,7 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
                 <BufferedPdfPage
                   pageNumber={virtualPage.index + 1}
                   pageSize={pageSize}
+                  registerBufferCapture={registerBufferCapture}
                   renderScale={renderScale}
                   viewScale={scale}
                 />
