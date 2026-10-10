@@ -22,12 +22,10 @@ export const StorageUsageDialog = () => {
   useCloseOnBack({id: 'storage-usage-dialog', open, onClose: closeStorageUsageDialog})
 
   const localPct = local ? Math.min(100, (local.used / Math.max(1, local.limit)) * 100) : 0
-  const filesPct = remote
-    ? Math.min(100, (remote.files.used / Math.max(1, remote.files.limit)) * 100)
-    : 0
-  const notesPct = remote
-    ? Math.min(100, (remote.notes.used / Math.max(1, remote.notes.limit)) * 100)
-    : 0
+  const filesPct =
+    remote ? Math.min(100, (remote.files.used / Math.max(1, remote.files.limit)) * 100) : 0
+  const notesPct =
+    remote ? Math.min(100, (remote.notes.used / Math.max(1, remote.notes.limit)) * 100) : 0
 
   return (
     <Modal opened={open} onClose={closeStorageUsageDialog} title='Storage Usage'>
@@ -55,9 +53,9 @@ export const StorageUsageDialog = () => {
               <Group justify='space-between'>
                 <Text fw={500}>Remote files</Text>
                 <Text size='sm' c='dimmed'>
-                  {remote
-                    ? `${formatBytes(remote.files.used)} / ${formatBytes(remote.files.limit)}`
-                    : '—'}
+                  {remote ?
+                    `${formatBytes(remote.files.used)} / ${formatBytes(remote.files.limit)}`
+                  : '—'}
                 </Text>
               </Group>
               <Group gap='xs' align='center'>
@@ -74,9 +72,9 @@ export const StorageUsageDialog = () => {
               <Group justify='space-between'>
                 <Text fw={500}>Remote notes</Text>
                 <Text size='sm' c='dimmed'>
-                  {remote
-                    ? `${formatBytes(remote.notes.used)} / ${formatBytes(remote.notes.limit)}`
-                    : '—'}
+                  {remote ?
+                    `${formatBytes(remote.notes.used)} / ${formatBytes(remote.notes.limit)}`
+                  : '—'}
                 </Text>
               </Group>
               <Group gap='xs' align='center'>

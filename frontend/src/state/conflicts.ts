@@ -2,13 +2,9 @@ import {db} from '../db'
 import {getState, setState} from './store'
 import {Note} from '../business/models'
 
-export type ConflictsState = {
-  conflicts: Note[]
-}
+export type ConflictsState = {conflicts: Note[]}
 
-export const conflictsInit: ConflictsState = {
-  conflicts: [],
-}
+export const conflictsInit: ConflictsState = {conflicts: []}
 
 export const pickLocalNote = async () => {
   const state = getState()

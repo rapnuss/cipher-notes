@@ -16,22 +16,17 @@ export const SearchInput = () => {
       id='searchInput'
       placeholder={
         'Search ' +
-        (activeLabel === 'all'
-          ? 'all notes'
-          : activeLabel === 'unlabeled'
-          ? 'unlabeled'
-          : activeLabel === 'archived'
-          ? 'archived'
-          : labels[activeLabel]?.name)
+        (activeLabel === 'all' ? 'all notes'
+        : activeLabel === 'unlabeled' ? 'unlabeled'
+        : activeLabel === 'archived' ? 'archived'
+        : labels[activeLabel]?.name)
       }
       rightSection={
-        query.length === 0 ? (
+        query.length === 0 ?
           <IconSearch />
-        ) : (
-          <UnstyledButton display='flex' onClick={() => noteQueryChanged('')}>
+        : <UnstyledButton display='flex' onClick={() => noteQueryChanged('')}>
             <IconX />
           </UnstyledButton>
-        )
       }
     />
   )

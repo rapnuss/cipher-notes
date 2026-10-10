@@ -10,11 +10,7 @@ import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 export const KeepImportDialog = () => {
   const {open, file, error, importArchived} = useSelector((state) => state.import.keepImportDialog)
-  useCloseOnBack({
-    id: 'keep-import-dialog',
-    open,
-    onClose: closeKeepImportDialog,
-  })
+  useCloseOnBack({id: 'keep-import-dialog', open, onClose: closeKeepImportDialog})
   return (
     <Modal opened={open} onClose={closeKeepImportDialog} title='Import notes from Keep'>
       <Text mb='sm'>

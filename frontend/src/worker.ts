@@ -6,6 +6,7 @@ import {decryptBlob, encryptBlob, encryptedBlobSize, importKey} from './util/enc
 import {canvasSupportedImageMimeTypes, generateThumbnail} from './util/images'
 import {indexByProp, nonConcurrent, takeSum} from './util/misc'
 import XSet from './util/XSet'
+import {thumbnailWidth, thumbnailHeight} from './config'
 
 export const generateThumbnails = nonConcurrent(async (): Promise<void> => {
   const ids = await db.files_meta
@@ -20,7 +21,7 @@ export const generateThumbnails = nonConcurrent(async (): Promise<void> => {
 
   const promises = blobs.map(async (blob) => {
     try {
-      const thumb = await generateThumbnail(blob.blob)
+      const thumb = await generateThumbnail(blob.blob, thumbnailWidth, thumbnailHeight)
       return {id: blob.id, blob: thumb}
     } catch (e) {
       console.error(e)
@@ -50,7 +51,7 @@ export const generateThumbnails = nonConcurrent(async (): Promise<void> => {
 })
 
 export const upDownloadBlobs = async (
-  cryptoKey: string
+  cryptoKey: string,
 ): Promise<{selectedAll: boolean; hit_storage_limit: boolean}> => {
   const key = await importKey(cryptoKey)
   let selectedAll, hit_storage_limit
@@ -68,19 +69,19 @@ export const upDownloadBlobs = async (
 }
 
 const _upDownloadBlobs = async (
-  cryptoKey: CryptoKey
+  cryptoKey: CryptoKey,
 ): Promise<{selectedAll: boolean; hit_storage_limit: boolean}> => {
   const unsynced = await db.files_meta.where('blob_state').notEqual('synced').toArray()
 
   const downloadIds = unsynced.filter((f) => f.blob_state === 'remote').map((f) => f.id)
   const localFiles = unsynced.filter((f) => f.blob_state === 'local')
   const selectedUploadIds = takeSum(localFiles, 100 * 1024 * 1024, (f) =>
-    encryptedBlobSize(f.size)
+    encryptedBlobSize(f.size),
   ).map((f) => f.id)
 
   const uploadBlobs = await db.files_blob.where('id').anyOf(selectedUploadIds).toArray()
   const encryptedUploadBlobs = await Promise.all(
-    uploadBlobs.map(async (b) => ({id: b.id, blob: await encryptBlob(cryptoKey, b.blob)}))
+    uploadBlobs.map(async (b) => ({id: b.id, blob: await encryptBlob(cryptoKey, b.blob)})),
   )
   const encryptedUploadBlobsById = indexByProp(encryptedUploadBlobs, 'id')
 
@@ -111,10 +112,7 @@ const _upDownloadBlobs = async (
     const blob = encryptedUploadBlobsById.get(file.id)?.blob
     if (!blob) continue
     formData.append('file', blob)
-    const res = await fetch(url, {
-      method: 'POST',
-      body: formData,
-    })
+    const res = await fetch(url, {method: 'POST', body: formData})
     if (!res.ok) {
       throw new Error(`Failed to upload blob ${file.id}: ${res.statusText}`)
     }
@@ -138,7 +136,7 @@ const _upDownloadBlobs = async (
       continue
     }
     const decryptedBlob = await decryptBlob(cryptoKey, encBlob, file.mime).catch(
-      (e) => new Blob([`Decryption failed: ${e}`], {type: 'text/plain'})
+      (e) => new Blob([`Decryption failed: ${e}`], {type: 'text/plain'}),
     )
     await db.transaction('rw', db.files_meta, db.files_blob, async (tx) => {
       await tx.files_meta.update(file.id, {blob_state: 'synced'})

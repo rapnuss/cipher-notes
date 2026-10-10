@@ -19,11 +19,7 @@ export const EncryptionKeyDialog = () => {
   const {open, keyTokenPair, qrMode, mode} = useSelector((state) => state.user.encryptionKeyDialog)
   const hasStoredKeyTokenPair = useSelector((state) => !!state.user.user.keyTokenPair)
   const valid = isValidKeyTokenPair(keyTokenPair)
-  useCloseOnBack({
-    id: 'encryption-key-dialog',
-    open,
-    onClose: closeEncryptionKeyDialog,
-  })
+  useCloseOnBack({id: 'encryption-key-dialog', open, onClose: closeEncryptionKeyDialog})
   return (
     <Modal title='Encryption key' opened={open} onClose={closeEncryptionKeyDialog}>
       {!hasStoredKeyTokenPair && (

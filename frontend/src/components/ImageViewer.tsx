@@ -47,14 +47,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
         <>
           {showControls && (
             <div
-              style={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                display: 'flex',
-                gap: 4,
-                zIndex: 10,
-              }}
+              style={{position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4, zIndex: 10}}
             >
               <ActionIcon onClick={() => zoomIn()} title='Zoom in' variant='default'>
                 <IconPlus />

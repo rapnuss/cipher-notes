@@ -8,11 +8,7 @@ import {notifications} from '@mantine/notifications'
 
 export const AdminPanel = () => {
   const {open} = useSelector((state) => state.admin)
-  useCloseOnBack({
-    id: 'admin-dialog',
-    open,
-    onClose: closeAdminDialog,
-  })
+  useCloseOnBack({id: 'admin-dialog', open, onClose: closeAdminDialog})
   return (
     <Modal
       title='Admin Panel'

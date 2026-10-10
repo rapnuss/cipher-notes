@@ -39,16 +39,9 @@ export const ActionIconWithText = forwardRef<HTMLButtonElement, ActionIconWithTe
       {...rest}
     >
       {children}
-      <div
-        style={{
-          fontSize: '0.75rem',
-          color: 'var(--mantine-color-dimmed)',
-        }}
-      >
-        {text}
-      </div>
+      <div style={{fontSize: '0.75rem', color: 'var(--mantine-color-dimmed)'}}>{text}</div>
     </ActionIcon>
-  )
+  ),
 )
 
 export type ActionIconLinkProps = {
@@ -80,14 +73,7 @@ export const ActionIconLink = forwardRef<HTMLAnchorElement, ActionIconLinkProps>
       }}
     >
       {children}
-      <div
-        style={{
-          fontSize: '0.75rem',
-          color: 'var(--mantine-color-dimmed)',
-        }}
-      >
-        {text}
-      </div>
+      <div style={{fontSize: '0.75rem', color: 'var(--mantine-color-dimmed)'}}>{text}</div>
     </ActionIcon>
-  )
+  ),
 )

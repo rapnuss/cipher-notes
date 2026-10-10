@@ -5,9 +5,7 @@ import {closeOnBack, removeBrowserHistory} from './useCloseOnBack'
 export type OpenConfirmModalProps = Pick<
   FnProps<(typeof modals)['openConfirmModal']>,
   'title' | 'onConfirm' | 'labels' | 'children' | 'id' | 'confirmProps'
-> & {
-  id: string
-}
+> & {id: string}
 
 export const openConfirmModalWithBackHandler = ({
   id,

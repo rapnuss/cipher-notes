@@ -2,29 +2,19 @@ import {backendUrl, backendTimeout} from '../config'
 import {fetchJson} from '../util/fetch'
 import {Overwrite} from '../util/type'
 
-export type ResPos<D> = {
-  success: true
-  data: D
-}
-export type ResNeg = {
-  success: false
-  error: string
-  statusCode: number
-}
+export type ResPos<D> = {success: true; data: D}
+export type ResNeg = {success: false; error: string; statusCode: number}
 export type Res<D> = ResPos<D> | ResNeg
 
 export const request = async <D>(
   path: string,
   options: Overwrite<RequestInit, {body?: BodyInit | object}> = {},
   timeout: number = backendTimeout,
-  abortController: AbortController = new AbortController()
+  abortController: AbortController = new AbortController(),
 ): Promise<Res<D>> => {
   if (typeof options.body === 'object') {
     options.body = JSON.stringify(options.body)
-    options.headers = {
-      ...options.headers,
-      'Content-Type': 'application/json',
-    }
+    options.headers = {...options.headers, 'Content-Type': 'application/json'}
   }
   options.credentials = 'include'
   try {
@@ -32,7 +22,7 @@ export const request = async <D>(
       backendUrl + path,
       options as RequestInit,
       timeout,
-      abortController
+      abortController,
     )
   } catch (err) {
     return {
@@ -44,19 +34,13 @@ export const request = async <D>(
 }
 
 export const reqRegisterEmail = (email: string, captchaToken: string) =>
-  request<void>('/registerEmail', {
-    method: 'POST',
-    body: {email, captcha_token: captchaToken},
-  })
+  request<void>('/registerEmail', {method: 'POST', body: {email, captcha_token: captchaToken}})
 
 export const reqSendLoginCode = (email: string) =>
   request<void>('/sendLoginCode', {method: 'POST', body: {email}})
 
 export const reqLoginWithCode = (email: string, code: string) =>
-  request<{jwt: string}>('/loginWithCode', {
-    method: 'POST',
-    body: {email, login_code: code},
-  })
+  request<{jwt: string}>('/loginWithCode', {method: 'POST', body: {email, login_code: code}})
 
 export const reqLoginWithPassword = (identifier: string, password: string) =>
   request<{jwt: string; is_admin: boolean}>('/loginWithPassword', {
@@ -70,7 +54,7 @@ export const reqAdminCreateUser = (username: string, password: string) =>
 export const reqAdminSetPassword = (
   targetIdentifier: string,
   newPassword: string,
-  adminPassword: string
+  adminPassword: string,
 ) =>
   request<void>('/adminSetPassword', {
     method: 'POST',
@@ -113,21 +97,12 @@ export const reqSyncNotes = (lastSyncedTo: number, puts: EncPut[], syncToken: st
   })
 
 export const reqDeleteNotes = ({confirm, password}: {confirm?: string; password?: string}) =>
-  request<void>('/deleteNotes', {
-    method: 'POST',
-    body: {confirm, password},
-  })
+  request<void>('/deleteNotes', {method: 'POST', body: {confirm, password}})
 
 export const reqDeleteAccount = ({confirm, password}: {confirm?: string; password?: string}) =>
-  request<void>('/deleteAccount', {
-    method: 'POST',
-    body: {confirm, password},
-  })
+  request<void>('/deleteAccount', {method: 'POST', body: {confirm, password}})
 
-export const reqSendConfirmCode = () =>
-  request<void>('/sendConfirmCode', {
-    method: 'POST',
-  })
+export const reqSendConfirmCode = () => request<void>('/sendConfirmCode', {method: 'POST'})
 
 export const reqLogout = () => request<void>('/logout', {method: 'POST'})
 
@@ -158,30 +133,20 @@ export const reqChangeEmail = ({
 }) =>
   request<void>('/changeEmail', {
     method: 'POST',
-    body: {
-      old_email: oldEmail,
-      old_email_code: oldEmailCode,
-      new_email_code: newEmailCode,
-    },
+    body: {old_email: oldEmail, old_email_code: oldEmailCode, new_email_code: newEmailCode},
   })
 
-export type GetPresignedUrlsReq = {
-  uploads: {id: string; size: number}[]
-  download_ids: string[]
-}
+export type GetPresignedUrlsReq = {uploads: {id: string; size: number}[]; download_ids: string[]}
 export type GetPresignedUrlsRes = {
   upload_urls: {note_id: string; url: string; fields: Record<string, string>}[]
   download_urls: {note_id: string; url: string}[]
   hit_storage_limit: boolean
 }
 export const reqGetPresignedUrls = (req: GetPresignedUrlsReq) =>
-  request<GetPresignedUrlsRes>('/getPresignedUrls', {
-    method: 'POST',
-    body: req,
-  })
+  request<GetPresignedUrlsRes>('/getPresignedUrls', {method: 'POST', body: req})
 
 export const reqStorageUsage = () =>
   request<{files: {used: number; limit: number}; notes: {used: number; limit: number}}>(
     '/storageUsage',
-    {method: 'GET'}
+    {method: 'GET'},
   )

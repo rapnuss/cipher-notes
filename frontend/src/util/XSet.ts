@@ -1,4 +1,9 @@
-type EqOr<A, B, Fallback> = A extends B ? (B extends A ? A : Fallback) : Fallback
+type EqOr<A, B, Fallback> =
+  A extends B ?
+    B extends A ?
+      A
+    : Fallback
+  : Fallback
 
 export default class XSet<A> extends Set<A> {
   static fromItr<A>(iterable: Iterable<A>): XSet<A>

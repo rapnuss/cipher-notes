@@ -44,10 +44,7 @@ const buildWidget = (lines: string, sep: string, pos: number) => {
   for (let j = 0; j < item.length; j++) {
     pos += item[j]!.length
     if (webLinkRegex.test(item[j]!)) {
-      decoItem = Decoration.widget({
-        widget: new TextToLinkWidget(item[j]!),
-        side: 1,
-      })
+      decoItem = Decoration.widget({widget: new TextToLinkWidget(item[j]!), side: 1})
       result.push(decoItem.range(pos))
     }
     pos++
@@ -81,18 +78,10 @@ export const TextToLink = ViewPlugin.fromClass(
         this.decorations = textToLinkFunc(update.view)
     }
   },
-  {
-    decorations: (v) => v.decorations,
-  }
+  {decorations: (v) => v.decorations},
 )
 
 export var hyperLinkStyle = EditorView.baseTheme({
-  '.cm-hyper-link-icon': {
-    display: 'inline-block',
-    verticalAlign: 'middle',
-    marginLeft: '0.4ch',
-  },
-  '.cm-hyper-link-icon svg': {
-    display: 'block',
-  },
+  '.cm-hyper-link-icon': {display: 'inline-block', verticalAlign: 'middle', marginLeft: '0.4ch'},
+  '.cm-hyper-link-icon svg': {display: 'block'},
 })

@@ -35,10 +35,7 @@ export const decryptSyncData = async (cryptoKey: string, puts: EncPut[]): Promis
     puts.map(async (p) => {
       const res: Put & {cipher_text?: string | null; iv?: string | null} =
         p.deleted_at === null && p.cipher_text !== null && p.iv !== null ?
-          await decryptString(key, p.cipher_text, p.iv).then((txt) => ({
-            ...p,
-            txt,
-          }))
+          await decryptString(key, p.cipher_text, p.iv).then((txt) => ({...p, txt}))
         : {...p, txt: null}
       delete res.cipher_text
       delete res.iv

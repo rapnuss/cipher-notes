@@ -23,19 +23,13 @@ export type FilesState = {
     state: 'dirty' | 'synced'
     archived: 0 | 1
   } | null
-  fileDialog: {
-    labelDropdownOpen: boolean
-    moreMenuOpen: boolean
-  }
+  fileDialog: {labelDropdownOpen: boolean; moreMenuOpen: boolean}
 }
 export const filesInit = {
   importing: false,
   upDownloading: false,
   openFile: null,
-  fileDialog: {
-    labelDropdownOpen: false,
-    moreMenuOpen: false,
-  },
+  fileDialog: {labelDropdownOpen: false, moreMenuOpen: false},
 }
 loadOpenFileId().then((id) => {
   if (id) {
@@ -162,10 +156,7 @@ export const fileClosed = async () => {
 
   setState((state) => {
     state.files.openFile = null
-    state.files.fileDialog = {
-      labelDropdownOpen: false,
-      moreMenuOpen: false,
-    }
+    state.files.fileDialog = {labelDropdownOpen: false, moreMenuOpen: false}
   })
 }
 
@@ -238,10 +229,7 @@ export const importFiles = async (files: Iterable<File>, activeLabel: ActiveLabe
         has_thumb: 0,
         size: file.size,
       }
-      const blob: FileBlob = {
-        id,
-        blob: file,
-      }
+      const blob: FileBlob = {id, blob: file}
       await db.transaction('rw', db.files_meta, db.files_blob, async (tx) => {
         await tx.files_meta.add(meta)
         await tx.files_blob.add(blob)
@@ -313,15 +301,11 @@ export const copyFileToClipboard = async (file: FileMeta) => {
         })
         throw e
       })
-    return new ClipboardItem({
-      'text/plain': stringPromise,
-    })
+    return new ClipboardItem({'text/plain': stringPromise})
   }
   function getImageItem() {
     if (file.mime === 'image/png') {
-      return new ClipboardItem({
-        'image/png': fetch(`/files/${file.id}`).then((res) => res.blob()),
-      })
+      return new ClipboardItem({'image/png': fetch(`/files/${file.id}`).then((res) => res.blob())})
     }
     if (!file.mime.startsWith('image/')) {
       throw new Error('unsupported file type')
@@ -348,9 +332,7 @@ export const copyFileToClipboard = async (file: FileMeta) => {
       })
       return pngBlob
     })
-    return new ClipboardItem({
-      'image/png': blobPromise.then((blob) => blob),
-    })
+    return new ClipboardItem({'image/png': blobPromise.then((blob) => blob)})
   }
 }
 
@@ -402,7 +384,7 @@ export const registerFilesSubscriptions = () => {
   const storeDebounced = debounce(storeOpenFile, 1000)
   subscribe(
     (state) => state.files.openFile,
-    (curr, prev) => curr && prev && storeDebounced()
+    (curr, prev) => curr && prev && storeDebounced(),
   )
 
   subscribe((state) => state.files.openFile?.id ?? null, storeOpenFileId)

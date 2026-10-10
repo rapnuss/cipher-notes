@@ -67,13 +67,10 @@ export const loadActiveLabelId = (): Promise<ActiveLabel> =>
     const labelIdStr = localStorage.getItem('activeLabelId')
     const legacyActiveLabel = labelIdStr ? (JSON.parse(labelIdStr) as unknown) : 'all'
     const activeLabel: ActiveLabel =
-      legacyActiveLabel === null
-        ? 'all'
-        : legacyActiveLabel === false
-        ? 'unlabeled'
-        : typeof legacyActiveLabel === 'string'
-        ? (legacyActiveLabel as ActiveLabel)
-        : 'all'
+      legacyActiveLabel === null ? 'all'
+      : legacyActiveLabel === false ? 'unlabeled'
+      : typeof legacyActiveLabel === 'string' ? (legacyActiveLabel as ActiveLabel)
+      : 'all'
     return activeLabel
   })
 

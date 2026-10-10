@@ -15,11 +15,7 @@ export const RegisterDialog = () => {
   const {open, email, loading, agree} = useSelector((state) => state.user.registerDialog)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const hcaptchaRef = useRef<HCaptcha>(null)
-  useCloseOnBack({
-    id: 'register-dialog',
-    open,
-    onClose: closeRegisterDialog,
-  })
+  useCloseOnBack({id: 'register-dialog', open, onClose: closeRegisterDialog})
   const onOk = async () => {
     if (!captchaToken) return
     await registerEmail(captchaToken)

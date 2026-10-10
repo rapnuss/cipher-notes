@@ -5,11 +5,7 @@ import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 export const SettingsDialog = () => {
   const {open, options} = useSelector((state) => state.settings)
-  useCloseOnBack({
-    id: 'settings-dialog',
-    open,
-    onClose: closeSettings,
-  })
+  useCloseOnBack({id: 'settings-dialog', open, onClose: closeSettings})
   return (
     <Modal opened={open} onClose={closeSettings} title='Settings'>
       <Stack gap='md'>
@@ -35,4 +31,3 @@ export const SettingsDialog = () => {
     </Modal>
   )
 }
-

@@ -1,14 +1,8 @@
 import {setState} from './store'
 
-export type HistoryState = {
-  stack: string[]
-  ignorePop: boolean
-}
+export type HistoryState = {stack: string[]; ignorePop: boolean}
 
-export const historyInit: HistoryState = {
-  stack: [],
-  ignorePop: false,
-}
+export const historyInit: HistoryState = {stack: [], ignorePop: false}
 
 export const pushHistory = (id: string) =>
   setState((state) => {

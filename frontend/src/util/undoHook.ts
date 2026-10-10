@@ -10,22 +10,9 @@ type State<Data> = {
 }
 
 type Action<Data> =
-  | {
-      type: 'RESET'
-      externalValue: Data
-      timestamp: number
-      key?: string | number | null
-    }
-  | {
-      type: 'SET_VALUE'
-      externalValue: Data
-      chunkThreshold: number
-      timestamp: number
-    }
-  | {
-      type: 'UPDATE_INDEX'
-      index: number
-    }
+  | {type: 'RESET'; externalValue: Data; timestamp: number; key?: string | number | null}
+  | {type: 'SET_VALUE'; externalValue: Data; chunkThreshold: number; timestamp: number}
+  | {type: 'UPDATE_INDEX'; index: number}
 
 function reducer<Data>(state: State<Data>, action: Action<Data>): State<Data> {
   switch (action.type) {
@@ -63,10 +50,7 @@ function reducer<Data>(state: State<Data>, action: Action<Data>): State<Data> {
       }
     }
     case 'UPDATE_INDEX':
-      return {
-        ...state,
-        currentIndex: action.index,
-      }
+      return {...state, currentIndex: action.index}
     default:
       return state
   }
@@ -83,7 +67,7 @@ export function useUndoRedo<Data>(
   externalValue: Data,
   onUndoRedo: (historyValue: Data) => void,
   chunkThreshold = 500,
-  key?: string | number | null
+  key?: string | number | null,
 ): UseUndoRedoReturn {
   const [state, dispatch] = useReducer(reducer<Data>, null, () => ({
     history: [externalValue],
@@ -107,19 +91,9 @@ export function useUndoRedo<Data>(
 
   useEffect(() => {
     if (state.prevKey !== key) {
-      dispatch({
-        type: 'RESET',
-        externalValue,
-        timestamp: Date.now(),
-        key,
-      })
+      dispatch({type: 'RESET', externalValue, timestamp: Date.now(), key})
     } else if (!deepEquals(externalValue, state.prevValue)) {
-      dispatch({
-        type: 'SET_VALUE',
-        externalValue,
-        chunkThreshold,
-        timestamp: Date.now(),
-      })
+      dispatch({type: 'SET_VALUE', externalValue, chunkThreshold, timestamp: Date.now()})
     }
   }, [key, externalValue, state.prevKey, state.prevValue, chunkThreshold])
 
@@ -134,7 +108,7 @@ export function useUndoRedo<Data>(
         dispatch({type: 'UPDATE_INDEX', index: newIndex})
       }
     },
-    [] // Empty dependency array makes the function stable
+    [], // Empty dependency array makes the function stable
   )
 
   const redo = useCallback(
@@ -148,16 +122,11 @@ export function useUndoRedo<Data>(
         dispatch({type: 'UPDATE_INDEX', index: newIndex})
       }
     },
-    [] // Empty dependency array makes the function stable
+    [], // Empty dependency array makes the function stable
   )
 
   const canUndo = state.currentIndex > 0
   const canRedo = state.currentIndex < state.history.length - 1
 
-  return {
-    canUndo,
-    canRedo,
-    undo,
-    redo,
-  }
+  return {canUndo, canRedo, undo, redo}
 }

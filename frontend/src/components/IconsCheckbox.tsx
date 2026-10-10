@@ -34,7 +34,9 @@ export const IconsCheckbox = ({
       readOnly={readOnly}
       aria-labelledby={ariaLabelledBy}
     />
-    {checked ? <IconCheckbox /> : <IconSquare />}
+    {checked ?
+      <IconCheckbox />
+    : <IconSquare />}
   </label>
 )
 
@@ -56,11 +58,11 @@ export const CrazyCheckbox = ({
   ...props
 }: CrazyCheckboxProps) => {
   const ariaChecked =
-    updatedChecked === 'unchanged'
-      ? initialChecked === 'indeterminate'
-        ? 'mixed'
-        : initialChecked
-      : updatedChecked
+    updatedChecked === 'unchanged' ?
+      initialChecked === 'indeterminate' ?
+        'mixed'
+      : initialChecked
+    : updatedChecked
 
   const toggle = () => {
     if (disabled) return
@@ -88,10 +90,7 @@ export const CrazyCheckbox = ({
       disabled={disabled}
       onClick={toggle}
       className={classes.crazyCheckbox}
-      style={{
-        opacity: disabled || updatedChecked === 'unchanged' ? 0.5 : undefined,
-        ...style,
-      }}
+      style={{opacity: disabled || updatedChecked === 'unchanged' ? 0.5 : undefined, ...style}}
       {...props}
     >
       <Icon aria-hidden='true' />

@@ -22,9 +22,9 @@ export function binToBase64(data: Uint8Array): string {
   return btoa(chunks.join(''))
 }
 export function base64ToBin(base64: string): Uint8Array {
-  const fromBase64 = (Uint8Array as Uint8ArrayConstructor & {
-    fromBase64?: (base64: string) => Uint8Array
-  }).fromBase64
+  const fromBase64 = (
+    Uint8Array as Uint8ArrayConstructor & {fromBase64?: (base64: string) => Uint8Array}
+  ).fromBase64
   if (typeof fromBase64 === 'function') {
     return fromBase64(base64)
   }
@@ -115,9 +115,7 @@ export async function encryptBlob(key: CryptoKey, blob: Blob): Promise<Blob> {
   const data = await blob.arrayBuffer()
   const iv = crypto.getRandomValues(new Uint8Array(12)) // 12 bytes for AES-GCM
   const cipherText = await crypto.subtle.encrypt({name: 'AES-GCM', iv, tagLength: 128}, key, data)
-  return new Blob([iv, new Uint8Array(cipherText)], {
-    type: 'application/octet-stream',
-  })
+  return new Blob([iv, new Uint8Array(cipherText)], {type: 'application/octet-stream'})
 }
 
 export async function decryptBlob(
@@ -129,11 +127,7 @@ export async function decryptBlob(
   const iv = new Uint8Array(encryptedArrayBuffer.slice(0, 12))
   const cipherText = encryptedArrayBuffer.slice(12)
   const plaintextArrayBuffer = await crypto.subtle.decrypt(
-    {
-      name: 'AES-GCM',
-      iv,
-      tagLength: 128,
-    },
+    {name: 'AES-GCM', iv, tagLength: 128},
     key,
     cipherText,
   )

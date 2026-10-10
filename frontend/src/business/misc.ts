@@ -69,8 +69,8 @@ export const textToTodos = (text: string): Todos => {
     todos.push(todo)
   }
 
-  return todos.length === 0
-    ? [{txt: '', done: false, id: crypto.randomUUID(), updated_at: Date.now()}]
+  return todos.length === 0 ?
+      [{txt: '', done: false, id: crypto.randomUUID(), updated_at: Date.now()}]
     : todos
 }
 
@@ -121,47 +121,26 @@ export const putToNote = (put: Put): Note => {
     archived: 0,
   }
   if (txt === null && type === 'note') {
-    return {
-      ...common,
-      type: 'note',
-      txt: '',
-    }
+    return {...common, type: 'note', txt: ''}
   } else if (txt === null && type === 'todo') {
-    return {
-      ...common,
-      type: 'todo',
-      todos: [],
-    }
+    return {...common, type: 'todo', todos: []}
   } else if (typeof txt === 'string' && type === 'note') {
     const {title, txt, labels, archived} = zodParseString(textPutTxtSchema, put.txt) ?? {
       title: '',
       txt: put.txt,
       archived: false,
     }
-    return {
-      ...common,
-      type: 'note',
-      txt,
-      title,
-      labels,
-      archived: archived ? 1 : 0,
-    }
+    return {...common, type: 'note', txt, title, labels, archived: archived ? 1 : 0}
   } else if (typeof txt === 'string' && type === 'todo') {
     const {title, todos, labels, archived} = zodParseString(todoPutTxtSchema, put.txt) ?? {
       title: '',
-      todos: put.txt
-        ? [{done: false, txt: put.txt, id: crypto.randomUUID(), updated_at: Date.now()}]
+      todos:
+        put.txt ?
+          [{done: false, txt: put.txt, id: crypto.randomUUID(), updated_at: Date.now()}]
         : [],
       archived: false,
     }
-    return {
-      ...common,
-      type: 'todo',
-      todos,
-      title,
-      labels,
-      archived: archived ? 1 : 0,
-    }
+    return {...common, type: 'todo', todos, title, labels, archived: archived ? 1 : 0}
   } else {
     throw new Error('put is not a note')
   }
@@ -308,14 +287,14 @@ export const fileToPut = (f: FileMeta): Put => {
 export const notesIsEmpty = (note: Note): boolean =>
   note.deleted_at === 0 &&
   note.title === '' &&
-  (note.type === 'note'
-    ? note.txt === ''
-    : note.todos.length === 0 || (note.todos.length === 1 && note.todos[0]!.txt === ''))
+  (note.type === 'note' ?
+    note.txt === ''
+  : note.todos.length === 0 || (note.todos.length === 1 && note.todos[0]!.txt === ''))
 
 export const mergeNoteConflicts = (
   baseVersions: Note[],
   dirtyNotes: Note[],
-  serverConflicts: Note[]
+  serverConflicts: Note[],
 ): {merged: Note[]; conflicts: Note[]} => {
   const merged: Note[] = []
   const conflicts: Note[] = []
@@ -345,7 +324,7 @@ export const mergeNoteConflicts = (
 export const mergeNoteConflict = (
   baseVersion: Note,
   dirtyNote: Note,
-  serverConflict: Note
+  serverConflict: Note,
 ): Note | null => {
   if (dirtyNote.type === 'todo') {
     return mergeTodoNoteConflict(baseVersion, dirtyNote, serverConflict)
@@ -364,7 +343,7 @@ export const todosHaveIdsAndUpdatedAt = (todos: Todos): boolean =>
 export const mergeTodoNoteConflict = (
   baseVersion: Note,
   dirtyNote: Note,
-  serverConflict: Note
+  serverConflict: Note,
 ): Note | null => {
   if (
     dirtyNote.todos === undefined ||
@@ -394,9 +373,9 @@ export const mergeTodoNoteConflict = (
     title:
       dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.title : serverConflict.title,
     archived:
-      dirtyNote.updated_at > serverConflict.updated_at
-        ? dirtyNote.archived
-        : serverConflict.archived,
+      dirtyNote.updated_at > serverConflict.updated_at ?
+        dirtyNote.archived
+      : serverConflict.archived,
     todos,
     // TODO: merge labels
     labels:
@@ -407,7 +386,7 @@ export const mergeTodoNoteConflict = (
 export const mergeTextNoteConflict = (
   baseVersion: Note,
   dirtyNote: Note,
-  serverConflict: Note
+  serverConflict: Note,
 ): Note | null => {
   if (dirtyNote.txt === undefined || serverConflict.txt === undefined) {
     return null
@@ -429,9 +408,9 @@ export const mergeTextNoteConflict = (
     title:
       dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.title : serverConflict.title,
     archived:
-      dirtyNote.updated_at > serverConflict.updated_at
-        ? dirtyNote.archived
-        : serverConflict.archived,
+      dirtyNote.updated_at > serverConflict.updated_at ?
+        dirtyNote.archived
+      : serverConflict.archived,
     version: Math.max(dirtyNote.version, serverConflict.version) + 1,
     state: 'dirty',
     deleted_at: 0,
@@ -473,14 +452,7 @@ export const fileMetaToPull = (file: FileMeta): FilePull => {
     size,
   } = file
   if (deleted_at !== 0) {
-    return {
-      deleted_at,
-      created_at,
-      id,
-      type,
-      updated_at,
-      version,
-    }
+    return {deleted_at, created_at, id, type, updated_at, version}
   } else {
     return {
       deleted_at: 0,
@@ -501,7 +473,7 @@ export const fileMetaToPull = (file: FileMeta): FilePull => {
 
 export const mergeFileConflicts = (
   dirtyFiles: FilePull[],
-  serverConflicts: FilePull[]
+  serverConflicts: FilePull[],
 ): FilePull[] =>
   serverConflicts.map((serverFile) => {
     const clientFile = dirtyFiles.find((c) => c.id === serverFile.id)
@@ -556,35 +528,26 @@ const darkColorByHue = {
 } as const
 
 export const lightColorsGradient = `linear-gradient(90deg,${Object.values(lightColorByHue).join(
-  ','
+  ',',
 )})`
 export const darkColorsGradient = `linear-gradient(90deg,${Object.values(darkColorByHue).join(
-  ','
+  ',',
 )})`
 
 export const labelBgColor = (hue: Hue, theme: ThemeName): string =>
-  theme === 'black'
-    ? 'black'
-    : theme === 'white'
-    ? 'white'
-    : hue === null
-    ? 'var(--mantine-color-body)'
-    : theme === 'dark'
-    ? darkColorByHue[hue]
-    : theme === 'light'
-    ? lightColorByHue[hue]
-    : 'var(--mantine-color-body)'
+  theme === 'black' ? 'black'
+  : theme === 'white' ? 'white'
+  : hue === null ? 'var(--mantine-color-body)'
+  : theme === 'dark' ? darkColorByHue[hue]
+  : theme === 'light' ? lightColorByHue[hue]
+  : 'var(--mantine-color-body)'
 
 export const labelBorderColor = (hue: Hue, theme: ThemeName): string | null =>
-  theme === 'black' && hue === null
-    ? 'var(--mantine-color-dark-2)'
-    : theme === 'white' && hue === null
-    ? 'var(--mantine-color-dark-1)'
-    : theme === 'black' && hue !== null
-    ? darkColorByHue[hue]
-    : theme === 'white' && hue !== null
-    ? lightColorByHue[hue]
-    : null
+  theme === 'black' && hue === null ? 'var(--mantine-color-dark-2)'
+  : theme === 'white' && hue === null ? 'var(--mantine-color-dark-1)'
+  : theme === 'black' && hue !== null ? darkColorByHue[hue]
+  : theme === 'white' && hue !== null ? lightColorByHue[hue]
+  : null
 
 export const deriveTodosData = (todos: Todo[]) => {
   const parentToChildIds: Record<string, string[]> = {}
@@ -609,7 +572,7 @@ export const deriveTodosData = (todos: Todo[]) => {
     if (!todo.done) {
       visualOrderUndone.push(
         todo.id,
-        ...(parentToChildIds[todo.id] ?? []).filter((id) => !idToTodo[id]!.done)
+        ...(parentToChildIds[todo.id] ?? []).filter((id) => !idToTodo[id]!.done),
       )
     }
   }
@@ -621,13 +584,7 @@ export const deriveTodosData = (todos: Todo[]) => {
       visualOrderDone.push(id, ...doneChildren)
     }
   }
-  return {
-    idToTodo,
-    todoTree,
-    visualOrderUndone,
-    visualOrderDone,
-    parentToChildIds,
-  }
+  return {idToTodo, todoTree, visualOrderUndone, visualOrderDone, parentToChildIds}
 }
 
 export const parseSubscriptionToken = async (token: string): Promise<Feature[]> => {

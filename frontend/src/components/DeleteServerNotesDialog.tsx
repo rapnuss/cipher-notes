@@ -14,12 +14,12 @@ import {hostingMode} from '../config'
 
 export const DeleteServerNotesDialog = () => {
   const {open, code, codeLoading, deleteLoading} = useSelector(
-    (state) => state.user.deleteServerNotesDialog
+    (state) => state.user.deleteServerNotesDialog,
   )
   return (
     <Modal opened={open} onClose={closeDeleteServerNotesDialog} title='Delete Server Notes'>
       <Stack>
-        {hostingMode === 'self' ? (
+        {hostingMode === 'self' ?
           <TextInput
             label='Password'
             type='password'
@@ -28,15 +28,14 @@ export const DeleteServerNotesDialog = () => {
             placeholder='Enter your password'
             disabled={deleteLoading}
           />
-        ) : (
-          <TextInput
+        : <TextInput
             label='Confirmation Code'
             value={code}
             onChange={(e) => deleteServerNotesCodeChanged(e.target.value)}
             placeholder='Enter the 6-digit code sent to your email'
             disabled={codeLoading || deleteLoading}
           />
-        )}
+        }
         <Group>
           <Button
             loading={deleteLoading}
@@ -58,12 +57,12 @@ export const DeleteServerNotesDialog = () => {
 
 export const DeleteAccountDialog = () => {
   const {open, code, codeLoading, deleteLoading} = useSelector(
-    (state) => state.user.deleteAccountDialog
+    (state) => state.user.deleteAccountDialog,
   )
   return (
     <Modal opened={open} onClose={closeDeleteAccountDialog} title='Delete Account'>
       <Stack>
-        {hostingMode === 'self' ? (
+        {hostingMode === 'self' ?
           <TextInput
             label='Password'
             type='password'
@@ -72,15 +71,14 @@ export const DeleteAccountDialog = () => {
             placeholder='Enter your password'
             disabled={deleteLoading}
           />
-        ) : (
-          <TextInput
+        : <TextInput
             label='Confirmation Code'
             value={code}
             onChange={(e) => deleteAccountCodeChanged(e.target.value)}
             placeholder='Enter the 6-digit code sent to your email'
             disabled={codeLoading || deleteLoading}
           />
-        )}
+        }
         <Group>
           <Button
             loading={deleteLoading}

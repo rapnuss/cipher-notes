@@ -74,17 +74,9 @@ export const Editor = ({
           caretColor: isDark ? '#fff' : '#000',
         },
         '.cm-scroller': {fontFamily: monospaceStyle.fontFamily},
-        '.cm-line': {
-          paddingLeft: 0,
-          textIndent: 0,
-        },
-        '.cm-selectionBackground': {
-          backgroundColor: (isDark ? '#fff5' : '#0005') + ' !important',
-        },
-        '.cm-placeholder': {
-          color: isDark ? '#fff' : '#000',
-          opacity: 0.5,
-        },
+        '.cm-line': {paddingLeft: 0, textIndent: 0},
+        '.cm-selectionBackground': {backgroundColor: (isDark ? '#fff5' : '#0005') + ' !important'},
+        '.cm-placeholder': {color: isDark ? '#fff' : '#000', opacity: 0.5},
       }),
     [isDark],
   )
@@ -100,9 +92,7 @@ export const Editor = ({
       EditorState.allowMultipleSelections.of(true),
       cmPlaceholder(placeholder ?? ''),
       EditorView.contentAttributes.of({spellcheck: 'true'}),
-      EditorView.editorAttributes.of({
-        'aria-labelledby': focusHintId,
-      }),
+      EditorView.editorAttributes.of({'aria-labelledby': focusHintId}),
       TextToLink,
       hyperLinkStyle,
     ],
@@ -136,16 +126,8 @@ export const Editor = ({
           },
           preventDefault: true,
         },
-        {
-          key: 'Mod-Alt-ArrowUp',
-          run: addCursorUp,
-          preventDefault: true,
-        },
-        {
-          key: 'Mod-Alt-ArrowDown',
-          run: addCursorDown,
-          preventDefault: true,
-        },
+        {key: 'Mod-Alt-ArrowUp', run: addCursorUp, preventDefault: true},
+        {key: 'Mod-Alt-ArrowDown', run: addCursorDown, preventDefault: true},
         {
           key: 'ArrowUp',
           run: (view) => {
@@ -158,11 +140,7 @@ export const Editor = ({
           },
           preventDefault: true,
         },
-        {
-          key: 'Escape',
-          run: simplifySelection,
-          stopPropagation: true,
-        },
+        {key: 'Escape', run: simplifySelection, stopPropagation: true},
         {key: 'Mod-d', run: selectNextOccurrence, preventDefault: true},
         ...defaultKeymap.filter((x) => x.key !== 'Escape'),
         indentWithTab,

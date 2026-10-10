@@ -75,7 +75,7 @@ export const TodoControl = ({
               onInsertTodo(last(todos)?.id)
               queueMicrotask(() => {
                 const tas = document.querySelectorAll(
-                  'textarea:not(:disabled)'
+                  'textarea:not(:disabled)',
                 ) as NodeListOf<HTMLTextAreaElement>
                 if (tas.length > 0) {
                   tas[tas.length - 1]?.select()
@@ -135,10 +135,7 @@ const TodoItem = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const handleRef = useRef<HTMLDivElement>(null)
-  const [dragState, setDragState] = useState<{
-    edge: Edge | null
-    indented: boolean
-  } | null>(null)
+  const [dragState, setDragState] = useState<{edge: Edge | null; indented: boolean} | null>(null)
   const data = useMemo(() => ({id: todo.id, visualIndex}), [todo.id, visualIndex])
 
   useEffect(() => {
@@ -167,23 +164,16 @@ const TodoItem = ({
           insertInSameSlot:
             source.data.id === todo.id ||
             visualIndex === undefined ||
-            (edge === 'top'
-              ? sourceVisualIndex === visualIndex - 1
-              : sourceVisualIndex === visualIndex + 1),
+            (edge === 'top' ?
+              sourceVisualIndex === visualIndex - 1
+            : sourceVisualIndex === visualIndex + 1),
         }
       },
       onDrag({self}) {
         const indented = !!self.data.indented
         const insertInSameSlot = !!self.data.insertInSameSlot
         const edge = extractClosestEdge(self.data)
-        setDragState(
-          insertInSameSlot && indented === !!todo.parent
-            ? null
-            : {
-                edge,
-                indented,
-              }
-        )
+        setDragState(insertInSameSlot && indented === !!todo.parent ? null : {edge, indented})
       },
       onDragLeave() {
         setDragState(null)
@@ -227,10 +217,9 @@ const TodoItem = ({
       >
         <IconGridDots style={{display: 'block', opacity: todo.done ? 0.2 : 0.5}} />
       </div>
-      {ghost ? (
+      {ghost ?
         <IconSquareMinus aria-label='checkbox mixed' />
-      ) : (
-        <IconsCheckbox
+      : <IconsCheckbox
           tabIndex={onTodoChecked ? undefined : -1}
           checked={todo.done}
           readOnly={!onTodoChecked}
@@ -238,7 +227,7 @@ const TodoItem = ({
           style={{marginRight: '.25rem'}}
           aria-labelledby={`todo-${todo.id}-textarea`}
         />
-      )}
+      }
       <AutoResizingTextarea
         id={`todo-${todo.id}-textarea`}
         tabIndex={onTodoChanged ? undefined : -1}

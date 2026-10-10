@@ -3,11 +3,7 @@ import {getState} from '../state/store'
 import {popHistory, pushHistory, removeHistory, setIgnorePop} from '../state/history'
 import {last} from '../util/misc'
 
-export type UseDialogBackHandlerProps = {
-  id: string
-  open: boolean
-  onClose: () => void
-}
+export type UseDialogBackHandlerProps = {id: string; open: boolean; onClose: () => void}
 
 export function useCloseOnBack({id, open, onClose}: UseDialogBackHandlerProps) {
   const prevOpen = useRef(false)

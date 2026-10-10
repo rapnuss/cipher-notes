@@ -9,33 +9,26 @@ export type LabelsState = {
   labelSelectorOpen: boolean
   activeLabel: ActiveLabel
   labelsCache: Record<string, Label>
-  dialog: {
-    open: boolean
-    id: string | null
-    hue: Hue
-    name: string
-  }
+  dialog: {open: boolean; id: string | null; hue: Hue; name: string}
 }
 export const labelsInit: LabelsState = {
   labelSelectorOpen: false,
   activeLabel: 'all',
   labelsCache: {},
-  dialog: {
-    open: false,
-    id: null,
-    hue: null,
-    name: '',
-  },
+  dialog: {open: false, id: null, hue: null, name: ''},
 }
 
 loadActiveLabelId().then((labelId) => labelSelected(labelId))
 
 labelsObservable.subscribe((labels) => {
   setState((state) => {
-    state.labels.labelsCache = labels.reduce((acc, label) => {
-      acc[label.id] = label
-      return acc
-    }, {} as Record<string, Label>)
+    state.labels.labelsCache = labels.reduce(
+      (acc, label) => {
+        acc[label.id] = label
+        return acc
+      },
+      {} as Record<string, Label>,
+    )
     if (
       state.labels.activeLabel &&
       (!(state.labels.activeLabel in state.labels.labelsCache) ||
@@ -109,7 +102,7 @@ export const createLabel = async (name: string, hue: Hue = null): Promise<Label>
 export const applyNewLabel = async (
   itemId: string,
   labelName: string,
-  itemType: 'note' | 'file'
+  itemType: 'note' | 'file',
 ) => {
   const label = await createLabel(labelName)
   if (itemType === 'note') {
@@ -172,8 +165,9 @@ export const toggleNoteLabel = (noteId: string, labelId: string) =>
     .where('id')
     .equals(noteId)
     .modify((note) => {
-      note.labels = (note.labels ?? []).includes(labelId)
-        ? note.labels?.filter((l) => l !== labelId)
+      note.labels =
+        (note.labels ?? []).includes(labelId) ?
+          note.labels?.filter((l) => l !== labelId)
         : (note.labels ?? []).concat(labelId)
       if (note.state === 'synced') {
         note.state = 'dirty'
@@ -187,8 +181,9 @@ export const toggleFileLabel = (fileId: string, labelId: string) =>
     .where('id')
     .equals(fileId)
     .modify((file) => {
-      file.labels = (file.labels ?? []).includes(labelId)
-        ? file.labels?.filter((l) => l !== labelId)
+      file.labels =
+        (file.labels ?? []).includes(labelId) ?
+          file.labels?.filter((l) => l !== labelId)
         : (file.labels ?? []).concat(labelId)
       if (file.state === 'synced') {
         file.state = 'dirty'
@@ -225,7 +220,7 @@ export const setFileMainLabel = (fileId: string, labelId: string) =>
 
 export const selectCachedLabels = createSelector(
   (state: RootState) => state.labels.labelsCache,
-  (labelsCache) => Object.values(labelsCache).sort(byProp('name'))
+  (labelsCache) => Object.values(labelsCache).sort(byProp('name')),
 )
 
 export const registerLabelsSubscriptions = () => {
