@@ -24,6 +24,13 @@ const MAX_ZOOM_FACTOR = 8
 const MAX_RENDER_DIMENSION = 4096
 const PAGE_METADATA_CONCURRENCY = 8
 const WHEEL_RENDER_SETTLE_MS = 160
+const MAX_INERTIA_VELOCITY = 6
+const INERTIA_FRICTION = 0.001
+const INERTIA_STOP_VELOCITY = 0.005
+const INERTIA_RELEASE_MAX_AGE_MS = 160
+const INERTIA_RELEASE_FRICTION = 0.01
+const VELOCITY_SMOOTHING = 0.3
+const POST_PINCH_PAN_THRESHOLD = 10
 
 const documentOptions = {
   cMapUrl: '/pdfjs/cmaps/',
@@ -33,38 +40,21 @@ const documentOptions = {
   isEvalSupported: false,
 }
 
-type PageSize = {
-  width: number
-  height: number
-}
+type PageSize = {width: number; height: number}
 
-type PendingScroll = {
-  left: number
-  top: number
-}
+type PendingScroll = {left: number; top: number}
 
-type PointerPosition = {
-  x: number
-  y: number
-}
+type PointerPosition = {x: number; y: number; time: number; pointerType: string}
 
-type PanGesture = PointerPosition &
-  PendingScroll & {
-    pointerId: number
-  }
+type PanGesture = PointerPosition & PendingScroll & {pointerId: number; active: boolean}
 
-type PinchGesture = {
-  distance: number
-  scale: number
-}
+type PinchGesture = {distance: number; scale: number}
 
-type PdfViewerProps = {
-  file: Blob
-  title?: string
-}
+type PanVelocity = {x: number; y: number; time: number}
 
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value))
+type PdfViewerProps = {file: Blob; title?: string}
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
 const getPageStart = (pageOffsets: number[], pageIndex: number, scale: number) =>
   (pageOffsets[pageIndex] ?? 0) * scale + pageIndex * PAGE_GAP
@@ -115,12 +105,7 @@ type BufferedPdfPageProps = {
   viewScale: number
 }
 
-const BufferedPdfPage = ({
-  pageNumber,
-  pageSize,
-  renderScale,
-  viewScale,
-}: BufferedPdfPageProps) => {
+const BufferedPdfPage = ({pageNumber, pageSize, renderScale, viewScale}: BufferedPdfPageProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const bufferRef = useRef<HTMLCanvasElement>(null)
   const previousRenderScaleRef = useRef(renderScale)
@@ -163,11 +148,7 @@ const BufferedPdfPage = ({
     <div className={styles.page} style={{width: viewWidth, height: viewHeight}}>
       <div
         className={styles.pageRender}
-        style={{
-          width: renderedWidth,
-          height: renderedHeight,
-          transform: `scale(${previewScale})`,
-        }}
+        style={{width: renderedWidth, height: renderedHeight, transform: `scale(${previewScale})`}}
       >
         <Page
           canvasRef={canvasRef}
@@ -190,10 +171,12 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
   const scaleRef = useRef(1)
   const renderScaleRef = useRef(1)
   const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inertiaFrameRef = useRef<number | null>(null)
   const pendingScrollRef = useRef<PendingScroll | null>(null)
   const pointersRef = useRef(new Map<number, PointerPosition>())
   const panGestureRef = useRef<PanGesture | null>(null)
   const pinchGestureRef = useRef<PinchGesture | null>(null)
+  const panVelocityRef = useRef<PanVelocity | null>(null)
   const [viewportWidth, setViewportWidth] = useState(0)
   const [scale, setScale] = useState(1)
   const [renderScale, setRenderScale] = useState(1)
@@ -293,10 +276,7 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
       const nextItemHeight = anchorPage.height * nextScale + PAGE_GAP
 
       pendingScrollRef.current = {
-        left:
-          nextContentWidth / 2 +
-          horizontalDistanceFromCenter * (nextScale / oldScale) -
-          localX,
+        left: nextContentWidth / 2 + horizontalDistanceFromCenter * (nextScale / oldScale) - localX,
         top: nextPageStart + verticalAnchor.ratio * nextItemHeight - localY,
       }
       scaleRef.current = nextScale
@@ -326,11 +306,62 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
 
   useEffect(() => clearRenderTimer, [clearRenderTimer])
 
+  const cancelInertia = useCallback(() => {
+    if (inertiaFrameRef.current === null) return
+    cancelAnimationFrame(inertiaFrameRef.current)
+    inertiaFrameRef.current = null
+  }, [])
+
+  const startInertia = useCallback(
+    (velocityX: number, velocityY: number) => {
+      const scroller = scrollerRef.current
+      if (!scroller) return
+
+      cancelInertia()
+      const initialSpeed = Math.hypot(velocityX, velocityY)
+      if (initialSpeed < INERTIA_STOP_VELOCITY) return
+      const velocityLimit = Math.min(1, MAX_INERTIA_VELOCITY / initialSpeed)
+      let x = velocityX * velocityLimit
+      let y = velocityY * velocityLimit
+      let previousTime = performance.now()
+
+      const move = (time: number) => {
+        const elapsed = Math.max(1, Math.min(32, time - previousTime))
+        previousTime = time
+        const decay = Math.exp(-INERTIA_FRICTION * elapsed)
+        x *= decay
+        y *= decay
+
+        const previousLeft = scroller.scrollLeft
+        const previousTop = scroller.scrollTop
+        scroller.scrollLeft += x * elapsed
+        scroller.scrollTop += y * elapsed
+        if (pendingScrollRef.current) {
+          pendingScrollRef.current = {left: scroller.scrollLeft, top: scroller.scrollTop}
+        }
+
+        if (scroller.scrollLeft === previousLeft) x = 0
+        if (scroller.scrollTop === previousTop) y = 0
+        if (Math.hypot(x, y) < INERTIA_STOP_VELOCITY) {
+          inertiaFrameRef.current = null
+          return
+        }
+        inertiaFrameRef.current = requestAnimationFrame(move)
+      }
+
+      inertiaFrameRef.current = requestAnimationFrame(move)
+    },
+    [cancelInertia],
+  )
+
+  useEffect(() => cancelInertia, [cancelInertia])
+
   useEffect(() => {
     const scroller = scrollerRef.current
     if (!scroller) return
 
     const onWheel = (event: WheelEvent) => {
+      cancelInertia()
       if (!event.ctrlKey) return
       event.preventDefault()
       const pixels =
@@ -343,20 +374,18 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
 
     scroller.addEventListener('wheel', onWheel, {passive: false})
     return () => scroller.removeEventListener('wheel', onWheel)
-  }, [scheduleRenderScale, zoomAt])
+  }, [cancelInertia, scheduleRenderScale, zoomAt])
 
   const getCurrentScroll = useCallback(() => {
     const scroller = scrollerRef.current
     return (
-      pendingScrollRef.current ?? {
-        left: scroller?.scrollLeft ?? 0,
-        top: scroller?.scrollTop ?? 0,
-      }
+      pendingScrollRef.current ?? {left: scroller?.scrollLeft ?? 0, top: scroller?.scrollTop ?? 0}
     )
   }, [])
 
   const startPinch = useCallback(() => {
     clearRenderTimer()
+    panVelocityRef.current = null
     const points = [...pointersRef.current.values()]
     const first = points[0]
     const second = points[1]
@@ -369,10 +398,11 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
   }, [clearRenderTimer])
 
   const startPan = useCallback(
-    (pointerId: number, point: PointerPosition) => {
+    (pointerId: number, point: PointerPosition, active = true) => {
       const scroll = getCurrentScroll()
-      panGestureRef.current = {...point, ...scroll, pointerId}
+      panGestureRef.current = {...point, ...scroll, pointerId, active}
       pinchGestureRef.current = null
+      panVelocityRef.current = {x: 0, y: 0, time: point.time}
     },
     [getCurrentScroll],
   )
@@ -381,22 +411,34 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
     (event: ReactPointerEvent<HTMLDivElement>) => {
       if (event.pointerType === 'mouse' && event.button !== 0) return
       event.preventDefault()
+      cancelInertia()
       event.currentTarget.setPointerCapture(event.pointerId)
-      const point = {x: event.clientX, y: event.clientY}
+      const point = {
+        x: event.clientX,
+        y: event.clientY,
+        time: event.timeStamp,
+        pointerType: event.pointerType,
+      }
       pointersRef.current.set(event.pointerId, point)
 
       if (pointersRef.current.size === 1) startPan(event.pointerId, point)
       else startPinch()
     },
-    [startPan, startPinch],
+    [cancelInertia, startPan, startPinch],
   )
 
   const onPointerMove = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
       const pointers = pointersRef.current
-      if (!pointers.has(event.pointerId)) return
+      const previousPoint = pointers.get(event.pointerId)
+      if (!previousPoint) return
       event.preventDefault()
-      pointers.set(event.pointerId, {x: event.clientX, y: event.clientY})
+      pointers.set(event.pointerId, {
+        x: event.clientX,
+        y: event.clientY,
+        time: event.timeStamp,
+        pointerType: event.pointerType,
+      })
 
       if (pointers.size >= 2) {
         if (!pinchGestureRef.current) startPinch()
@@ -416,6 +458,50 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
       const pan = panGestureRef.current
       const scroller = scrollerRef.current
       if (!pan || !scroller || pan.pointerId !== event.pointerId) return
+      if (!pan.active) {
+        const movementX = event.clientX - pan.x
+        const movementY = event.clientY - pan.y
+        const distance = Math.hypot(movementX, movementY)
+        panVelocityRef.current = {x: 0, y: 0, time: event.timeStamp}
+        if (distance <= POST_PINCH_PAN_THRESHOLD) return
+
+        const activeMovementRatio = (distance - POST_PINCH_PAN_THRESHOLD) / distance
+        const nextScroll = {
+          left: pan.left - movementX * activeMovementRatio,
+          top: pan.top - movementY * activeMovementRatio,
+        }
+        scroller.scrollLeft = nextScroll.left
+        scroller.scrollTop = nextScroll.top
+        if (pendingScrollRef.current) pendingScrollRef.current = nextScroll
+        panGestureRef.current = {
+          ...pan,
+          x: event.clientX,
+          y: event.clientY,
+          time: event.timeStamp,
+          left: nextScroll.left,
+          top: nextScroll.top,
+          active: true,
+        }
+        return
+      }
+      const elapsed = event.timeStamp - previousPoint.time
+      if (elapsed > 0) {
+        const rawVelocityX = -(event.clientX - previousPoint.x) / elapsed
+        const rawVelocityY = -(event.clientY - previousPoint.y) / elapsed
+        const previousVelocity = panVelocityRef.current
+        const hasPreviousMovement = previousVelocity !== null && previousVelocity.time > pan.time
+        panVelocityRef.current = {
+          x:
+            hasPreviousMovement ?
+              previousVelocity.x * (1 - VELOCITY_SMOOTHING) + rawVelocityX * VELOCITY_SMOOTHING
+            : rawVelocityX,
+          y:
+            hasPreviousMovement ?
+              previousVelocity.y * (1 - VELOCITY_SMOOTHING) + rawVelocityY * VELOCITY_SMOOTHING
+            : rawVelocityY,
+          time: event.timeStamp,
+        }
+      }
       const nextScroll = {
         left: pan.left - (event.clientX - pan.x),
         top: pan.top - (event.clientY - pan.y),
@@ -431,6 +517,17 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
     (event: ReactPointerEvent<HTMLDivElement>) => {
       const pointers = pointersRef.current
       const wasPinching = pointers.size >= 2
+      const endingPointer = pointers.get(event.pointerId)
+      const panVelocity = panVelocityRef.current
+      const releaseAge = panVelocity ? Math.max(0, event.timeStamp - panVelocity.time) : Infinity
+      const shouldStartInertia =
+        event.type === 'pointerup' &&
+        !wasPinching &&
+        pointers.size === 1 &&
+        (endingPointer?.pointerType === 'touch' || endingPointer?.pointerType === 'pen') &&
+        panGestureRef.current?.active === true &&
+        panVelocity !== null &&
+        releaseAge <= INERTIA_RELEASE_MAX_AGE_MS
       if (!pointers.delete(event.pointerId)) return
 
       if (pointers.size >= 2) {
@@ -438,15 +535,44 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
         return
       }
 
-      const remaining = pointers.entries().next().value as
-        | [number, PointerPosition]
-        | undefined
+      const remaining = pointers.entries().next().value as [number, PointerPosition] | undefined
       if (wasPinching) commitRenderScale()
-      if (remaining) startPan(remaining[0], remaining[1])
+      if (remaining) startPan(remaining[0], remaining[1], !wasPinching)
       else {
         panGestureRef.current = null
         pinchGestureRef.current = null
+        panVelocityRef.current = null
+        if (shouldStartInertia && panVelocity) {
+          const releaseDecay = Math.exp(-INERTIA_RELEASE_FRICTION * releaseAge)
+          startInertia(panVelocity.x * releaseDecay, panVelocity.y * releaseDecay)
+        }
       }
+    },
+    [commitRenderScale, startInertia, startPan, startPinch],
+  )
+
+  const onPointerCaptureLost = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      const pointerId = event.pointerId
+      requestAnimationFrame(() => {
+        const pointers = pointersRef.current
+        const wasPinching = pointers.size >= 2
+        if (!pointers.delete(pointerId)) return
+
+        if (pointers.size >= 2) {
+          startPinch()
+          return
+        }
+
+        const remaining = pointers.entries().next().value as [number, PointerPosition] | undefined
+        if (wasPinching) commitRenderScale()
+        if (remaining) startPan(remaining[0], remaining[1], !wasPinching)
+        else {
+          panGestureRef.current = null
+          pinchGestureRef.current = null
+          panVelocityRef.current = null
+        }
+      })
     },
     [commitRenderScale, startPan, startPinch],
   )
@@ -461,7 +587,7 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}
       onPointerCancel={onPointerEnd}
-      onLostPointerCapture={onPointerEnd}
+      onLostPointerCapture={onPointerCaptureLost}
     >
       {initialScale === null ?
         <div className={styles.message}>Preparing PDF…</div>
@@ -492,7 +618,8 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
               </div>
             )
           })}
-        </div>}
+        </div>
+      }
     </div>
   )
 }
