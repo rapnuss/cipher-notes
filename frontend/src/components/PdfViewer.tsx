@@ -35,6 +35,7 @@ const POST_PINCH_PAN_THRESHOLD = 10
 const documentOptions = {
   cMapUrl: '/pdfjs/cmaps/',
   cMapPacked: true,
+  iccUrl: '/pdfjs/iccs/',
   standardFontDataUrl: '/pdfjs/standard_fonts/',
   wasmUrl: '/pdfjs/wasm/',
   isEvalSupported: false,
