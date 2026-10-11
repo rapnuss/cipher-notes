@@ -1,4 +1,4 @@
-import {Drawer, Flex, Menu, Popover} from '@mantine/core'
+import {Button, Drawer, Flex, Menu, NumberInput, Popover, Text} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {
   copyFileToClipboard,
@@ -29,23 +29,117 @@ import {IconDownload} from './icons/IconDownload'
 import {downloadBlob, formatDateTime} from '../util/misc'
 import {notifications} from '@mantine/notifications'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
-import {lazy, Suspense, useEffect} from 'react'
+import {lazy, Suspense, useEffect, useState, type SyntheticEvent} from 'react'
 import {useHotkeys} from '@mantine/hooks'
 import {FileIconWithExtension} from './FileIconWithExtension'
 import {isAndroid, isIOS} from '../helpers/bowser'
 import {IconCopy} from './icons/IconCopy'
 import {IconClockPlus} from './icons/IconClockPlus'
 import {IconClockEdit} from './icons/IconClockEdit'
+import type {PdfPageNavigation} from './PdfViewer'
 
 const PdfViewer = lazy(() => import('./PdfViewer').then((module) => ({default: module.PdfViewer})))
 
 const fileNotFound = Symbol('file not found')
+
+const PdfPageControl = ({navigation}: {navigation: PdfPageNavigation}) => {
+  const [opened, setOpened] = useState(false)
+  const [page, setPage] = useState<string | number>(navigation.currentPage)
+  const pageNumber = Number(page)
+  const isValidPage =
+    Number.isInteger(pageNumber) && pageNumber >= 1 && pageNumber <= navigation.totalPages
+
+  const toggle = () => {
+    if (!opened) setPage(navigation.currentPage)
+    setOpened(!opened)
+  }
+
+  const submit = (event: SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!isValidPage) return
+    navigation.goToPage(pageNumber)
+    setOpened(false)
+  }
+
+  return (
+    <Popover
+      width={240}
+      position='top'
+      withArrow
+      shadow='md'
+      trapFocus={!isIOS()}
+      closeOnEscape={false}
+      closeOnClickOutside
+      opened={opened}
+      onDismiss={() => setOpened(false)}
+    >
+      <Popover.Target>
+        <ActionIconWithText
+          title={`Page ${navigation.currentPage} of ${navigation.totalPages}. Go to page`}
+          text='go to'
+          onClick={toggle}
+          style={{width: 'auto', paddingInline: '.25rem'}}
+        >
+          <div
+            style={{
+              fontVariantNumeric: 'tabular-nums',
+              whiteSpace: 'nowrap',
+              fontSize: '0.75rem',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {String(navigation.currentPage).padStart(String(navigation.totalPages).length, '0')}/
+            {navigation.totalPages}
+          </div>
+        </ActionIconWithText>
+      </Popover.Target>
+      <Popover.Dropdown>
+        <form
+          onSubmit={submit}
+          onKeyDown={(event) => {
+            if (event.key !== 'Escape') return
+            event.stopPropagation()
+            setOpened(false)
+          }}
+        >
+          <Text size='sm' fw={600} mb='xs'>
+            Go to page
+          </Text>
+          <Flex gap='xs' align='flex-end'>
+            <NumberInput
+              value={page}
+              onChange={setPage}
+              min={1}
+              max={navigation.totalPages}
+              allowDecimal={false}
+              allowNegative={false}
+              clampBehavior='strict'
+              hideControls
+              selectAllOnFocus
+              type='tel'
+              autoFocus
+              aria-label={`Page number, from 1 to ${navigation.totalPages}`}
+              style={{flex: '1 1 0'}}
+            />
+            <Button type='submit' disabled={!isValidPage}>
+              Go
+            </Button>
+          </Flex>
+        </form>
+      </Popover.Dropdown>
+    </Popover>
+  )
+}
 
 export const OpenFileDialog = () => {
   const theme = useThemeName()
   const openFile = useSelector((state) => state.files.openFile)
   const {moreMenuOpen, labelDropdownOpen} = useSelector((state) => state.files.fileDialog)
   const labelsCache = useSelector((state) => state.labels.labelsCache)
+  const [pdfPageNavigation, setPdfPageNavigation] = useState<PdfPageNavigation | null>(null)
   const open = openFile !== null
   const file = useLiveQuery(
     async () => (openFile ? ((await db.files_meta.get(openFile.id)) ?? fileNotFound) : undefined),
@@ -166,7 +260,12 @@ export const OpenFileDialog = () => {
           }
         >
           {fileBlob ?
-            <PdfViewer key={file.id} file={fileBlob} title={file.title} />
+            <PdfViewer
+              key={file.id}
+              file={fileBlob}
+              title={file.title}
+              onPageNavigationChange={setPdfPageNavigation}
+            />
           : <div
               style={{
                 flex: '1 1 0',
@@ -261,6 +360,10 @@ export const OpenFileDialog = () => {
             </Menu.Item>
           </Menu.Dropdown>
         </Menu>
+        <div style={{flex: '1 1 0'}} />
+        {file.mime === 'application/pdf' && pdfPageNavigation && (
+          <PdfPageControl navigation={pdfPageNavigation} />
+        )}
         <div style={{flex: '1 1 0'}} />
         <Popover
           width='300px'

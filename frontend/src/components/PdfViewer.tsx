@@ -41,7 +41,17 @@ type PinchGesture = {distance: number; scale: number}
 
 type PanVelocity = {x: number; y: number; time: number}
 
-type PdfViewerProps = {file: Blob; title?: string}
+export type PdfPageNavigation = {
+  currentPage: number
+  totalPages: number
+  goToPage: (pageNumber: number) => void
+}
+
+type PdfViewerProps = {
+  file: Blob
+  title?: string
+  onPageNavigationChange?: (navigation: PdfPageNavigation | null) => void
+}
 
 const getPageStart = (pageOffsets: number[], pageIndex: number, scale: number) =>
   (pageOffsets[pageIndex] ?? 0) * scale + pageIndex * PAGE_GAP
@@ -181,7 +191,13 @@ const BufferedPdfPage = ({
   )
 }
 
-const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
+const PdfPages = ({
+  pageSizes,
+  onPageNavigationChange,
+}: {
+  pageSizes: PageSize[]
+  onPageNavigationChange?: (navigation: PdfPageNavigation | null) => void
+}) => {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const scaleRef = useRef(1)
   const renderScaleRef = useRef(1)
@@ -227,6 +243,8 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
     if (!zoomPinnedPages) return indexes
     return [...new Set([...zoomPinnedPages, ...indexes])].sort((a, b) => a - b)
   }, [pageOffsets, pageSizes, scale, scrollTop, viewportHeight, zoomPinnedPages])
+  const currentPage =
+    getVerticalAnchor(pageSizes, pageOffsets, scrollTop + viewportHeight / 2, scale).index + 1
 
   useLayoutEffect(() => {
     const scroller = scrollerRef.current
@@ -376,6 +394,35 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
     cancelAnimationFrame(inertiaFrameRef.current)
     inertiaFrameRef.current = null
   }, [])
+
+  const goToPage = useCallback(
+    (pageNumber: number) => {
+      const scroller = scrollerRef.current
+      if (!scroller) return
+
+      cancelInertia()
+      pendingScrollRef.current = null
+      const pageIndex = clamp(Math.trunc(pageNumber) - 1, 0, pageSizes.length - 1)
+      scroller.scrollTop = getPageStart(pageOffsets, pageIndex, scaleRef.current)
+      setScrollTop(scroller.scrollTop)
+    },
+    [cancelInertia, pageOffsets, pageSizes.length, setScrollTop],
+  )
+
+  useEffect(() => {
+    onPageNavigationChange?.({
+      currentPage,
+      totalPages: pageSizes.length,
+      goToPage,
+    })
+  }, [currentPage, goToPage, onPageNavigationChange, pageSizes.length])
+
+  useEffect(
+    () => () => {
+      onPageNavigationChange?.(null)
+    },
+    [onPageNavigationChange],
+  )
 
   const startInertia = useCallback(
     (velocityX: number, velocityY: number) => {
@@ -699,7 +746,11 @@ const PdfPages = ({pageSizes}: {pageSizes: PageSize[]}) => {
   )
 }
 
-export const PdfViewer = ({file, title = 'PDF document'}: PdfViewerProps) => {
+export const PdfViewer = ({
+  file,
+  title = 'PDF document',
+  onPageNavigationChange,
+}: PdfViewerProps) => {
   const loadGeneration = useRef(0)
   const [metadata, setMetadata] = useState<{
     file: Blob
@@ -744,7 +795,10 @@ export const PdfViewer = ({file, title = 'PDF document'}: PdfViewerProps) => {
         {metadataError ?
           <div className={styles.message}>{metadataError}</div>
         : pageSizes.length > 0 ?
-          <PdfPages pageSizes={pageSizes} />
+          <PdfPages
+            pageSizes={pageSizes}
+            onPageNavigationChange={onPageNavigationChange}
+          />
         : <div className={styles.message}>Preparing PDF…</div>}
       </Document>
     </div>
