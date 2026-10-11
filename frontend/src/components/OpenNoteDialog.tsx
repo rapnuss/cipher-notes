@@ -16,6 +16,7 @@ import {
   setLabelDropdownOpen,
   openNoteArchivedToggled,
   setMoreMenuOpen,
+  noteScrollPositionChanged,
 } from '../state/notes'
 import {IconArrowBackUp} from './icons/IconArrowBackUp'
 import {IconArrowForwardUp} from './icons/IconArrowForwardUp'
@@ -46,6 +47,8 @@ import {useRef} from 'react'
 import {IconClockPlus} from './icons/IconClockPlus'
 import {IconClockEdit} from './icons/IconClockEdit'
 import {formatDateTime} from '../util/misc'
+import {useCurrentCallback} from '../util/useCurrentCallback'
+import {getEditorScrollPosition} from '../helpers/editorScrollPosition'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
@@ -74,10 +77,17 @@ export const OpenNoteDialog = () => {
     openNote?.id ?? null,
   )
   const open = !!openNote
-  useCloseOnBack({id: 'open-note-dialog', open, onClose: noteClosed})
   const isNewNote =
     !!openNote && openNote.type === 'note' && openNote.txt === '' && openNote.title === ''
   const viewRef = useRef<EditorView | null>(null)
+  const closeNote = useCurrentCallback(async () => {
+    const view = viewRef.current
+    if (openNote?.type === 'note' && view) {
+      await noteScrollPositionChanged(openNote.id, getEditorScrollPosition(view))
+    }
+    await noteClosed()
+  })
+  useCloseOnBack({id: 'open-note-dialog', open, onClose: closeNote})
   useHotkeys(
     [
       [
@@ -103,7 +113,7 @@ export const OpenNoteDialog = () => {
               button.focus()
             }
           } else if (open) {
-            noteClosed()
+            closeNote()
           }
         },
       ],
@@ -118,7 +128,7 @@ export const OpenNoteDialog = () => {
       size='100%'
       withCloseButton={false}
       closeOnEscape={false}
-      onClose={noteClosed}
+      onClose={closeNote}
       styles={{
         content: {
           height: 'var(--viewport-height, 100dvh)',
@@ -179,7 +189,7 @@ export const OpenNoteDialog = () => {
             viewRef.current?.focus()
           }
         }}
-        data-autofocus={isNewNote ? true : undefined}
+        data-autofocus={isNewNote || note?.type === 'todo' ? true : undefined}
       />
       {openNote?.type === 'note' ?
         <Editor
@@ -193,6 +203,8 @@ export const OpenNoteDialog = () => {
           id='open-note-editor'
           autoFocus={isDesktop() && !isNewNote}
           viewCb={(view) => (viewRef.current = view)}
+          initialScrollPosition={openNote.scroll_pos}
+          onScrollPositionChange={(position) => noteScrollPositionChanged(openNote.id, position)}
         />
       : openNote?.type === 'todo' ?
         <TodoControl
@@ -206,7 +218,8 @@ export const OpenNoteDialog = () => {
           onUndo={undo}
           onRedo={redo}
           onUp={focusTitleInput}
-          autoFocus={isDesktop() && !isNewNote}
+          initialScrollPosition={openNote.scroll_pos}
+          onScrollPositionChange={(position) => noteScrollPositionChanged(openNote.id, position)}
         />
       : null}
       <Flex gap='xs'>
@@ -350,7 +363,7 @@ export const OpenNoteDialog = () => {
         >
           <IconArrowForwardUp />
         </ActionIconWithText>
-        <ActionIconWithText title='Close note' text='close' onClick={noteClosed}>
+        <ActionIconWithText title='Close note' text='close' onClick={closeNote}>
           <IconX />
         </ActionIconWithText>
       </Flex>

@@ -9,11 +9,12 @@ import {
   openFileTitleChanged,
   setLabelDropdownOpen,
   setMoreMenuOpen,
+  fileScrollPositionChanged,
 } from '../state/files'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
 import {ImageViewer} from './ImageViewer'
-import {Hue} from '../business/models'
+import {FileScrollPosition, Hue} from '../business/models'
 import {useThemeName} from '../helpers/useMyColorScheme'
 import {getFilename, labelBgColor, labelBorderColor} from '../business/misc'
 import {TextViewer} from './TextViewer'
@@ -37,6 +38,7 @@ import {IconCopy} from './icons/IconCopy'
 import {IconClockPlus} from './icons/IconClockPlus'
 import {IconClockEdit} from './icons/IconClockEdit'
 import type {PdfPageNavigation} from './PdfViewer'
+import {useCurrentCallback} from '../util/useCurrentCallback'
 
 const PdfViewer = lazy(() => import('./PdfViewer').then((module) => ({default: module.PdfViewer})))
 
@@ -140,6 +142,9 @@ export const OpenFileDialog = () => {
   const {moreMenuOpen, labelDropdownOpen} = useSelector((state) => state.files.fileDialog)
   const labelsCache = useSelector((state) => state.labels.labelsCache)
   const [pdfPageNavigation, setPdfPageNavigation] = useState<PdfPageNavigation | null>(null)
+  const storeScrollPosition = useCurrentCallback((position: FileScrollPosition) => {
+    if (openFile) fileScrollPositionChanged(openFile.id, position)
+  })
   const open = openFile !== null
   const file = useLiveQuery(
     async () => (openFile ? ((await db.files_meta.get(openFile.id)) ?? fileNotFound) : undefined),
@@ -243,7 +248,12 @@ export const OpenFileDialog = () => {
           File not downloaded
         </div>
       : file.mime.startsWith('image/') ?
-        <ImageViewer src={src} alt={file.title} />
+        <ImageViewer
+          src={src}
+          alt={file.title}
+          initialScrollPosition={file.scroll_pos}
+          onScrollPositionChange={storeScrollPosition}
+        />
       : file.mime === 'application/pdf' ?
         <Suspense
           fallback={
@@ -264,6 +274,8 @@ export const OpenFileDialog = () => {
               key={file.id}
               file={fileBlob}
               title={file.title}
+              scrollPosition={file.scroll_pos}
+              onScrollPositionChange={storeScrollPosition}
               onPageNavigationChange={setPdfPageNavigation}
             />
           : <div
@@ -292,7 +304,11 @@ export const OpenFileDialog = () => {
           <audio style={{flex: '0 0 auto'}} src={src} controls />
         </div>
       : file.mime.startsWith('text/') || file.mime === 'application/json' ?
-        <TextViewer src={src} />
+        <TextViewer
+          src={src}
+          initialScrollPosition={file.scroll_pos?.type === 'text' ? file.scroll_pos : null}
+          onScrollPositionChange={storeScrollPosition}
+        />
       : <div
           style={{flex: '1 1 0', display: 'flex', justifyContent: 'center', alignItems: 'center'}}
         >

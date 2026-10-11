@@ -5,6 +5,7 @@ import {
   FileBlob,
   FileMeta,
   FilePullWithState,
+  FileScrollPosition,
 } from '../business/models'
 import {comlink} from '../comlink'
 import {db, hasUnsyncedBlobsObservable} from '../db'
@@ -46,6 +47,9 @@ export const setMoreMenuOpen = (open: boolean) =>
   setState((state) => {
     state.files.fileDialog.moreMenuOpen = open
   })
+export const fileScrollPositionChanged = (id: string, scroll_pos: FileScrollPosition) => {
+  void db.files_meta.update(id, {scroll_pos})
+}
 
 export const openFileArchivedToggled = () =>
   setState((state) => {
@@ -228,6 +232,7 @@ export const importFiles = async (files: Iterable<File>, activeLabel: ActiveLabe
         archived: 0,
         has_thumb: 0,
         size: file.size,
+        scroll_pos: null,
       }
       const blob: FileBlob = {id, blob: file}
       await db.transaction('rw', db.files_meta, db.files_blob, async (tx) => {

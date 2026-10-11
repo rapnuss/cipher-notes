@@ -119,6 +119,7 @@ export const putToNote = (put: Put): Note => {
     state: 'synced',
     title: '',
     archived: 0,
+    scroll_pos: null,
   }
   if (txt === null && type === 'note') {
     return {...common, type: 'note', txt: ''}
@@ -380,6 +381,7 @@ export const mergeTodoNoteConflict = (
     // TODO: merge labels
     labels:
       dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.labels : serverConflict.labels,
+    scroll_pos: dirtyNote.scroll_pos,
   }
 }
 
@@ -417,6 +419,7 @@ export const mergeTextNoteConflict = (
     // TODO: merge labels
     labels:
       dirtyNote.updated_at > serverConflict.updated_at ? dirtyNote.labels : serverConflict.labels,
+    scroll_pos: dirtyNote.scroll_pos,
   }
 }
 

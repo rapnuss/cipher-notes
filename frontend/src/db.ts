@@ -67,6 +67,35 @@ db.version(7).stores({
   files_thumb: 'id',
 })
 
+db.version(8)
+  .stores({
+    notes: 'id, created_at, updated_at, version, state, deleted_at, type, archived',
+    files_meta:
+      'id, created_at, updated_at, deleted_at, state, ext, mime, archived, has_thumb, size, blob_state',
+  })
+  .upgrade(async (tx) => {
+    await Promise.all([
+      tx
+        .table('notes')
+        .toCollection()
+        .modify((note) => {
+          note.scroll_pos = null
+        }),
+      tx
+        .table('note_base_versions')
+        .toCollection()
+        .modify((note) => {
+          note.scroll_pos = null
+        }),
+      tx
+        .table('files_meta')
+        .toCollection()
+        .modify((file) => {
+          file.scroll_pos = null
+        }),
+    ])
+  })
+
 export const distinctUntilChanged = <T>(observable: Observable<T>): Observable<T> => {
   function subscribe(observerOrNext?: Observer<T> | ((value: T) => void)): Subscription
   function subscribe(
