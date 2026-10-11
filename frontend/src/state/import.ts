@@ -217,6 +217,7 @@ export const importNotes = async (): Promise<void> => {
           deleted_at: 0,
           archived: importedNote.archived ? 1 : 0,
           labels,
+          scroll_pos: existing?.scroll_pos ?? null,
         })
       } else if (txt !== undefined) {
         notesToUpsert.push({
@@ -231,6 +232,7 @@ export const importNotes = async (): Promise<void> => {
           deleted_at: 0,
           archived: importedNote.archived ? 1 : 0,
           labels,
+          scroll_pos: existing?.scroll_pos ?? null,
         })
       }
     }
@@ -272,6 +274,7 @@ export const importNotes = async (): Promise<void> => {
         state: 'dirty',
         version,
         blob_state: 'local',
+        scroll_pos: existing?.scroll_pos ?? null,
       })
     }
 
@@ -355,6 +358,7 @@ export const keepImportNotes = async (): Promise<void> => {
         version: 1,
         labels: importNote.labels?.map((l) => nameToId[l.name]!),
         archived: importNote.isArchived ? 1 : 0,
+        scroll_pos: null,
       }
       const filesMeta: FileMeta[] =
         importNote.attachments?.map((a) => ({
@@ -374,6 +378,7 @@ export const keepImportNotes = async (): Promise<void> => {
           has_thumb: 0,
           size: 0,
           blob_state: 'local',
+          scroll_pos: null,
         })) ?? []
       for (let i = filesMeta.length - 1; i >= 0; --i) {
         const fileMeta = filesMeta[i]!

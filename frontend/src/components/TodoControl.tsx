@@ -1,6 +1,6 @@
 import {Divider, Flex, Stack, UnstyledButton} from '@mantine/core'
-import {Todo, Todos} from '../business/models'
-import {useEffect, useMemo, useRef, useState} from 'react'
+import {NoteScrollPosition, Todo, Todos} from '../business/models'
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react'
 import {draggable, dropTargetForElements} from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
 import {attachClosestEdge} from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge/attach-closest-edge'
 import {extractClosestEdge} from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge/extract-closest-edge'
@@ -14,6 +14,8 @@ import {IconSquareMinus} from './icons/IconSquareMinus'
 import {moveTodo} from '../state/notes'
 import {deriveTodosData} from '../business/misc'
 import {last} from '../util/misc'
+import {observeScrollPosition} from '../util/observeScrollPosition'
+import {useCurrentCallback} from '../util/useCurrentCallback'
 
 export type TodoControlProps = {
   todos: Todos
@@ -27,6 +29,8 @@ export type TodoControlProps = {
   onMoveTodo?: typeof moveTodo
   onMoveTodoByOne?: (id: string, direction: 'up' | 'down') => void
   autoFocus?: boolean
+  initialScrollPosition?: NoteScrollPosition | null
+  onScrollPositionChange?: (position: NoteScrollPosition) => void
 }
 export const TodoControl = ({
   todos,
@@ -40,10 +44,33 @@ export const TodoControl = ({
   onMoveTodo,
   onMoveTodoByOne,
   autoFocus,
+  initialScrollPosition,
+  onScrollPositionChange,
 }: TodoControlProps) => {
   const {idToTodo, visualOrderUndone, visualOrderDone} = deriveTodosData(todos)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const initialScrollPositionRef = useRef(initialScrollPosition)
+  const storesScrollPosition = onScrollPositionChange !== undefined
+  const currentOnScrollPositionChange = useCurrentCallback(
+    (position: NoteScrollPosition) => onScrollPositionChange?.(position),
+  )
+  useLayoutEffect(() => {
+    const element = scrollRef.current
+    if (!element || !storesScrollPosition) return
+    return observeScrollPosition(
+      element,
+      {
+        top:
+          initialScrollPositionRef.current?.type === 'scroll' ?
+            initialScrollPositionRef.current.top
+          : 0,
+        left: 0,
+      },
+      ({top}) => currentOnScrollPositionChange({type: 'scroll', top}),
+    )
+  }, [currentOnScrollPositionChange, storesScrollPosition])
   return (
-    <Stack flex={1} style={{overflowY: 'auto', paddingTop: '1px'}} gap={0}>
+    <Stack ref={scrollRef} flex={1} style={{overflowY: 'auto', paddingTop: '1px'}} gap={0}>
       <style scoped>{`
         textarea:disabled {
           color: var(--mantine-color-text);

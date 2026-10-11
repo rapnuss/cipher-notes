@@ -30,7 +30,8 @@ export const pickServerNote = async () => {
   const serveNote = conflicts[0]
   if (!serveNote) return
 
-  await db.notes.put(serveNote)
+  const localNote = await db.notes.get(serveNote.id)
+  await db.notes.put({...serveNote, scroll_pos: localNote?.scroll_pos ?? null})
 
   setState((state) => {
     state.conflicts.conflicts = state.conflicts.conflicts.slice(1)

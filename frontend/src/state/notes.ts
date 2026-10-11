@@ -13,6 +13,7 @@ import {
   filePullDefExtraKeys,
   defaultSelection,
   CMSelection,
+  NoteScrollPosition,
 } from '../business/models'
 import {getState, setState, subscribe} from './store'
 import {
@@ -112,6 +113,15 @@ export const setMoreMenuOpen = (open: boolean) =>
   setState((state) => {
     state.notes.noteDialog.moreMenuOpen = open
   })
+export const noteScrollPositionChanged = (id: string, scroll_pos: NoteScrollPosition) => {
+  setState((state) => {
+    if (state.notes.openNote?.id === id) state.notes.openNote.scroll_pos = scroll_pos
+  })
+  return db.notes.update(id, {scroll_pos}).catch((error) => {
+    console.error(error)
+    return 0
+  })
+}
 export const noteOpened = async (id: string) => {
   const note = await db.notes.get(id)
   if (!note || note.deleted_at !== 0) return
@@ -124,6 +134,7 @@ export const noteOpened = async (id: string) => {
         title: note.title,
         updatedAt: note.updated_at,
         archived: note.archived === 1,
+        scroll_pos: note.scroll_pos,
       }
     } else {
       state.notes.openNote = {
@@ -134,6 +145,7 @@ export const noteOpened = async (id: string) => {
         updatedAt: note.updated_at,
         archived: note.archived === 1,
         selections: [defaultSelection],
+        scroll_pos: note.scroll_pos,
       }
     }
   })
@@ -186,6 +198,7 @@ export const addNote = async () => {
     title: '',
     labels: activeLabelIsUuid(activeLabel) ? [activeLabel] : undefined,
     archived: 0,
+    scroll_pos: null,
   }
   await db.notes.add(note)
 
@@ -198,6 +211,7 @@ export const addNote = async () => {
       updatedAt: now,
       archived: false,
       selections: [defaultSelection],
+      scroll_pos: null,
     }
   })
 }
@@ -225,6 +239,7 @@ export const openNoteTypeToggled = () =>
         title: state.notes.openNote.title,
         updatedAt: Date.now(),
         archived: state.notes.openNote.archived,
+        scroll_pos: state.notes.openNote.scroll_pos,
       }
     } else {
       state.notes.openNote = {
@@ -235,6 +250,7 @@ export const openNoteTypeToggled = () =>
         updatedAt: Date.now(),
         archived: state.notes.openNote.archived,
         selections: [defaultSelection],
+        scroll_pos: state.notes.openNote.scroll_pos,
       }
     }
   })
@@ -749,7 +765,15 @@ export const syncNotes = nonConcurrent(async () => {
           .toArray()
         await tx.files_meta.bulkPut(
           insertFileIds
-            .map((id) => ({...filesToStore[id]!, has_thumb: 0, blob_state: 'remote'}) as const)
+            .map(
+              (id) =>
+                ({
+                  ...filesToStore[id]!,
+                  has_thumb: 0,
+                  blob_state: 'remote',
+                  scroll_pos: null,
+                }) as const,
+            )
             .filter((f) => f.title !== undefined),
         )
 
@@ -769,7 +793,7 @@ export const syncNotes = nonConcurrent(async () => {
             if (curr.version >= toStore.version && curr.updated_at !== toStore.updated_at) {
               return
             }
-            ref.value = toStore
+            ref.value = {...toStore, scroll_pos: curr.scroll_pos}
             if (toStore.state === 'synced') baseVersions.push(toStore)
           })
 
@@ -866,6 +890,7 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
             txt: note.txt,
             updatedAt: note.updated_at,
             archived: note.archived === 1,
+            scroll_pos: openNote.scroll_pos,
             selections:
               (
                 'selections' in openNote && openNote.selections // TODO: check if we need to clamp selections
@@ -880,6 +905,7 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
             todos: note.todos,
             updatedAt: note.updated_at,
             archived: note.archived === 1,
+            scroll_pos: openNote.scroll_pos,
           }
     })
   }

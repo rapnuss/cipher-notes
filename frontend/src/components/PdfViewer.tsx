@@ -12,6 +12,7 @@ import {Document, Page} from 'react-pdf'
 import {pdfDocumentOptions} from '../helpers/pdf'
 import styles from './PdfViewer.module.css'
 import {clamp} from '../util/misc'
+import {FileScrollPosition} from '../business/models'
 
 const PAGE_GAP = 16
 const HORIZONTAL_PADDING = 32
@@ -28,6 +29,7 @@ const INERTIA_RELEASE_MAX_AGE_MS = 160
 const INERTIA_RELEASE_FRICTION = 0.01
 const VELOCITY_SMOOTHING = 0.3
 const POST_PINCH_PAN_THRESHOLD = 10
+const VIEW_STATE_SAVE_DELAY_MS = 300
 
 type PageSize = {width: number; height: number}
 
@@ -41,6 +43,8 @@ type PinchGesture = {distance: number; scale: number}
 
 type PanVelocity = {x: number; y: number; time: number}
 
+type PdfViewState = Extract<FileScrollPosition, {type: 'pdf'}>
+
 export type PdfPageNavigation = {
   currentPage: number
   totalPages: number
@@ -50,6 +54,8 @@ export type PdfPageNavigation = {
 type PdfViewerProps = {
   file: Blob
   title?: string
+  scrollPosition: FileScrollPosition | null
+  onScrollPositionChange: (position: FileScrollPosition) => void
   onPageNavigationChange?: (navigation: PdfPageNavigation | null) => void
 }
 
@@ -192,9 +198,13 @@ const BufferedPdfPage = ({
 }
 
 const PdfPages = ({
+  initialViewState,
+  onScrollPositionChange,
   pageSizes,
   onPageNavigationChange,
 }: {
+  initialViewState: PdfViewState | null
+  onScrollPositionChange: (position: FileScrollPosition) => void
   pageSizes: PageSize[]
   onPageNavigationChange?: (navigation: PdfPageNavigation | null) => void
 }) => {
@@ -204,6 +214,8 @@ const PdfPages = ({
   const initialScaleRef = useRef<number | null>(null)
   const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollFrameRef = useRef<number | null>(null)
+  const viewStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const viewReadyRef = useRef(false)
   const bufferCapturesRef = useRef(new Map<number, () => void>())
   const inertiaFrameRef = useRef<number | null>(null)
   const pendingScrollRef = useRef<PendingScroll | null>(null)
@@ -258,17 +270,36 @@ const PdfPages = ({
       if (initialScaleRef.current !== null || width === 0 || widestPage === 0) return
 
       const fittedScale = Math.max(1, width - HORIZONTAL_PADDING) / widestPage
+      const nextScale = clamp(
+        fittedScale * (initialViewState?.zoomFactor ?? 1),
+        fittedScale * MIN_ZOOM_FACTOR,
+        fittedScale * MAX_ZOOM_FACTOR,
+      )
+      if (initialViewState) {
+        const pageIndex = clamp(initialViewState.pageIndex, 0, pageSizes.length - 1)
+        const page = pageSizes[pageIndex]
+        if (page) {
+          const nextContentWidth = Math.max(width, widestPage * nextScale + HORIZONTAL_PADDING)
+          pendingScrollRef.current = {
+            left: nextContentWidth / 2 + initialViewState.horizontalOffset * nextScale - width / 2,
+            top:
+              getPageStart(pageOffsets, pageIndex, nextScale) +
+              initialViewState.pageRatio * (page.height * nextScale + PAGE_GAP) -
+              height / 2,
+          }
+        }
+      }
       initialScaleRef.current = fittedScale
-      scaleRef.current = fittedScale
-      renderScaleRef.current = fittedScale
-      setScale(fittedScale)
-      setRenderScale(fittedScale)
+      scaleRef.current = nextScale
+      renderScaleRef.current = nextScale
+      setScale(nextScale)
+      setRenderScale(nextScale)
       setInitialScale(fittedScale)
     })
     resizeObserver.observe(scroller)
 
     return () => resizeObserver.disconnect()
-  }, [widestPage])
+  }, [initialViewState, pageOffsets, pageSizes, widestPage])
 
   useEffect(() => {
     const scroller = scrollerRef.current
@@ -292,12 +323,74 @@ const PdfPages = ({
   useLayoutEffect(() => {
     const pendingScroll = pendingScrollRef.current
     const scroller = scrollerRef.current
-    if (!pendingScroll || !scroller) return
-    pendingScrollRef.current = null
-    scroller.scrollLeft = pendingScroll.left
-    scroller.scrollTop = pendingScroll.top
-    setScrollTop(scroller.scrollTop)
-  }, [scale])
+    if (!scroller || initialScale === null) return
+    if (pendingScroll) {
+      pendingScrollRef.current = null
+      scroller.scrollLeft = pendingScroll.left
+      scroller.scrollTop = pendingScroll.top
+      setScrollTop(scroller.scrollTop)
+    }
+    viewReadyRef.current = true
+  }, [initialScale, scale])
+
+  const saveViewState = useCallback(() => {
+    if (!viewReadyRef.current) return
+    const scroller = scrollerRef.current
+    const fittedScale = initialScaleRef.current
+    if (!scroller || !fittedScale) return
+
+    const currentScale = scaleRef.current
+    const currentScroll = pendingScrollRef.current ?? {
+      left: scroller.scrollLeft,
+      top: scroller.scrollTop,
+    }
+    const verticalAnchor = getVerticalAnchor(
+      pageSizes,
+      pageOffsets,
+      currentScroll.top + scroller.clientHeight / 2,
+      currentScale,
+    )
+    const currentContentWidth = Math.max(
+      scroller.clientWidth,
+      widestPage * currentScale + HORIZONTAL_PADDING,
+    )
+    onScrollPositionChange({
+      type: 'pdf',
+      zoomFactor: currentScale / fittedScale,
+      pageIndex: verticalAnchor.index,
+      pageRatio: verticalAnchor.ratio,
+      horizontalOffset:
+        (currentScroll.left + scroller.clientWidth / 2 - currentContentWidth / 2) / currentScale,
+    })
+  }, [onScrollPositionChange, pageOffsets, pageSizes, widestPage])
+
+  const scheduleViewStateSave = useCallback(() => {
+    if (viewStateTimerRef.current !== null) clearTimeout(viewStateTimerRef.current)
+    viewStateTimerRef.current = setTimeout(() => {
+      viewStateTimerRef.current = null
+      saveViewState()
+    }, VIEW_STATE_SAVE_DELAY_MS)
+  }, [saveViewState])
+
+  useEffect(() => {
+    const scroller = scrollerRef.current
+    if (!scroller) return
+    scroller.addEventListener('scroll', scheduleViewStateSave, {passive: true})
+    return () => scroller.removeEventListener('scroll', scheduleViewStateSave)
+  }, [scheduleViewStateSave])
+
+  useEffect(() => {
+    if (initialScale !== null) scheduleViewStateSave()
+  }, [initialScale, scale, scheduleViewStateSave])
+
+  useLayoutEffect(() => {
+    window.addEventListener('pagehide', saveViewState)
+    return () => {
+      window.removeEventListener('pagehide', saveViewState)
+      if (viewStateTimerRef.current !== null) clearTimeout(viewStateTimerRef.current)
+      saveViewState()
+    }
+  }, [saveViewState])
 
   const zoomAt = useCallback(
     (requestedScale: number, origin: [number, number]) => {
@@ -410,11 +503,7 @@ const PdfPages = ({
   )
 
   useEffect(() => {
-    onPageNavigationChange?.({
-      currentPage,
-      totalPages: pageSizes.length,
-      goToPage,
-    })
+    onPageNavigationChange?.({currentPage, totalPages: pageSizes.length, goToPage})
   }, [currentPage, goToPage, onPageNavigationChange, pageSizes.length])
 
   useEffect(
@@ -749,9 +838,14 @@ const PdfPages = ({
 export const PdfViewer = ({
   file,
   title = 'PDF document',
+  scrollPosition,
+  onScrollPositionChange,
   onPageNavigationChange,
 }: PdfViewerProps) => {
   const loadGeneration = useRef(0)
+  const [initialViewState] = useState<PdfViewState | null>(() =>
+    scrollPosition?.type === 'pdf' ? scrollPosition : null,
+  )
   const [metadata, setMetadata] = useState<{
     file: Blob
     pageSizes: PageSize[]
@@ -796,6 +890,8 @@ export const PdfViewer = ({
           <div className={styles.message}>{metadataError}</div>
         : pageSizes.length > 0 ?
           <PdfPages
+            initialViewState={initialViewState}
+            onScrollPositionChange={onScrollPositionChange}
             pageSizes={pageSizes}
             onPageNavigationChange={onPageNavigationChange}
           />
