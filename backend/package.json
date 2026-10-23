@@ -15,22 +15,22 @@
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1148.0",
-    "@aws-sdk/s3-presigned-post": "^3.1148.0",
-    "@aws-sdk/s3-request-presigner": "^3.1148.0",
+    "@aws-sdk/client-s3": "^3.1156.0",
+    "@aws-sdk/s3-presigned-post": "^3.1156.0",
+    "@aws-sdk/s3-request-presigner": "^3.1156.0",
     "cookie-parser": "^1.4.7",
     "drizzle-orm": "^0.45.4",
-    "express": "^5.2.1",
+    "express": "^5.3.0",
     "express-rate-limit": "^8.7.1",
     "express-zod-api": "^29.8.2",
     "hcaptcha": "^0.2.0",
     "http-errors": "^2.0.1",
-    "jose": "^6.2.12",
+    "jose": "^6.2.13",
     "pg": "^8.23.1",
     "pino": "^10.4.0",
     "pino-pretty": "^13.2.0",
     "socket.io": "^4.8.4",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
@@ -38,8 +38,8 @@
     "@types/http-errors": "^2.0.5",
     "@types/pg": "^8.23.1",
     "bun-plugin-pino": "^1.5.0",
-    "bun-types": "^1.4.2",
+    "bun-types": "^1.4.4",
     "drizzle-kit": "^0.31.11",
-    "prettier": "^3.9.9"
+    "prettier": "^3.9.10"
   }
 }
