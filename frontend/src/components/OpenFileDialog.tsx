@@ -30,7 +30,7 @@ import {IconDownload} from './icons/IconDownload'
 import {downloadBlob, formatDateTime} from '../util/misc'
 import {notifications} from '@mantine/notifications'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
-import {lazy, Suspense, useEffect, useState, type SyntheticEvent} from 'react'
+import {lazy, Suspense, useCallback, useEffect, useState, type SyntheticEvent} from 'react'
 import {useHotkeys} from '@mantine/hooks'
 import {FileIconWithExtension} from './FileIconWithExtension'
 import {isAndroid, isIOS} from '../helpers/bowser'
@@ -38,7 +38,6 @@ import {IconCopy} from './icons/IconCopy'
 import {IconClockPlus} from './icons/IconClockPlus'
 import {IconClockEdit} from './icons/IconClockEdit'
 import type {PdfPageNavigation} from './PdfViewer'
-import {useCurrentCallback} from '../util/useCurrentCallback'
 
 const PdfViewer = lazy(() => import('./PdfViewer').then((module) => ({default: module.PdfViewer})))
 
@@ -142,9 +141,6 @@ export const OpenFileDialog = () => {
   const {moreMenuOpen, labelDropdownOpen} = useSelector((state) => state.files.fileDialog)
   const labelsCache = useSelector((state) => state.labels.labelsCache)
   const [pdfPageNavigation, setPdfPageNavigation] = useState<PdfPageNavigation | null>(null)
-  const storeScrollPosition = useCurrentCallback((position: FileScrollPosition) => {
-    if (openFile) fileScrollPositionChanged(openFile.id, position)
-  })
   const open = openFile !== null
   const file = useLiveQuery(
     async () => (openFile ? ((await db.files_meta.get(openFile.id)) ?? fileNotFound) : undefined),
@@ -153,6 +149,13 @@ export const OpenFileDialog = () => {
   const fileBlob = useLiveQuery(
     async () => (openFile ? (await db.files_blob.get(openFile.id))?.blob : undefined),
     [openFile?.id],
+  )
+  const displayedFileId = file && file !== fileNotFound ? file.id : undefined
+  const storeScrollPosition = useCallback(
+    (position: FileScrollPosition) => {
+      if (displayedFileId) fileScrollPositionChanged(displayedFileId, position)
+    },
+    [displayedFileId],
   )
   useCloseOnBack({id: 'open-file-dialog', open, onClose: fileClosed})
   useEffect(() => {
@@ -249,6 +252,7 @@ export const OpenFileDialog = () => {
         </div>
       : file.mime.startsWith('image/') ?
         <ImageViewer
+          key={file.id}
           src={src}
           alt={file.title}
           initialScrollPosition={file.scroll_pos}
@@ -305,6 +309,7 @@ export const OpenFileDialog = () => {
         </div>
       : file.mime.startsWith('text/') || file.mime === 'application/json' ?
         <TextViewer
+          key={file.id}
           src={src}
           initialScrollPosition={file.scroll_pos?.type === 'text' ? file.scroll_pos : null}
           onScrollPositionChange={storeScrollPosition}

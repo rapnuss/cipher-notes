@@ -61,7 +61,7 @@ export const TextViewer = ({
         tabSize: 2,
       }}
     >
-      {(text?.error ?? text?.text ?? 'Loading...').split(/[\r\n]+/).map((line, index) => (
+      {(text?.error ?? text?.text ?? 'Loading...').split(/\r?\n/).map((line, index) => (
         <div key={index}>{line}</div>
       ))}
     </Text>

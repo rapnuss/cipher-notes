@@ -118,7 +118,7 @@ export const noteScrollPositionChanged = (id: string, scroll_pos: NoteScrollPosi
     if (state.notes.openNote?.id === id) state.notes.openNote.scroll_pos = scroll_pos
   })
   return db.notes.update(id, {scroll_pos}).catch((error) => {
-    console.error(error)
+    console.debug(error)
     return 0
   })
 }

@@ -47,9 +47,8 @@ export const setMoreMenuOpen = (open: boolean) =>
   setState((state) => {
     state.files.fileDialog.moreMenuOpen = open
   })
-export const fileScrollPositionChanged = (id: string, scroll_pos: FileScrollPosition) => {
-  void db.files_meta.update(id, {scroll_pos})
-}
+export const fileScrollPositionChanged = (id: string, scroll_pos: FileScrollPosition) =>
+  void db.files_meta.update(id, {scroll_pos}).catch(() => {})
 
 export const openFileArchivedToggled = () =>
   setState((state) => {

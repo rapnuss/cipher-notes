@@ -1,6 +1,6 @@
 export type ElementScrollPosition = {top: number; left: number}
 
-const SAVE_DELAY_MS = 300
+const SAVE_INTERVAL_MS = 300
 
 export const observeScrollPosition = (
   element: HTMLElement,
@@ -22,11 +22,11 @@ export const observeScrollPosition = (
   }
   const scheduleSave = () => {
     lastPosition = {top: element.scrollTop, left: element.scrollLeft}
-    if (timer !== null) clearTimeout(timer)
+    if (timer !== null) return
     timer = setTimeout(() => {
       timer = null
       save()
-    }, SAVE_DELAY_MS)
+    }, SAVE_INTERVAL_MS)
   }
 
   element.addEventListener('scroll', scheduleSave, {passive: true})
@@ -64,11 +64,11 @@ export const observeChildIndex = (
     const row = document.elementFromPoint(x + 1, y + 1)
     const index = Array.prototype.indexOf.call(element.children, row)
     lastPosition = index === -1 ? initChildIndex : index
-    if (timer !== null) clearTimeout(timer)
+    if (timer !== null) return
     timer = setTimeout(() => {
       timer = null
       save()
-    }, SAVE_DELAY_MS)
+    }, SAVE_INTERVAL_MS)
   }
 
   element.addEventListener('scroll', scheduleSave, {passive: true})

@@ -29,7 +29,7 @@ const INERTIA_RELEASE_MAX_AGE_MS = 160
 const INERTIA_RELEASE_FRICTION = 0.01
 const VELOCITY_SMOOTHING = 0.3
 const POST_PINCH_PAN_THRESHOLD = 10
-const VIEW_STATE_SAVE_DELAY_MS = 300
+const VIEW_STATE_SAVE_INTERVAL_MS = 300
 
 type PageSize = {width: number; height: number}
 
@@ -365,11 +365,11 @@ const PdfPages = ({
   }, [onScrollPositionChange, pageOffsets, pageSizes, widestPage])
 
   const scheduleViewStateSave = useCallback(() => {
-    if (viewStateTimerRef.current !== null) clearTimeout(viewStateTimerRef.current)
+    if (viewStateTimerRef.current !== null) return
     viewStateTimerRef.current = setTimeout(() => {
       viewStateTimerRef.current = null
       saveViewState()
-    }, VIEW_STATE_SAVE_DELAY_MS)
+    }, VIEW_STATE_SAVE_INTERVAL_MS)
   }, [saveViewState])
 
   useEffect(() => {
@@ -388,6 +388,7 @@ const PdfPages = ({
     return () => {
       window.removeEventListener('pagehide', saveViewState)
       if (viewStateTimerRef.current !== null) clearTimeout(viewStateTimerRef.current)
+      viewStateTimerRef.current = null
       saveViewState()
     }
   }, [saveViewState])
