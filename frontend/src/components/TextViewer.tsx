@@ -41,10 +41,13 @@ export const TextViewer = ({
     const element = scrollRef.current
     if (!element || text?.src !== src) return
     const initialPosition = initialPositionRef.current
-    const initialTop = initialPosition?.row_index ?? 0
-    return observeChildIndex(element, initialTop, (rowIndex) => {
-      currentOnScrollPositionChange({type: 'text', row_index: rowIndex})
-    })
+    return observeChildIndex(
+      element,
+      {index: initialPosition?.row_index ?? 0, offset: initialPosition?.offset ?? 0},
+      ({index, offset}) => {
+        currentOnScrollPositionChange({type: 'text', row_index: index, offset})
+      },
+    )
   }, [currentOnScrollPositionChange, src, text?.src])
   return (
     <Text

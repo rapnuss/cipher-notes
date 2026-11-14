@@ -1,13 +1,14 @@
 import {ActionIcon} from '@mantine/core'
-import React, {CSSProperties, useLayoutEffect, useRef, useState} from 'react'
+import React, {CSSProperties, useLayoutEffect, useMemo, useRef, useState} from 'react'
 import {TransformWrapper, TransformComponent, ReactZoomPanPinchRef} from 'react-zoom-pan-pinch'
 import {IconPlus} from './icons/IconPlus'
 import {IconMinus} from './icons/IconMinus'
 import {IconZoomReset} from './icons/IconZoomReset'
 import {FileScrollPosition} from '../business/models'
 import {useCurrentCallback} from '../util/useCurrentCallback'
+import {throttle} from '../util/misc'
 
-const VIEW_STATE_SAVE_DELAY_MS = 300
+const VIEW_STATE_SAVE_INTERVAL_MS = 300
 
 type ImageScrollPosition = Extract<FileScrollPosition, {type: 'image'}>
 
@@ -97,7 +98,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
   const viewportSizeRef = useRef({width: 0, height: 0})
   const restoredRef = useRef(false)
   const latestPositionRef = useRef<ImageScrollPosition | null>(initialPosition)
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentOnScrollPositionChange = useCurrentCallback((position: FileScrollPosition) =>
     onScrollPositionChange?.(position),
   )
@@ -123,6 +123,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
       currentOnScrollPositionChange(latestPositionRef.current)
     }
   })
+  const schedulePositionSave = useMemo(
+    () => throttle(savePosition, VIEW_STATE_SAVE_INTERVAL_MS),
+    [savePosition],
+  )
 
   const restorePosition = useCurrentCallback((transform: ReactZoomPanPinchRef) => {
     if (!initialPosition || restoredRef.current) return
@@ -158,10 +162,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
     return () => {
       resizeObserver.disconnect()
       window.removeEventListener('pagehide', savePosition)
-      if (saveTimerRef.current !== null) clearTimeout(saveTimerRef.current)
+      schedulePositionSave.cancel()
       savePosition()
     }
-  }, [savePosition])
+  }, [savePosition, schedulePositionSave])
 
   return (
     <div
@@ -202,11 +206,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({
               height: image.naturalHeight,
             })
           }
-          if (saveTimerRef.current !== null) clearTimeout(saveTimerRef.current)
-          saveTimerRef.current = setTimeout(() => {
-            saveTimerRef.current = null
-            savePosition()
-          }, VIEW_STATE_SAVE_DELAY_MS)
+          schedulePositionSave()
         }}
       >
         {({zoomIn, zoomOut, centerView}) => (

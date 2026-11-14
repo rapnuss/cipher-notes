@@ -94,6 +94,15 @@ db.version(8)
           file.scroll_pos = null
         }),
     ])
+
+    // Older bulk deletions could remove metadata without deleting file data.
+    // Read only keys so large blobs don't have to be loaded into memory.
+    const fileIds = new Set(await tx.table('files_meta').toCollection().primaryKeys())
+    for (const name of ['files_blob', 'files_thumb']) {
+      const table = tx.table(name)
+      const orphanIds = (await table.toCollection().primaryKeys()).filter((id) => !fileIds.has(id))
+      if (orphanIds.length > 0) await table.bulkDelete(orphanIds)
+    }
   })
 
 export const distinctUntilChanged = <T>(observable: Observable<T>): Observable<T> => {
@@ -142,35 +151,36 @@ export const distinctUntilChanged = <T>(observable: Observable<T>): Observable<T
 export const distinctLiveQuery = <T>(query: () => Promise<T>): Observable<T> =>
   distinctUntilChanged(liveQuery(query))
 
-export const hasDirtyNotesObservable = distinctLiveQuery(() =>
+// Repeated true emissions let later edits and remaining batches schedule sync.
+export const hasDirtyNotesObservable = liveQuery(() =>
   db.notes
     .where('state')
     .equals('dirty')
     .first()
-    .then((n) => n !== undefined),
+    .then((record) => record !== undefined),
 )
 
 export const labelsObservable = distinctLiveQuery(() =>
   db.labels.where('deleted_at').equals(0).toArray(),
 )
 
-export const hasDirtyLabelsObservable = distinctLiveQuery(() =>
+export const hasDirtyLabelsObservable = liveQuery(() =>
   db.labels
     .where('state')
     .equals('dirty')
     .first()
-    .then((l) => l !== undefined),
+    .then((record) => record !== undefined),
 )
 
-export const hasDirtyFilesMetaObservable = distinctLiveQuery(() =>
+export const hasDirtyFilesMetaObservable = liveQuery(() =>
   db.files_meta
     .where('state')
     .equals('dirty')
     .first()
-    .then((f) => f !== undefined),
+    .then((record) => record !== undefined),
 )
 
-export const hasUnsyncedBlobsObservable = distinctLiveQuery(() =>
+export const hasUnsyncedBlobsObservable = liveQuery(() =>
   db.files_meta
     .where('state')
     .equals('synced')

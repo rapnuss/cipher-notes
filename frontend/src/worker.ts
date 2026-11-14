@@ -18,39 +18,39 @@ export const generateThumbnails = nonConcurrent(async (): Promise<void> => {
 
   if (ids.length === 0) return
 
-  const blobs = await db.files_blob.where('id').anyOf(ids).limit(20).toArray()
+  // Visit each candidate once per run, including files that fail or have no blob.
+  for (let start = 0; start < ids.length; start += 20) {
+    const batchIds = ids.slice(start, start + 20)
+    const blobs = await db.files_blob.where('id').anyOf(batchIds).toArray()
 
-  const promises = blobs.map(async (blob) => {
-    try {
-      const thumb =
-        blob.blob.type === pdfMimeType ?
-          await generatePdfThumbnail(blob.blob, thumbnailWidth, thumbnailHeight)
-        : await generateThumbnail(blob.blob, thumbnailWidth, thumbnailHeight)
-      return {id: blob.id, blob: thumb}
-    } catch (e) {
-      console.error(e)
-      return null
+    const promises = blobs.map(async (blob) => {
+      try {
+        const thumb =
+          blob.blob.type === pdfMimeType ?
+            await generatePdfThumbnail(blob.blob, thumbnailWidth, thumbnailHeight)
+          : await generateThumbnail(blob.blob, thumbnailWidth, thumbnailHeight)
+        return {id: blob.id, blob: thumb}
+      } catch (e) {
+        console.error(e)
+        return null
+      }
+    })
+    const thumbs = (await Promise.all(promises)).filter((t) => t !== null)
+    await db.transaction('rw', db.files_meta, db.files_thumb, async (tx) => {
+      await tx.files_thumb.bulkPut(thumbs)
+      // > "If a key is not found, its corresponding changes wont be applied but the method will still succeed."
+      await tx.files_meta.bulkUpdate(thumbs.map((t) => ({key: t.id, changes: {has_thumb: 1}})))
+    })
+
+    // delete dangling thumbs
+    {
+      const thumbIds = thumbs.map((t) => t.id)
+      const metaIds = await db.files_meta.where('id').anyOf(thumbIds).primaryKeys()
+      const danglingThumbs = XSet.fromItr(thumbIds).without(metaIds).toArray()
+      if (danglingThumbs.length > 0) {
+        await db.files_thumb.bulkDelete(danglingThumbs)
+      }
     }
-  })
-  const thumbs = (await Promise.all(promises)).filter((t) => t !== null)
-  await db.transaction('rw', db.files_meta, db.files_thumb, async (tx) => {
-    await tx.files_thumb.bulkAdd(thumbs)
-    // > "If a key is not found, its corresponding changes wont be applied but the method will still succeed."
-    await tx.files_meta.bulkUpdate(thumbs.map((t) => ({key: t.id, changes: {has_thumb: 1}})))
-  })
-
-  // delete dangling thumbs
-  {
-    const thumbIds = thumbs.map((t) => t.id)
-    const metaIds = await db.files_meta.where('id').anyOf(thumbIds).primaryKeys()
-    const danglingThumbs = XSet.fromItr(thumbIds).without(metaIds).toArray()
-    if (danglingThumbs.length > 0) {
-      await db.files_thumb.bulkDelete(danglingThumbs)
-    }
-  }
-
-  if (ids.length > blobs.length) {
-    fireAndForget(generateThumbnails)
   }
 })
 

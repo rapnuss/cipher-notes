@@ -518,22 +518,30 @@ export const sortDirectionChanged = () =>
     state.notes.sort.desc = !state.notes.sort.desc
   })
 export const deleteNote = async (id: string) => {
-  const note = await db.notes.get(id)
-  if (!note || note.deleted_at !== 0) return
-  if (note.version === 1 && note.state === 'dirty') {
-    await db.notes.delete(id)
-  } else {
-    const now = Date.now()
-    await db.notes.update(id, {
-      deleted_at: now,
-      updated_at: now,
-      txt: '',
-      todos: [],
-      state: 'dirty',
-      version: note.state === 'dirty' ? note.version : note.version + 1,
-    })
+  try {
+    const note = await db.notes.get(id)
+    if (!note || note.deleted_at !== 0) return true
+    if (note.version === 1 && note.state === 'dirty') {
+      await db.notes.delete(id)
+    } else {
+      const now = Date.now()
+      await db.notes.update(id, {
+        deleted_at: now,
+        updated_at: now,
+        txt: '',
+        todos: [],
+        state: 'dirty',
+        version: note.state === 'dirty' ? note.version : note.version + 1,
+      })
+    }
+    return true
+  } catch (error) {
+    console.error(error)
+    notifications.show({message: 'Failed to delete note', color: 'red'})
+    return false
   }
 }
+
 export const setNoteArchived = (id: string, archived: boolean) =>
   db.notes
     .where('id')
@@ -547,24 +555,10 @@ export const setNoteArchived = (id: string, archived: boolean) =>
       }
     })
 export const deleteOpenNote = async () => {
-  const state = getState()
-  if (!state.notes.openNote) return
-  const note = await db.notes.get(state.notes.openNote.id)
-  if (!note) return
-  if (note.version === 1 && note.state === 'dirty') {
-    await db.notes.delete(state.notes.openNote.id)
-  } else {
-    const now = Date.now()
-    await db.notes.update(state.notes.openNote.id, {
-      deleted_at: now,
-      updated_at: now,
-      txt: '',
-      todos: [],
-      state: 'dirty',
-      version: note.state === 'dirty' ? note.version : note.version + 1,
-    })
-  }
+  const openNote = getState().notes.openNote
+  if (!openNote || !(await deleteNote(openNote.id))) return
   setState((state) => {
+    if (state.notes.openNote?.id !== openNote.id) return
     state.notes.openNote = null
     state.notes.noteDialog = {labelDropdownOpen: false, moreMenuOpen: false}
   })
@@ -958,21 +952,15 @@ export const registerNotesSubscriptions = () => {
   subscribe((state) => state.notes.openNote?.id ?? null, storeOpenNoteId)
 
   const syncNotesDebounced = debounce(syncNotes, 1000)
-  hasDirtyNotesObservable.subscribe((hasDirtyNotes) => {
-    if (hasDirtyNotes) {
-      syncNotesDebounced()
-    }
-  })
-  hasDirtyLabelsObservable.subscribe((hasDirtyLabels) => {
-    if (hasDirtyLabels) {
-      syncNotesDebounced()
-    }
-  })
-  hasDirtyFilesMetaObservable.subscribe((hasDirtyFiles) => {
-    if (hasDirtyFiles) {
-      syncNotesDebounced()
-    }
-  })
+  for (const hasDirtyRecords of [
+    hasDirtyNotesObservable,
+    hasDirtyLabelsObservable,
+    hasDirtyFilesMetaObservable,
+  ]) {
+    hasDirtyRecords.subscribe((hasDirty) => {
+      if (hasDirty) syncNotesDebounced()
+    })
+  }
 
   socket.on('notesPushed', () => {
     syncNotes()

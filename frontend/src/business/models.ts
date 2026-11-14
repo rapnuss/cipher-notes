@@ -10,7 +10,7 @@ export const activeLabelIsUuid = (activeLabel: ActiveLabel): activeLabel is UUID
 export type NoteScrollPosition =
   {type: 'scroll'; top: number} | {type: 'editor'; anchor: number; offset: number}
 
-export type TextScrollPosition = {type: 'text'; row_index: number}
+export type TextScrollPosition = {type: 'text'; row_index: number; offset?: number}
 export type FileScrollPosition =
   | TextScrollPosition
   | {

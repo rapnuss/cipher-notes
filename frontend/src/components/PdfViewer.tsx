@@ -11,8 +11,9 @@ import {
 import {Document, Page} from 'react-pdf'
 import {pdfDocumentOptions} from '../helpers/pdf'
 import styles from './PdfViewer.module.css'
-import {clamp} from '../util/misc'
+import {clamp, throttle} from '../util/misc'
 import {FileScrollPosition} from '../business/models'
+import {useCurrentCallback} from '../util/useCurrentCallback'
 
 const PAGE_GAP = 16
 const HORIZONTAL_PADDING = 32
@@ -214,7 +215,6 @@ const PdfPages = ({
   const initialScaleRef = useRef<number | null>(null)
   const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollFrameRef = useRef<number | null>(null)
-  const viewStateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const viewReadyRef = useRef(false)
   const bufferCapturesRef = useRef(new Map<number, () => void>())
   const inertiaFrameRef = useRef<number | null>(null)
@@ -333,7 +333,7 @@ const PdfPages = ({
     viewReadyRef.current = true
   }, [initialScale, scale])
 
-  const saveViewState = useCallback(() => {
+  const saveViewState = useCurrentCallback(() => {
     if (!viewReadyRef.current) return
     const scroller = scrollerRef.current
     const fittedScale = initialScaleRef.current
@@ -362,15 +362,12 @@ const PdfPages = ({
       horizontalOffset:
         (currentScroll.left + scroller.clientWidth / 2 - currentContentWidth / 2) / currentScale,
     })
-  }, [onScrollPositionChange, pageOffsets, pageSizes, widestPage])
+  })
 
-  const scheduleViewStateSave = useCallback(() => {
-    if (viewStateTimerRef.current !== null) return
-    viewStateTimerRef.current = setTimeout(() => {
-      viewStateTimerRef.current = null
-      saveViewState()
-    }, VIEW_STATE_SAVE_INTERVAL_MS)
-  }, [saveViewState])
+  const scheduleViewStateSave = useMemo(
+    () => throttle(saveViewState, VIEW_STATE_SAVE_INTERVAL_MS),
+    [saveViewState],
+  )
 
   useEffect(() => {
     const scroller = scrollerRef.current
@@ -387,11 +384,10 @@ const PdfPages = ({
     window.addEventListener('pagehide', saveViewState)
     return () => {
       window.removeEventListener('pagehide', saveViewState)
-      if (viewStateTimerRef.current !== null) clearTimeout(viewStateTimerRef.current)
-      viewStateTimerRef.current = null
+      scheduleViewStateSave.cancel()
       saveViewState()
     }
-  }, [saveViewState])
+  }, [saveViewState, scheduleViewStateSave])
 
   const zoomAt = useCallback(
     (requestedScale: number, origin: [number, number]) => {

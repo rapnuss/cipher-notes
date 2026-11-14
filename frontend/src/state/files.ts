@@ -96,35 +96,43 @@ export const setOpenFileArchived = (archived: boolean) =>
 export const deleteOpenFile = async () => {
   const openFile = getState().files.openFile
   if (!openFile) return
+  if (!(await deleteFile(openFile.id))) return
   setState((state) => {
+    if (state.files.openFile?.id !== openFile.id) return
     state.files.openFile = null
   })
-  await deleteFile(openFile.id)
 }
 
 export const deleteFile = async (id: string) => {
-  const file = await db.files_meta.get(id)
-  if (!file) {
-    return
-  }
-  db.transaction('rw', db.files_meta, db.files_blob, db.files_thumb, async (tx) => {
-    if (file.state === 'dirty' && file.version === 1) {
-      tx.files_meta.delete(id)
-    } else {
-      const now = Date.now()
-      await tx.files_meta.update(id, {
-        deleted_at: now,
-        updated_at: now,
-        state: 'dirty',
-        version: file.state === 'dirty' ? file.version : file.version + 1,
-        title: '',
-        labels: [],
-      })
+  try {
+    const file = await db.files_meta.get(id)
+    if (!file) {
+      return true
     }
-    // > "Promise that resolves successfully with an undefined result, no matter if a record was deleted or not."
-    await tx.files_blob.delete(id)
-    await tx.files_thumb.delete(id)
-  })
+    await db.transaction('rw', db.files_meta, db.files_blob, db.files_thumb, async (tx) => {
+      if (file.state === 'dirty' && file.version === 1) {
+        await tx.files_meta.delete(id)
+      } else {
+        const now = Date.now()
+        await tx.files_meta.update(id, {
+          deleted_at: now,
+          updated_at: now,
+          state: 'dirty',
+          version: file.state === 'dirty' ? file.version : file.version + 1,
+          title: '',
+          labels: [],
+        })
+      }
+      // > "Promise that resolves successfully with an undefined result, no matter if a record was deleted or not."
+      await tx.files_blob.delete(id)
+      await tx.files_thumb.delete(id)
+    })
+    return true
+  } catch (error) {
+    console.error(error)
+    notifications.show({message: 'Failed to delete file', color: 'red'})
+    return false
+  }
 }
 
 export const fileOpened = async (id: string) => {

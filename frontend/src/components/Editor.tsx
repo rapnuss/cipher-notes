@@ -20,7 +20,7 @@ import {isDesktop, isIOS} from '../helpers/bowser'
 import {hyperLinkStyle, TextToLink} from '../helpers/TextToLink'
 import {useCurrentCallback} from '../util/useCurrentCallback'
 import {observeScrollPosition} from '../util/observeScrollPosition'
-import {getEditorScrollPosition} from '../helpers/editorScrollPosition'
+import {getEditorScrollPosition, restoreEditorScrollPosition} from '../helpers/editorScrollPosition'
 
 export type EditorProps = {
   value: string
@@ -199,35 +199,26 @@ export const Editor = ({
     setHasFocus(view.hasFocus)
 
     let cleanupScrollPosition: (() => void) | null = null
-    let restoreFrame: number | null = null
+    let cancelScrollRestore: (() => void) | null = null
     let canceled = false
     const startObserving = () => {
       view.requestMeasure({
         read: () => ({top: view.scrollDOM.scrollTop, left: view.scrollDOM.scrollLeft}),
         write: (position) => {
           if (canceled) return
-          cleanupScrollPosition = observeScrollPosition(
-            view.scrollDOM,
-            position,
-            ({top}) => currentOnScrollPositionChange(getEditorScrollPosition(view, top)),
+          cleanupScrollPosition = observeScrollPosition(view.scrollDOM, position, ({top}) =>
+            currentOnScrollPositionChange(getEditorScrollPosition(view, top)),
           )
         },
       })
     }
     const restoreScrollPosition = () => {
       if (initialScrollPosition?.type === 'editor') {
-        const anchor = Math.max(0, Math.min(initialScrollPosition.anchor, view.state.doc.length))
-        view.dispatch({
-          effects: EditorView.scrollIntoView(anchor, {
-            y: 'start',
-            x: 'start',
-            yMargin: initialScrollPosition.offset,
-            xMargin: 0,
-          }),
-        })
-        // Let CodeMirror render and measure the target viewport before the
-        // scroll observer takes ownership of the settled position.
-        restoreFrame = requestAnimationFrame(startObserving)
+        cancelScrollRestore = restoreEditorScrollPosition(
+          view,
+          initialScrollPosition,
+          startObserving,
+        )
         return
       }
 
@@ -235,10 +226,8 @@ export const Editor = ({
         read: () => initialScrollPosition?.top ?? 0,
         write: (top) => {
           if (canceled) return
-          cleanupScrollPosition = observeScrollPosition(
-            view.scrollDOM,
-            {top, left: 0},
-            ({top}) => currentOnScrollPositionChange(getEditorScrollPosition(view, top)),
+          cleanupScrollPosition = observeScrollPosition(view.scrollDOM, {top, left: 0}, ({top}) =>
+            currentOnScrollPositionChange(getEditorScrollPosition(view, top)),
           )
         },
       })
@@ -260,7 +249,7 @@ export const Editor = ({
       focusTimer,
       cleanupScrollPosition: () => {
         canceled = true
-        if (restoreFrame !== null) cancelAnimationFrame(restoreFrame)
+        cancelScrollRestore?.()
         cleanupScrollPosition?.()
       },
     }

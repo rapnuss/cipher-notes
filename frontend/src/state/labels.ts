@@ -1,3 +1,4 @@
+import {notifications} from '@mantine/notifications'
 import {createSelector} from 'reselect'
 import {ActiveLabel, Hue, Label} from '../business/models'
 import {db, labelsObservable} from '../db'
@@ -133,31 +134,42 @@ export const updateLabel = (id: string, props: {name?: string; hue?: Hue}) => {
 }
 
 export const deleteLabel = async (id: string) => {
-  const label = await db.labels.get(id)
-  if (!label || label.deleted_at > 0) {
-    return
-  }
-  if (label.state === 'dirty' && label.version === 1) {
-    await db.labels.delete(id)
-    return
-  }
-  await db.labels.update(id, {
-    deleted_at: Date.now(),
-    state: 'dirty',
-    version: label.state === 'dirty' ? label.version : label.version + 1,
-  })
-  await db.notes
-    .where('deleted_at')
-    .equals(0)
-    .and((note) => note.labels?.includes(id) ?? false)
-    .modify((note) => {
-      note.labels = note.labels?.filter((l) => l !== id)
-      if (note.state === 'synced') {
-        note.state = 'dirty'
-        note.version = note.version + 1
+  try {
+    const label = await db.labels.get(id)
+    if (!label || label.deleted_at > 0) {
+      return true
+    }
+    await db.transaction('rw', db.labels, db.notes, async () => {
+      if (label.state === 'dirty' && label.version === 1) {
+        await db.labels.delete(id)
+      } else {
+        const now = Date.now()
+        await db.labels.update(id, {
+          deleted_at: now,
+          updated_at: now,
+          state: 'dirty',
+          version: label.state === 'dirty' ? label.version : label.version + 1,
+        })
       }
-      note.updated_at = Date.now()
+      await db.notes
+        .where('deleted_at')
+        .equals(0)
+        .and((note) => note.labels?.includes(id) ?? false)
+        .modify((note) => {
+          note.labels = note.labels?.filter((l) => l !== id)
+          if (note.state === 'synced') {
+            note.state = 'dirty'
+            note.version = note.version + 1
+          }
+          note.updated_at = Date.now()
+        })
     })
+    return true
+  } catch (error) {
+    console.error(error)
+    notifications.show({message: 'Failed to delete label', color: 'red'})
+    return false
+  }
 }
 
 export const toggleNoteLabel = (noteId: string, labelId: string) =>
