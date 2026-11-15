@@ -49,12 +49,7 @@ export const CommandCenter = () => {
       onClick: toggleColorScheme,
       shortcut: 'alt+shift+d',
     },
-    {
-      id: 'newNote',
-      label: 'New note',
-      onClick: addNote,
-      shortcut: 'alt+shift+n',
-    },
+    {id: 'newNote', label: 'New note', onClick: addNote, shortcut: 'alt+shift+n'},
     {
       id: 'searchContent',
       label: 'Search notes content',
@@ -91,12 +86,7 @@ export const CommandCenter = () => {
       onClick: openRegisterDialog,
       disabled: loggedIn || hostingMode === 'self',
     },
-    {
-      id: 'login',
-      label: 'Login',
-      onClick: openLoginDialog,
-      disabled: loggedIn,
-    },
+    {id: 'login', label: 'Login', onClick: openLoginDialog, disabled: loggedIn},
     {
       id: 'agb',
       label: 'Allgemeine Geschäftsbedingungen (AGB)',
@@ -112,11 +102,7 @@ export const CommandCenter = () => {
       label: 'Terms and Conditions',
       onClick: () => window.open('/terms.html', '_blank'),
     },
-    {
-      id: 'privacy',
-      label: 'Privacy Policy',
-      onClick: () => window.open('/privacy.html', '_blank'),
-    },
+    {id: 'privacy', label: 'Privacy Policy', onClick: () => window.open('/privacy.html', '_blank')},
     {
       id: 'encryptionKey',
       label: `${hasKeyTokenPair ? 'Export' : 'New'} Encryption-Key`,
@@ -135,47 +121,18 @@ export const CommandCenter = () => {
       onClick: openSyncDialogAndSync,
       disabled: !loggedIn,
     },
-    {
-      id: 'settings',
-      label: 'Settings',
-      onClick: openSettings,
-    },
+    {id: 'settings', label: 'Settings', onClick: openSettings},
     {
       id: 'issues',
       label: 'Bug Reports & Feature Requests',
       onClick: () => window.open('https://github.com/rapnuss/cipher-notes/issues', '_blank'),
     },
-    {
-      id: 'storageUsage',
-      label: 'Show storage limits',
-      onClick: openStorageUsageDialog,
-    },
-    {
-      id: 'imprint',
-      label: 'Imprint & Source Code',
-      onClick: toggleImprint,
-    },
-    {
-      id: 'exportNotes',
-      label: 'Export notes',
-      onClick: exportNotes,
-    },
-    {
-      id: 'importNotes',
-      label: 'Import notes',
-      onClick: openImportDialog,
-    },
-    {
-      id: 'keepImportNotes',
-      label: 'Import notes from Keep',
-      onClick: openKeepImportDialog,
-    },
-    {
-      id: 'logout',
-      label: 'Logout',
-      onClick: logout,
-      disabled: !loggedIn,
-    },
+    {id: 'storageUsage', label: 'Show storage limits', onClick: openStorageUsageDialog},
+    {id: 'imprint', label: 'Imprint & Source Code', onClick: toggleImprint},
+    {id: 'exportNotes', label: 'Export notes', onClick: exportNotes},
+    {id: 'importNotes', label: 'Import notes', onClick: openImportDialog},
+    {id: 'keepImportNotes', label: 'Import notes from Keep', onClick: openKeepImportDialog},
+    {id: 'logout', label: 'Logout', onClick: logout, disabled: !loggedIn},
     {
       id: 'logoutAllDevices',
       label: 'Logout from all devices',
@@ -184,10 +141,7 @@ export const CommandCenter = () => {
           id: 'logoutAllDevices',
           title: 'Logout from all devices',
           children: 'Are you sure you want to logout from all devices?',
-          labels: {
-            confirm: 'Logout',
-            cancel: 'Cancel',
-          },
+          labels: {confirm: 'Logout', cancel: 'Cancel'},
           onConfirm: removeAllSessions,
         })
       },
@@ -222,11 +176,7 @@ export const CommandCenter = () => {
       label: 'Third Party Licenses',
       onClick: () => window.open('/licenses.html', '_blank'),
     },
-    {
-      id: 'resetApp',
-      label: 'Reset App (delete all local data)',
-      onClick: resetApp,
-    },
+    {id: 'resetApp', label: 'Reset App (delete all local data)', onClick: resetApp},
   ]
 
   const enabledCommands = commands.filter((c) => !c.disabled)
@@ -297,18 +247,9 @@ export const CommandCenter = () => {
       disabled={commandCenterDisabled}
       limit={actions.length}
       actions={[
-        {
-          group: 'Actions',
-          actions,
-        },
-        {
-          group: 'Notes',
-          actions: noteActions,
-        },
-        {
-          group: 'Labels',
-          actions: labelActions,
-        },
+        {group: 'Actions', actions},
+        {group: 'Notes', actions: noteActions},
+        {group: 'Labels', actions: labelActions},
       ]}
       onSpotlightOpen={() => {
         setCommandCenterOpen(true)

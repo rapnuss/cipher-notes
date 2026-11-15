@@ -14,15 +14,16 @@ RUN openssl genrsa -out /tmp/private_rsa.pem 2048 \
 FROM node:24-alpine AS frontend-build
 WORKDIR /app/frontend
 RUN apk add --no-cache openssl git
+RUN corepack enable
 COPY frontend/ .
-RUN yarn install --frozen-lockfile --network-timeout 600000
+RUN pnpm install --frozen-lockfile
 # Use generated public key so the static bundle verifies backend JWTs
 COPY --from=keys /tmp/public.pem ./jwt-public.pub
 # Build-time env for Vite defines
 ARG HOSTING_MODE=self
 ENV NODE_ENV=production \
     HOSTING_MODE=$HOSTING_MODE
-RUN yarn build
+RUN pnpm build
 
 ########################################
 # Backend build stage

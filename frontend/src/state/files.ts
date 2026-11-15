@@ -5,6 +5,7 @@ import {
   FileBlob,
   FileMeta,
   FilePullWithState,
+  FileScrollPosition,
 } from '../business/models'
 import {comlink} from '../comlink'
 import {db, hasUnsyncedBlobsObservable} from '../db'
@@ -23,19 +24,13 @@ export type FilesState = {
     state: 'dirty' | 'synced'
     archived: 0 | 1
   } | null
-  fileDialog: {
-    labelDropdownOpen: boolean
-    moreMenuOpen: boolean
-  }
+  fileDialog: {labelDropdownOpen: boolean; moreMenuOpen: boolean}
 }
 export const filesInit = {
   importing: false,
   upDownloading: false,
   openFile: null,
-  fileDialog: {
-    labelDropdownOpen: false,
-    moreMenuOpen: false,
-  },
+  fileDialog: {labelDropdownOpen: false, moreMenuOpen: false},
 }
 loadOpenFileId().then((id) => {
   if (id) {
@@ -52,6 +47,8 @@ export const setMoreMenuOpen = (open: boolean) =>
   setState((state) => {
     state.files.fileDialog.moreMenuOpen = open
   })
+export const fileScrollPositionChanged = (id: string, scroll_pos: FileScrollPosition) =>
+  void db.files_meta.update(id, {scroll_pos}).catch(() => {})
 
 export const openFileArchivedToggled = () =>
   setState((state) => {
@@ -99,35 +96,43 @@ export const setOpenFileArchived = (archived: boolean) =>
 export const deleteOpenFile = async () => {
   const openFile = getState().files.openFile
   if (!openFile) return
+  if (!(await deleteFile(openFile.id))) return
   setState((state) => {
+    if (state.files.openFile?.id !== openFile.id) return
     state.files.openFile = null
   })
-  await deleteFile(openFile.id)
 }
 
 export const deleteFile = async (id: string) => {
-  const file = await db.files_meta.get(id)
-  if (!file) {
-    return
-  }
-  db.transaction('rw', db.files_meta, db.files_blob, db.files_thumb, async (tx) => {
-    if (file.state === 'dirty' && file.version === 1) {
-      tx.files_meta.delete(id)
-    } else {
-      const now = Date.now()
-      await tx.files_meta.update(id, {
-        deleted_at: now,
-        updated_at: now,
-        state: 'dirty',
-        version: file.state === 'dirty' ? file.version : file.version + 1,
-        title: '',
-        labels: [],
-      })
+  try {
+    const file = await db.files_meta.get(id)
+    if (!file) {
+      return true
     }
-    // > "Promise that resolves successfully with an undefined result, no matter if a record was deleted or not."
-    await tx.files_blob.delete(id)
-    await tx.files_thumb.delete(id)
-  })
+    await db.transaction('rw', db.files_meta, db.files_blob, db.files_thumb, async (tx) => {
+      if (file.state === 'dirty' && file.version === 1) {
+        await tx.files_meta.delete(id)
+      } else {
+        const now = Date.now()
+        await tx.files_meta.update(id, {
+          deleted_at: now,
+          updated_at: now,
+          state: 'dirty',
+          version: file.state === 'dirty' ? file.version : file.version + 1,
+          title: '',
+          labels: [],
+        })
+      }
+      // > "Promise that resolves successfully with an undefined result, no matter if a record was deleted or not."
+      await tx.files_blob.delete(id)
+      await tx.files_thumb.delete(id)
+    })
+    return true
+  } catch (error) {
+    console.error(error)
+    notifications.show({message: 'Failed to delete file', color: 'red'})
+    return false
+  }
 }
 
 export const fileOpened = async (id: string) => {
@@ -162,10 +167,7 @@ export const fileClosed = async () => {
 
   setState((state) => {
     state.files.openFile = null
-    state.files.fileDialog = {
-      labelDropdownOpen: false,
-      moreMenuOpen: false,
-    }
+    state.files.fileDialog = {labelDropdownOpen: false, moreMenuOpen: false}
   })
 }
 
@@ -237,11 +239,9 @@ export const importFiles = async (files: Iterable<File>, activeLabel: ActiveLabe
         archived: 0,
         has_thumb: 0,
         size: file.size,
+        scroll_pos: null,
       }
-      const blob: FileBlob = {
-        id,
-        blob: file,
-      }
+      const blob: FileBlob = {id, blob: file}
       await db.transaction('rw', db.files_meta, db.files_blob, async (tx) => {
         await tx.files_meta.add(meta)
         await tx.files_blob.add(blob)
@@ -313,15 +313,11 @@ export const copyFileToClipboard = async (file: FileMeta) => {
         })
         throw e
       })
-    return new ClipboardItem({
-      'text/plain': stringPromise,
-    })
+    return new ClipboardItem({'text/plain': stringPromise})
   }
   function getImageItem() {
     if (file.mime === 'image/png') {
-      return new ClipboardItem({
-        'image/png': fetch(`/files/${file.id}`).then((res) => res.blob()),
-      })
+      return new ClipboardItem({'image/png': fetch(`/files/${file.id}`).then((res) => res.blob())})
     }
     if (!file.mime.startsWith('image/')) {
       throw new Error('unsupported file type')
@@ -348,9 +344,7 @@ export const copyFileToClipboard = async (file: FileMeta) => {
       })
       return pngBlob
     })
-    return new ClipboardItem({
-      'image/png': blobPromise.then((blob) => blob),
-    })
+    return new ClipboardItem({'image/png': blobPromise.then((blob) => blob)})
   }
 }
 
@@ -402,7 +396,7 @@ export const registerFilesSubscriptions = () => {
   const storeDebounced = debounce(storeOpenFile, 1000)
   subscribe(
     (state) => state.files.openFile,
-    (curr, prev) => curr && prev && storeDebounced()
+    (curr, prev) => curr && prev && storeDebounced(),
   )
 
   subscribe((state) => state.files.openFile?.id ?? null, storeOpenFileId)

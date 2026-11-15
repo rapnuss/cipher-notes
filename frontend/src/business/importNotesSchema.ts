@@ -10,7 +10,7 @@ const importTodosSchema = z.array(
       txt: z.string(),
       parent: z.uuidv4().optional(),
     })
-    .strip()
+    .strip(),
 )
 export const importNotesSchema = z.array(
   z
@@ -24,7 +24,7 @@ export const importNotesSchema = z.array(
       labels: z.array(z.string()).optional(),
       archived: z.boolean().optional(),
     })
-    .strip()
+    .strip(),
 )
 export type ImportNote = z.infer<typeof importNotesSchema>[number]
 
@@ -41,18 +41,9 @@ export const keepNoteCommon = z
     color: z.string(),
   })
   .strip()
-export const keepTextNote = keepNoteCommon.extend({
-  textContent: z.string(),
-})
+export const keepTextNote = keepNoteCommon.extend({textContent: z.string()})
 export const keepTodoNote = keepNoteCommon.extend({
-  listContent: z.array(
-    z
-      .object({
-        text: z.string(),
-        isChecked: z.boolean(),
-      })
-      .strip()
-  ),
+  listContent: z.array(z.object({text: z.string(), isChecked: z.boolean()}).strip()),
 })
 export const keepNoteSchema = z.union([keepTextNote, keepTodoNote] as const)
 export type KeepNote = z.infer<typeof keepNoteSchema>
@@ -72,7 +63,7 @@ export const importFilesMetaSchema = z.array(
       updated_at: z.number().int().positive().optional(),
       deleted_at: z.number().int().nonnegative().optional(),
     })
-    .strip()
+    .strip(),
 )
 export type ImportFileMeta = z.infer<typeof importFilesMetaSchema>[number]
 

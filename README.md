@@ -22,7 +22,7 @@ See the [dockerimage/README.md](dockerimage/README.md) for more details.
 - nvm (node version manager)
 - Docker (for development database)
 - Bun (for backend)
-- Yarn (for frontend)
+- pnpm (for frontend)
 - mkcert (for generating development certificates)
 
 ### Local s3 setup
@@ -100,11 +100,11 @@ docker compose up minio-setup
    ```
 3. Install dependencies:
    ```bash
-   yarn install
+   pnpm install
    ```
 4. Start the frontend development server:
    ```bash
-   yarn dev
+   pnpm dev
    ```
 
 ### Development URLs
@@ -133,7 +133,7 @@ docker compose up minio-setup
    ```
 3. Start the frontend:
    ```bash
-   yarn dev
+   pnpm dev
    ```
 4. Find and install the root CA certificate on your mobile device:
    ```bash
@@ -160,7 +160,7 @@ docker compose up minio-setup
 
 ### Bundle the frontend into the App
 
-From the `frontend/` directory you can run `yarn build:twa` to compile the web app and copy the generated assets into `twa/app/src/main/assets/www`.
+From the `frontend/` directory you can run `pnpm build:twa` to compile the web app and copy the generated assets into `twa/app/src/main/assets/www`.
 
 ## Licensing
 

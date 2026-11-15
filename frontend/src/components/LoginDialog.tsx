@@ -15,17 +15,13 @@ import {loginWithPassword} from '../state/user'
 
 export const LoginDialog = () => {
   const {open, email, code, loading, status} = useSelector((state) => state.user.loginDialog)
-  useCloseOnBack({
-    id: 'login-dialog',
-    open,
-    onClose: closeLoginDialog,
-  })
+  useCloseOnBack({id: 'login-dialog', open, onClose: closeLoginDialog})
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [pwdLoading, setPwdLoading] = useState(false)
   return (
     <Modal opened={open} onClose={closeLoginDialog} title='Login'>
-      {hostingMode === 'self' ? (
+      {hostingMode === 'self' ?
         <Stack gap='md'>
           <TextInput
             label='Username'
@@ -51,8 +47,7 @@ export const LoginDialog = () => {
             Login
           </Button>
         </Stack>
-      ) : (
-        status === 'email' && (
+      : status === 'email' && (
           <Stack gap='md'>
             <TextInput
               label='Email'
@@ -75,7 +70,7 @@ export const LoginDialog = () => {
             </Flex>
           </Stack>
         )
-      )}
+      }
       {hostingMode === 'central' && status === 'code' && (
         <Stack gap='md'>
           <TextInput

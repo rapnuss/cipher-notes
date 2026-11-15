@@ -22,10 +22,7 @@ import {CrazyCheckbox} from './IconsCheckbox'
 import {ActionIconWithText} from './ActionIconWithText'
 import {IconChecks} from './icons/IconChecks'
 
-export type LabelDropdownContentProps = {
-  noteId?: string
-  fileId?: string
-}
+export type LabelDropdownContentProps = {noteId?: string; fileId?: string}
 export const LabelDropdownContent = ({noteId, fileId}: LabelDropdownContentProps) => {
   const [search, setSearch] = useState('')
   const labels = useSelector(selectCachedLabels)
@@ -83,17 +80,9 @@ export const LabelDropdownContent = ({noteId, fileId}: LabelDropdownContentProps
             <Checkbox
               key={label.id}
               styles={{
-                root: {
-                  display: 'flex',
-                },
-                body: {
-                  flex: 1,
-                  width: '100%',
-                  alignItems: 'center',
-                },
-                labelWrapper: {
-                  flex: 1,
-                },
+                root: {display: 'flex'},
+                body: {flex: 1, width: '100%', alignItems: 'center'},
+                labelWrapper: {flex: 1},
                 label: {
                   display: 'flex',
                   justifyContent: 'space-between',

@@ -111,31 +111,41 @@ export function log<T>(x: T): T {
 /**
  * Calls {fn} immediately when the returned function is called, after that at most once per {timeout}.
  */
-export const throttle = <Args extends any[]>(fn: (...args: Args) => unknown, timeout: number) => {
-  let pending = false
-  let waiting = false
-  let lastArgs: Args
-  const wait = () =>
-    delay(timeout).then(() => {
+export const throttle = <Args extends unknown[]>(
+  fn: (...args: Args) => unknown,
+  interval: number,
+) => {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let pending: Args | undefined
+
+  const invoke = (args: Args): void => {
+    timer = setTimeout(() => {
+      timer = undefined
       if (pending) {
-        pending = false
-        fn(...lastArgs)
-        wait()
-      } else {
-        waiting = false
+        const args = pending
+        pending = undefined
+        invoke(args)
       }
-    })
-  return (...args: Args) => {
-    lastArgs = args
-    if (pending) return
-    if (waiting) {
-      pending = true
-      return
-    }
-    waiting = true
-    Promise.resolve().then(() => fn(...args))
-    wait()
+    }, interval)
+
+    fn(...args)
   }
+
+  const throttled = (...args: Args): void => {
+    if (timer !== undefined) {
+      pending = args
+    } else {
+      invoke(args)
+    }
+  }
+
+  throttled.cancel = (): void => {
+    clearTimeout(timer)
+    timer = undefined
+    pending = undefined
+  }
+
+  return throttled
 }
 
 export const indexBy = <T, K extends string | number>(
@@ -407,3 +417,10 @@ export const noProto: FnArgs<typeof JSON.parse>[1] = (_, value) =>
   : value
 
 export const parseJson = <T>(json: string): T => JSON.parse(json, noProto)
+
+export const fireAndForget = <Fn extends () => Promise<any>>(fn: Fn): void => {
+  Promise.resolve().then(fn).catch(console.error)
+}
+
+export const clamp = (n: number, min: number, max: number): number =>
+  Math.max(min, Math.min(n, max))

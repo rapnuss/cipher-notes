@@ -2,6 +2,8 @@
 /// <reference types="vite-plugin-pwa/react" />
 /// <reference types="vite-plugin-comlink/client" />
 
+declare module 'pdfjs-dist/build/pdf.worker.mjs'
+
 declare const ENV_GIT_COMMIT: string
 declare const ENV_HOSTING_MODE: string
 declare const ENV_HCAPTCHA_SITE_KEY: string

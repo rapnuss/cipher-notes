@@ -1,9 +1,6 @@
 import {IconFileBig} from './icons/IconFileBig'
 
-export type FileIconWithExtensionProps = {
-  ext: string
-  size?: number
-}
+export type FileIconWithExtensionProps = {ext: string; size?: number}
 export const FileIconWithExtension = ({ext, size = 100}: FileIconWithExtensionProps) => (
   <div style={{position: 'relative', display: 'flex'}}>
     <IconFileBig style={{width: size, height: 'auto'}} />

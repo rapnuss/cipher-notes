@@ -16,6 +16,7 @@ import {
   setLabelDropdownOpen,
   openNoteArchivedToggled,
   setMoreMenuOpen,
+  noteScrollPositionChanged,
 } from '../state/notes'
 import {IconArrowBackUp} from './icons/IconArrowBackUp'
 import {IconArrowForwardUp} from './icons/IconArrowForwardUp'
@@ -46,6 +47,8 @@ import {useRef} from 'react'
 import {IconClockPlus} from './icons/IconClockPlus'
 import {IconClockEdit} from './icons/IconClockEdit'
 import {formatDateTime} from '../util/misc'
+import {useCurrentCallback} from '../util/useCurrentCallback'
+import {getEditorScrollPosition} from '../helpers/editorScrollPosition'
 
 const selectHistoryItem = (openNote: OpenNote | null): NoteHistoryItem | null => {
   if (openNote === null) return null
@@ -74,10 +77,17 @@ export const OpenNoteDialog = () => {
     openNote?.id ?? null,
   )
   const open = !!openNote
-  useCloseOnBack({id: 'open-note-dialog', open, onClose: noteClosed})
   const isNewNote =
     !!openNote && openNote.type === 'note' && openNote.txt === '' && openNote.title === ''
   const viewRef = useRef<EditorView | null>(null)
+  const closeNote = useCurrentCallback(async () => {
+    const view = viewRef.current
+    if (openNote?.type === 'note' && view) {
+      await noteScrollPositionChanged(openNote.id, getEditorScrollPosition(view))
+    }
+    await noteClosed()
+  })
+  useCloseOnBack({id: 'open-note-dialog', open, onClose: closeNote})
   useHotkeys(
     [
       [
@@ -103,7 +113,7 @@ export const OpenNoteDialog = () => {
               button.focus()
             }
           } else if (open) {
-            noteClosed()
+            closeNote()
           }
         },
       ],
@@ -118,31 +128,31 @@ export const OpenNoteDialog = () => {
       size='100%'
       withCloseButton={false}
       closeOnEscape={false}
-      onClose={noteClosed}
+      onClose={closeNote}
       styles={{
         content: {
           height: 'var(--viewport-height, 100dvh)',
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
           backgroundColor: labelBgColor(hue, theme),
           border: borderColor ? `2px solid ${borderColor}` : undefined,
         },
         body: {
-          flex: '0 0 100%',
-          height: '100%',
+          flex: '1 1 0',
+          minHeight: 0,
+          overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           gap: '1rem',
         },
-        inner: {
-          maxWidth: '750px',
-          left: 'max(0px, (100vw - 750px) / 2)',
-        },
+        inner: {maxWidth: '750px', left: 'max(0px, (100vw - 750px) / 2)'},
       }}
     >
       <input
         id='open-note-title'
         style={{
+          flexShrink: 0,
           border: 'none',
           fontSize: '1.5rem',
           fontWeight: 'bold',
@@ -182,7 +192,7 @@ export const OpenNoteDialog = () => {
             viewRef.current?.focus()
           }
         }}
-        data-autofocus={isNewNote ? true : undefined}
+        data-autofocus={isNewNote || note?.type === 'todo' ? true : undefined}
       />
       {openNote?.type === 'note' ?
         <Editor
@@ -196,6 +206,8 @@ export const OpenNoteDialog = () => {
           id='open-note-editor'
           autoFocus={isDesktop() && !isNewNote}
           viewCb={(view) => (viewRef.current = view)}
+          initialScrollPosition={openNote.scroll_pos}
+          onScrollPositionChange={(position) => noteScrollPositionChanged(openNote.id, position)}
         />
       : openNote?.type === 'todo' ?
         <TodoControl
@@ -209,10 +221,11 @@ export const OpenNoteDialog = () => {
           onUndo={undo}
           onRedo={redo}
           onUp={focusTitleInput}
-          autoFocus={isDesktop() && !isNewNote}
+          initialScrollPosition={openNote.scroll_pos}
+          onScrollPositionChange={(position) => noteScrollPositionChanged(openNote.id, position)}
         />
       : null}
-      <Flex gap='xs'>
+      <Flex gap='xs' style={{flexShrink: 0}}>
         <Menu
           shadow='md'
           width={230}
@@ -353,7 +366,7 @@ export const OpenNoteDialog = () => {
         >
           <IconArrowForwardUp />
         </ActionIconWithText>
-        <ActionIconWithText title='Close note' text='close' onClick={noteClosed}>
+        <ActionIconWithText title='Close note' text='close' onClick={closeNote}>
           <IconX />
         </ActionIconWithText>
       </Flex>

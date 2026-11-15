@@ -47,7 +47,7 @@ export function twoWayMerge(serverText: string, localText: string): string {
 export function threeWayMerge(
   baseText: string | null,
   localText: string,
-  serverText: string
+  serverText: string,
 ): string {
   let baseLines: string[] = baseText?.split('\n') ?? []
   const localLines = localText.split('\n')
@@ -58,11 +58,10 @@ export function threeWayMerge(
   const diff = diff3Merge(localLines, baseLines, serverLines)
   return diff
     .flatMap((block) =>
-      block.ok
-        ? block.ok
-        : block.conflict
-        ? ['<<<<<<< LOCAL', ...block.conflict.a, '=======', ...block.conflict.b, '>>>>>>> SERVER']
-        : []
+      block.ok ? block.ok
+      : block.conflict ?
+        ['<<<<<<< LOCAL', ...block.conflict.a, '=======', ...block.conflict.b, '>>>>>>> SERVER']
+      : [],
     )
     .join('\n')
 }
@@ -70,10 +69,12 @@ export function threeWayMerge(
 export function threeWayMergeArrays(
   baseArray: string[],
   localArray: string[],
-  serverArray: string[]
+  serverArray: string[],
 ): string[] {
   const diff = diff3Merge(localArray, baseArray, serverArray)
   return diff.flatMap((block) =>
-    block.ok ? block.ok : block.conflict ? [...block.conflict.a, ...block.conflict.b] : []
+    block.ok ? block.ok
+    : block.conflict ? [...block.conflict.a, ...block.conflict.b]
+    : [],
   )
 }

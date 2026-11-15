@@ -24,6 +24,7 @@ import {Feature} from '../business/models'
 import {parseSubscriptionToken} from '../business/misc'
 import {hostingMode} from '../config'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
+import {fireAndForget} from '../util/misc'
 
 export type UserState = {
   user: {
@@ -50,12 +51,7 @@ export type UserState = {
     qrMode: 'hide' | 'show' | 'scan'
     mode: 'export/generate' | 'update'
   }
-  deleteAccountDialog: {
-    open: boolean
-    code: string
-    codeLoading: boolean
-    deleteLoading: boolean
-  }
+  deleteAccountDialog: {open: boolean; code: string; codeLoading: boolean; deleteLoading: boolean}
   deleteServerNotesDialog: {
     open: boolean
     code: string
@@ -154,16 +150,9 @@ export const registerEmail = async (captchaToken: string) => {
   setState((state) => {
     state.user.registerDialog.loading = false
     if (!res.success) {
-      notifications.show({
-        title: 'Register Email Failed',
-        message: res.error,
-        color: 'red',
-      })
+      notifications.show({title: 'Register Email Failed', message: res.error, color: 'red'})
     } else {
-      notifications.show({
-        title: 'Register Email',
-        message: 'Email registered, proceed to login',
-      })
+      notifications.show({title: 'Register Email', message: 'Email registered, proceed to login'})
       state.user.user.email = email
       state.user.registerDialog.open = false
       state.user.loginDialog = {
@@ -219,16 +208,9 @@ export const sendLoginCode = async () => {
   setState((state) => {
     state.user.loginDialog.loading = false
     if (!res.success) {
-      notifications.show({
-        title: 'Login Email Failed',
-        message: res.error,
-        color: 'red',
-      })
+      notifications.show({title: 'Login Email Failed', message: res.error, color: 'red'})
     } else {
-      notifications.show({
-        title: 'Login Email',
-        message: 'Email sent, proceed to enter code',
-      })
+      notifications.show({title: 'Login Email', message: 'Email sent, proceed to enter code'})
       state.user.loginDialog.status = 'code'
     }
   })
@@ -245,20 +227,13 @@ export const loginWithCode = async () => {
   setState((state) => {
     state.user.loginDialog.loading = false
     if (!res.success) {
-      notifications.show({
-        title: 'Login with code failed',
-        message: res.error,
-        color: 'red',
-      })
+      notifications.show({title: 'Login with code failed', message: res.error, color: 'red'})
     } else {
       state.user.user.loggedIn = true
       state.user.user.email = email
       state.user.user.jwt = res.data.jwt
       state.user.features = features
-      notifications.show({
-        title: 'Success',
-        message: 'You are logged in',
-      })
+      notifications.show({title: 'Success', message: 'You are logged in'})
       state.user.loginDialog.open = false
 
       if (!state.user.user.keyTokenPair) {
@@ -290,11 +265,7 @@ export const loginWithPassword = async (identifier: string, password: string) =>
   setState((state) => {
     state.user.loginDialog.loading = false
     if (!res.success) {
-      notifications.show({
-        title: 'Login failed',
-        message: res.error,
-        color: 'red',
-      })
+      notifications.show({title: 'Login failed', message: res.error, color: 'red'})
     } else {
       state.user.user.loggedIn = true
       state.user.user.email = identifier
@@ -322,7 +293,7 @@ export const loginWithPassword = async (identifier: string, password: string) =>
 export const socketConnectionChanged = (connected: boolean) => {
   setState((state) => {
     if (state.user.connected === false && connected && !state.notes.sync.syncing) {
-      queueMicrotask(syncNotes)
+      fireAndForget(syncNotes)
     }
     state.user.connected = connected
   })
@@ -335,12 +306,12 @@ export const openEncryptionKeyDialog = async (mode: 'export/generate' | 'update'
     state.user.encryptionKeyDialog = {
       open: true,
       keyTokenPair:
-        keyTokenPair && mode === 'export/generate'
-          ? `${keyTokenPair.cryptoKey}:${keyTokenPair.syncToken}:${calcChecksum(
-              keyTokenPair.cryptoKey,
-              keyTokenPair.syncToken
-            )}`
-          : '',
+        keyTokenPair && mode === 'export/generate' ?
+          `${keyTokenPair.cryptoKey}:${keyTokenPair.syncToken}:${calcChecksum(
+            keyTokenPair.cryptoKey,
+            keyTokenPair.syncToken,
+          )}`
+        : '',
       qrMode: 'hide',
       mode,
     }
@@ -384,9 +355,7 @@ export const saveEncryptionKey = async (keyTokenPair: string) => {
     state.user.user.keyTokenPair = {cryptoKey, syncToken}
     state.user.encryptionKeyDialog.open = false
   })
-  notifications.show({
-    message: 'New encryption key saved',
-  })
+  notifications.show({message: 'New encryption key saved'})
   if (state.user.user.loggedIn) {
     await syncNotes()
   }
@@ -479,11 +448,7 @@ export const deleteServerNotesAndGenerateNewKey = async () => {
         state.user.user.loggedIn = false
       }
     })
-    notifications.show({
-      title: 'Failed to delete notes',
-      message: res.error,
-      color: 'red',
-    })
+    notifications.show({title: 'Failed to delete notes', message: res.error, color: 'red'})
     return
   }
 
@@ -564,16 +529,9 @@ export const deleteAccount = async () => {
   })
 
   if (!res.success) {
-    notifications.show({
-      title: 'Failed to delete account',
-      message: res.error,
-      color: 'red',
-    })
+    notifications.show({title: 'Failed to delete account', message: res.error, color: 'red'})
   } else {
-    notifications.show({
-      title: 'Account deleted',
-      message: 'Your account has been deleted',
-    })
+    notifications.show({title: 'Account deleted', message: 'Your account has been deleted'})
     setState((state) => {
       state.user.deleteAccountDialog.open = false
       state.user.user = {
@@ -668,18 +626,11 @@ export const changeEmail = async () => {
   setState((state) => {
     state.user.changeEmailDialog.loading = false
     if (!res.success) {
-      notifications.show({
-        title: 'Failed to change email',
-        message: res.error,
-        color: 'red',
-      })
+      notifications.show({title: 'Failed to change email', message: res.error, color: 'red'})
     } else {
       state.user.user.email = newEmail
       state.user.changeEmailDialog.open = false
-      notifications.show({
-        title: 'Email changed',
-        message: 'Your email has been changed',
-      })
+      notifications.show({title: 'Email changed', message: 'Your email has been changed'})
     }
   })
 }
@@ -692,16 +643,9 @@ export const logout = async () => {
   setState((state) => {
     if (res.success || isUnauthorizedRes(res)) {
       state.user.user.loggedIn = false
-      notifications.show({
-        title: 'Logged out',
-        message: 'You have been logged out',
-      })
+      notifications.show({title: 'Logged out', message: 'You have been logged out'})
     } else {
-      notifications.show({
-        title: 'Logout Failed',
-        message: res.error,
-        color: 'red',
-      })
+      notifications.show({title: 'Logout Failed', message: res.error, color: 'red'})
     }
   })
 }
@@ -712,11 +656,7 @@ export const removeAllSessions = async () => {
   if (!loggedIn) return
   const res = await reqRemoveAllSessions()
   if (!res.success) {
-    notifications.show({
-      title: 'Failed to remove all sessions',
-      message: res.error,
-      color: 'red',
-    })
+    notifications.show({title: 'Failed to remove all sessions', message: res.error, color: 'red'})
     if (isUnauthorizedRes(res)) {
       setState((state) => {
         state.user.user.loggedIn = false
@@ -738,10 +678,7 @@ export const resetApp = () =>
     id: 'resetApp',
     title: 'Reset App',
     children: 'Are you sure you want to delete all local data?',
-    labels: {
-      confirm: 'Reset',
-      cancel: 'Cancel',
-    },
+    labels: {confirm: 'Reset', cancel: 'Cancel'},
     onConfirm: async () => {
       await db.delete()
       localStorage.clear()
@@ -753,7 +690,7 @@ export const resetApp = () =>
 export const registerUserSubscriptions = () => {
   subscribe(
     (state) => state.user.user,
-    (user) => storeUser(user)
+    (user) => storeUser(user),
   )
   subscribe(
     (state) => state.user.user.loggedIn,
@@ -763,6 +700,6 @@ export const registerUserSubscriptions = () => {
       } else if (!loggedIn && socket.connected) {
         socket.disconnect()
       }
-    }
+    },
   )
 }

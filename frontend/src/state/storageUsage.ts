@@ -1,25 +1,14 @@
 import {notifications} from '@mantine/notifications'
 import {isUnauthorizedRes, reqStorageUsage} from '../services/backend'
 import {getState, setState} from './store'
+import {fireAndForget} from '../util/misc'
 
 export type StorageUsageState = {
   open: boolean
   fetching: boolean
   calculating: boolean
-  local: {
-    used: number
-    limit: number
-  } | null
-  remote: {
-    files: {
-      used: number
-      limit: number
-    }
-    notes: {
-      used: number
-      limit: number
-    }
-  } | null
+  local: {used: number; limit: number} | null
+  remote: {files: {used: number; limit: number}; notes: {used: number; limit: number}} | null
 }
 
 export const storageUsageInit: StorageUsageState = {
@@ -42,10 +31,7 @@ export const calcLocalStorageUsage = async () => {
     return
   }
   setState((state) => {
-    state.storageUsage.local = {
-      used: usage,
-      limit: quota,
-    }
+    state.storageUsage.local = {used: usage, limit: quota}
   })
 }
 
@@ -59,11 +45,7 @@ export const fetchStorageUsage = async () => {
       state.storageUsage.remote = res.data
     })
   } else {
-    notifications.show({
-      title: 'Failed to fetch storage usage',
-      message: res.error,
-      color: 'red',
-    })
+    notifications.show({title: 'Failed to fetch storage usage', message: res.error, color: 'red'})
     if (isUnauthorizedRes(res)) {
       setState((state) => {
         state.user.user.loggedIn = false
@@ -81,9 +63,9 @@ export const openStorageUsageDialog = () => {
   setState((s) => {
     s.storageUsage.open = true
   })
-  queueMicrotask(calcLocalStorageUsage)
+  fireAndForget(calcLocalStorageUsage)
   if (state.user.user.loggedIn) {
-    queueMicrotask(fetchStorageUsage)
+    fireAndForget(fetchStorageUsage)
   }
 }
 

@@ -7,17 +7,13 @@ export const SyncDialog = () => {
   const {syncing, dialogOpen} = useSelector((state) => state.notes.sync)
   const upDownloading = useSelector((state) => state.files.upDownloading)
   const noKey = useSelector((state) => state.user.user.keyTokenPair === null)
-  useCloseOnBack({
-    id: 'sync-dialog',
-    open: dialogOpen,
-    onClose: closeSyncDialog,
-  })
+  useCloseOnBack({id: 'sync-dialog', open: dialogOpen, onClose: closeSyncDialog})
   return (
     <Modal title='Synchronize notes with the server' opened={dialogOpen} onClose={closeSyncDialog}>
       <Text c='dimmed' pb='md'>
-        {noKey
-          ? 'You need to generate or import an Encryption-Key first!'
-          : 'Your notes are encrypted locally and stored on the server.'}
+        {noKey ?
+          'You need to generate or import an Encryption-Key first!'
+        : 'Your notes are encrypted locally and stored on the server.'}
       </Text>
       <Button disabled={noKey} loading={syncing || upDownloading} onClick={syncNotes}>
         Synchronize

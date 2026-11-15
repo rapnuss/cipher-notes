@@ -14,11 +14,13 @@ import {defaultKeymap, indentWithTab, simplifySelection} from '@codemirror/comma
 import {wrappedLineIndent} from 'codemirror-wrapped-line-indent'
 import {selectNextOccurrence} from '@codemirror/search'
 import {monospaceStyle} from '../business/misc'
-import {CMSelection} from '../business/models'
+import {CMSelection, NoteScrollPosition} from '../business/models'
 import {useMyColorScheme} from '../helpers/useMyColorScheme'
 import {isDesktop, isIOS} from '../helpers/bowser'
 import {hyperLinkStyle, TextToLink} from '../helpers/TextToLink'
 import {useCurrentCallback} from '../util/useCurrentCallback'
+import {observeScrollPosition} from '../util/observeScrollPosition'
+import {getEditorScrollPosition, restoreEditorScrollPosition} from '../helpers/editorScrollPosition'
 
 export type EditorProps = {
   value: string
@@ -31,7 +33,10 @@ export type EditorProps = {
   id?: string
   autoFocus?: boolean
   viewCb: (view: EditorView) => void
+  initialScrollPosition: NoteScrollPosition | null
+  onScrollPositionChange: (position: NoteScrollPosition) => void
 }
+
 export const Editor = ({
   value,
   selections,
@@ -43,6 +48,8 @@ export const Editor = ({
   placeholder,
   autoFocus,
   viewCb,
+  initialScrollPosition,
+  onScrollPositionChange,
 }: EditorProps) => {
   const genId = useId()
   const hostRef = useRef<HTMLDivElement | null>(null)
@@ -50,6 +57,7 @@ export const Editor = ({
   const isDark = useMyColorScheme() === 'dark'
   const [hasFocus, setHasFocus] = useState(false)
   const viewRef = useRef<EditorView | null>(null)
+  const currentOnScrollPositionChange = useCurrentCallback(onScrollPositionChange)
 
   if (!id) {
     id = genId
@@ -74,17 +82,9 @@ export const Editor = ({
           caretColor: isDark ? '#fff' : '#000',
         },
         '.cm-scroller': {fontFamily: monospaceStyle.fontFamily},
-        '.cm-line': {
-          paddingLeft: 0,
-          textIndent: 0,
-        },
-        '.cm-selectionBackground': {
-          backgroundColor: (isDark ? '#fff5' : '#0005') + ' !important',
-        },
-        '.cm-placeholder': {
-          color: isDark ? '#fff' : '#000',
-          opacity: 0.5,
-        },
+        '.cm-line': {paddingLeft: 0, textIndent: 0},
+        '.cm-selectionBackground': {backgroundColor: (isDark ? '#fff5' : '#0005') + ' !important'},
+        '.cm-placeholder': {color: isDark ? '#fff' : '#000', opacity: 0.5},
       }),
     [isDark],
   )
@@ -100,9 +100,7 @@ export const Editor = ({
       EditorState.allowMultipleSelections.of(true),
       cmPlaceholder(placeholder ?? ''),
       EditorView.contentAttributes.of({spellcheck: 'true'}),
-      EditorView.editorAttributes.of({
-        'aria-labelledby': focusHintId,
-      }),
+      EditorView.editorAttributes.of({'aria-labelledby': focusHintId}),
       TextToLink,
       hyperLinkStyle,
     ],
@@ -136,16 +134,8 @@ export const Editor = ({
           },
           preventDefault: true,
         },
-        {
-          key: 'Mod-Alt-ArrowUp',
-          run: addCursorUp,
-          preventDefault: true,
-        },
-        {
-          key: 'Mod-Alt-ArrowDown',
-          run: addCursorDown,
-          preventDefault: true,
-        },
+        {key: 'Mod-Alt-ArrowUp', run: addCursorUp, preventDefault: true},
+        {key: 'Mod-Alt-ArrowDown', run: addCursorDown, preventDefault: true},
         {
           key: 'ArrowUp',
           run: (view) => {
@@ -158,11 +148,7 @@ export const Editor = ({
           },
           preventDefault: true,
         },
-        {
-          key: 'Escape',
-          run: simplifySelection,
-          stopPropagation: true,
-        },
+        {key: 'Escape', run: simplifySelection, stopPropagation: true},
         {key: 'Mod-d', run: selectNextOccurrence, preventDefault: true},
         ...defaultKeymap.filter((x) => x.key !== 'Escape'),
         indentWithTab,
@@ -212,20 +198,69 @@ export const Editor = ({
     // Set initial focus state
     setHasFocus(view.hasFocus)
 
-    if (autoFocus) {
-      setTimeout(() => {
-        view.focus()
-        setHasFocus(true)
-      }, 100)
+    let cleanupScrollPosition: (() => void) | null = null
+    let cancelScrollRestore: (() => void) | null = null
+    let canceled = false
+    const startObserving = () => {
+      view.requestMeasure({
+        read: () => ({top: view.scrollDOM.scrollTop, left: view.scrollDOM.scrollLeft}),
+        write: (position) => {
+          if (canceled) return
+          cleanupScrollPosition = observeScrollPosition(view.scrollDOM, position, ({top}) =>
+            currentOnScrollPositionChange(getEditorScrollPosition(view, top)),
+          )
+        },
+      })
+    }
+    const restoreScrollPosition = () => {
+      if (initialScrollPosition?.type === 'editor') {
+        cancelScrollRestore = restoreEditorScrollPosition(
+          view,
+          initialScrollPosition,
+          startObserving,
+        )
+        return
+      }
+
+      view.requestMeasure({
+        read: () => initialScrollPosition?.top ?? 0,
+        write: (top) => {
+          if (canceled) return
+          cleanupScrollPosition = observeScrollPosition(view.scrollDOM, {top, left: 0}, ({top}) =>
+            currentOnScrollPositionChange(getEditorScrollPosition(view, top)),
+          )
+        },
+      })
     }
 
-    return view
+    let focusTimer: ReturnType<typeof setTimeout> | null = null
+    if (autoFocus) {
+      focusTimer = setTimeout(() => {
+        view.focus()
+        setHasFocus(true)
+        restoreScrollPosition()
+      }, 100)
+    } else {
+      restoreScrollPosition()
+    }
+
+    return {
+      view,
+      focusTimer,
+      cleanupScrollPosition: () => {
+        canceled = true
+        cancelScrollRestore?.()
+        cleanupScrollPosition?.()
+      },
+    }
   })
 
   useEffect(() => {
-    const view = onMount()
+    const {view, cleanupScrollPosition, focusTimer} = onMount()
 
     return () => {
+      if (focusTimer !== null) clearTimeout(focusTimer)
+      cleanupScrollPosition()
       view.destroy()
       viewRef.current = null
       setHasFocus(false)

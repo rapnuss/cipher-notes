@@ -13,6 +13,7 @@ import {
   filePullDefExtraKeys,
   defaultSelection,
   CMSelection,
+  NoteScrollPosition,
 } from '../business/models'
 import {getState, setState, subscribe} from './store'
 import {
@@ -63,31 +64,17 @@ import {setOpenFile, upDownloadBlobsAndSetStateDebounced} from './files'
 export type NotesState = {
   query: string
   openNote: OpenNote | null
-  noteDialog: {
-    labelDropdownOpen: boolean
-    moreMenuOpen: boolean
-  }
+  noteDialog: {labelDropdownOpen: boolean; moreMenuOpen: boolean}
   sort: {prop: NoteSortProp; desc: boolean}
-  sync: {
-    dialogOpen: boolean
-    syncing: boolean
-    error: string | null
-  }
+  sync: {dialogOpen: boolean; syncing: boolean; error: string | null}
 }
 
 export const notesInit: NotesState = {
   query: '',
   openNote: null,
-  noteDialog: {
-    labelDropdownOpen: false,
-    moreMenuOpen: false,
-  },
+  noteDialog: {labelDropdownOpen: false, moreMenuOpen: false},
   sort: {prop: 'updated_at', desc: true},
-  sync: {
-    dialogOpen: false,
-    syncing: false,
-    error: null,
-  },
+  sync: {dialogOpen: false, syncing: false, error: null},
 }
 
 // init
@@ -126,6 +113,15 @@ export const setMoreMenuOpen = (open: boolean) =>
   setState((state) => {
     state.notes.noteDialog.moreMenuOpen = open
   })
+export const noteScrollPositionChanged = (id: string, scroll_pos: NoteScrollPosition) => {
+  setState((state) => {
+    if (state.notes.openNote?.id === id) state.notes.openNote.scroll_pos = scroll_pos
+  })
+  return db.notes.update(id, {scroll_pos}).catch((error) => {
+    console.debug(error)
+    return 0
+  })
+}
 export const noteOpened = async (id: string) => {
   const note = await db.notes.get(id)
   if (!note || note.deleted_at !== 0) return
@@ -138,6 +134,7 @@ export const noteOpened = async (id: string) => {
         title: note.title,
         updatedAt: note.updated_at,
         archived: note.archived === 1,
+        scroll_pos: note.scroll_pos,
       }
     } else {
       state.notes.openNote = {
@@ -148,6 +145,7 @@ export const noteOpened = async (id: string) => {
         updatedAt: note.updated_at,
         archived: note.archived === 1,
         selections: [defaultSelection],
+        scroll_pos: note.scroll_pos,
       }
     }
   })
@@ -170,10 +168,9 @@ export const noteClosed = async () => {
 
   if (
     openNote.title === '' &&
-    (openNote.type === 'todo'
-      ? openNote.todos.length === 0 ||
-        (openNote.todos.length === 1 && openNote.todos[0]!.txt === '')
-      : openNote.txt === '')
+    (openNote.type === 'todo' ?
+      openNote.todos.length === 0 || (openNote.todos.length === 1 && openNote.todos[0]!.txt === '')
+    : openNote.txt === '')
   ) {
     return await deleteOpenNote()
   }
@@ -182,10 +179,7 @@ export const noteClosed = async () => {
 
   setState((state) => {
     state.notes.openNote = null
-    state.notes.noteDialog = {
-      labelDropdownOpen: false,
-      moreMenuOpen: false,
-    }
+    state.notes.noteDialog = {labelDropdownOpen: false, moreMenuOpen: false}
   })
 }
 export const addNote = async () => {
@@ -204,6 +198,7 @@ export const addNote = async () => {
     title: '',
     labels: activeLabelIsUuid(activeLabel) ? [activeLabel] : undefined,
     archived: 0,
+    scroll_pos: null,
   }
   await db.notes.add(note)
 
@@ -216,6 +211,7 @@ export const addNote = async () => {
       updatedAt: now,
       archived: false,
       selections: [defaultSelection],
+      scroll_pos: null,
     }
   })
 }
@@ -243,6 +239,7 @@ export const openNoteTypeToggled = () =>
         title: state.notes.openNote.title,
         updatedAt: Date.now(),
         archived: state.notes.openNote.archived,
+        scroll_pos: state.notes.openNote.scroll_pos,
       }
     } else {
       state.notes.openNote = {
@@ -253,6 +250,7 @@ export const openNoteTypeToggled = () =>
         updatedAt: Date.now(),
         archived: state.notes.openNote.archived,
         selections: [defaultSelection],
+        scroll_pos: state.notes.openNote.scroll_pos,
       }
     }
   })
@@ -520,22 +518,30 @@ export const sortDirectionChanged = () =>
     state.notes.sort.desc = !state.notes.sort.desc
   })
 export const deleteNote = async (id: string) => {
-  const note = await db.notes.get(id)
-  if (!note || note.deleted_at !== 0) return
-  if (note.version === 1 && note.state === 'dirty') {
-    await db.notes.delete(id)
-  } else {
-    const now = Date.now()
-    await db.notes.update(id, {
-      deleted_at: now,
-      updated_at: now,
-      txt: '',
-      todos: [],
-      state: 'dirty',
-      version: note.state === 'dirty' ? note.version : note.version + 1,
-    })
+  try {
+    const note = await db.notes.get(id)
+    if (!note || note.deleted_at !== 0) return true
+    if (note.version === 1 && note.state === 'dirty') {
+      await db.notes.delete(id)
+    } else {
+      const now = Date.now()
+      await db.notes.update(id, {
+        deleted_at: now,
+        updated_at: now,
+        txt: '',
+        todos: [],
+        state: 'dirty',
+        version: note.state === 'dirty' ? note.version : note.version + 1,
+      })
+    }
+    return true
+  } catch (error) {
+    console.error(error)
+    notifications.show({message: 'Failed to delete note', color: 'red'})
+    return false
   }
 }
+
 export const setNoteArchived = (id: string, archived: boolean) =>
   db.notes
     .where('id')
@@ -549,24 +555,10 @@ export const setNoteArchived = (id: string, archived: boolean) =>
       }
     })
 export const deleteOpenNote = async () => {
-  const state = getState()
-  if (!state.notes.openNote) return
-  const note = await db.notes.get(state.notes.openNote.id)
-  if (!note) return
-  if (note.version === 1 && note.state === 'dirty') {
-    await db.notes.delete(state.notes.openNote.id)
-  } else {
-    const now = Date.now()
-    await db.notes.update(state.notes.openNote.id, {
-      deleted_at: now,
-      updated_at: now,
-      txt: '',
-      todos: [],
-      state: 'dirty',
-      version: note.state === 'dirty' ? note.version : note.version + 1,
-    })
-  }
+  const openNote = getState().notes.openNote
+  if (!openNote || !(await deleteNote(openNote.id))) return
   setState((state) => {
+    if (state.notes.openNote?.id !== openNote.id) return
     state.notes.openNote = null
     state.notes.noteDialog = {labelDropdownOpen: false, moreMenuOpen: false}
   })
@@ -587,7 +579,7 @@ export const closeSyncDialog = () =>
 // effects
 const loadEncPuts = async (
   keyTokenPair: NonNullable<UserState['user']['keyTokenPair']>,
-  bytesLimit: number
+  bytesLimit: number,
 ): Promise<{
   encPuts: EncPut[]
   dirtyNotes: Note[]
@@ -610,7 +602,7 @@ const loadEncPuts = async (
 
   const someEncPuts = await encryptSyncData(
     keyTokenPair.cryptoKey,
-    takeJsonSize(someClientPuts, bytesLimit)
+    takeJsonSize(someClientPuts, bytesLimit),
   )
   const encPuts = takeJsonSize(someEncPuts, bytesLimit)
   return {
@@ -635,7 +627,7 @@ export const syncNotes = nonConcurrent(async () => {
   try {
     const {encPuts, dirtyNotes, dirtyLabels, dirtyFiles} = await loadEncPuts(
       keyTokenPair,
-      1024 * 1024
+      1024 * 1024,
     )
     const res = await reqSyncNotes(lastSyncedTo, encPuts, keyTokenPair.syncToken)
     if (!res.success) {
@@ -671,34 +663,34 @@ export const syncNotes = nonConcurrent(async () => {
     const {merged: mergedNotes, conflicts: noteConflicts} = mergeNoteConflicts(
       baseVersions,
       dirtyNotes,
-      serverConflictsNotes.map(putToNote)
+      serverConflictsNotes.map(putToNote),
     )
     const mergedLabels: Label[] = mergeLabelConflicts(
       dirtyLabels,
-      serverConflictsLabels.map(putToLabel)
+      serverConflictsLabels.map(putToLabel),
     )
     const mergedFiles: FilePull[] = mergeFileConflicts(
       dirtyFiles.map(fileMetaToPull),
-      serverConflictsFiles.map(putToFile)
+      serverConflictsFiles.map(putToFile),
     )
 
     const labelsToStore: Record<string, Label> = Object.fromEntries(
       pullLabels
         .map(putToLabel)
         .concat(mergedLabels)
-        .map((l) => [l.id, l])
+        .map((l) => [l.id, l]),
     )
     const notesToStore: Record<string, Note> = Object.fromEntries(
       pullNotes
         .map(putToNote)
         .concat(mergedNotes)
-        .map((n) => [n.id, n])
+        .map((n) => [n.id, n]),
     )
     const filesToStore: Record<string, FilePullWithState> = Object.fromEntries(
       [
         ...pullFiles.map(putToFile).map((f): FilePullWithState => ({...f, state: 'synced'})),
         ...mergedFiles.map((f): FilePullWithState => ({...f, state: 'dirty'})),
-      ].map((f) => [f.id, f])
+      ].map((f) => [f.id, f]),
     )
 
     const idToUploaded = Object.fromEntries(dirtyNotes.map((n) => [n.id, n]))
@@ -767,8 +759,16 @@ export const syncNotes = nonConcurrent(async () => {
           .toArray()
         await tx.files_meta.bulkPut(
           insertFileIds
-            .map((id) => ({...filesToStore[id]!, has_thumb: 0, blob_state: 'remote'} as const))
-            .filter((f) => f.title !== undefined)
+            .map(
+              (id) =>
+                ({
+                  ...filesToStore[id]!,
+                  has_thumb: 0,
+                  blob_state: 'remote',
+                  scroll_pos: null,
+                }) as const,
+            )
+            .filter((f) => f.title !== undefined),
         )
 
         const baseVersions: Note[] = []
@@ -787,7 +787,7 @@ export const syncNotes = nonConcurrent(async () => {
             if (curr.version >= toStore.version && curr.updated_at !== toStore.updated_at) {
               return
             }
-            ref.value = toStore
+            ref.value = {...toStore, scroll_pos: curr.scroll_pos}
             if (toStore.state === 'synced') baseVersions.push(toStore)
           })
 
@@ -797,7 +797,7 @@ export const syncNotes = nonConcurrent(async () => {
         const insertNotes = insertNoteIds.map((id) => notesToStore[id]!)
         await tx.notes.bulkPut(insertNotes)
         await tx.note_base_versions.bulkPut(baseVersions.concat(insertNotes))
-      }
+      },
     )
 
     setOpenNote(notesToStore)
@@ -848,11 +848,7 @@ export const syncNotes = nonConcurrent(async () => {
       const message = e instanceof Error ? e.message : 'Unknown error'
       state.notes.sync.error = message
       if (state.notes.sync.dialogOpen) {
-        notifications.show({
-          title: 'Failed to sync notes',
-          message,
-          color: 'red',
-        })
+        notifications.show({title: 'Failed to sync notes', message, color: 'red'})
       }
     })
   } finally {
@@ -880,27 +876,31 @@ const setOpenNote = (syncedNotes: Record<string, Note>) => {
   if (note.updated_at > openNote.updatedAt) {
     setState((state) => {
       state.notes.openNote =
-        note.type === 'note'
-          ? {
-              type: note.type,
-              id: note.id,
-              title: note.title,
-              txt: note.txt,
-              updatedAt: note.updated_at,
-              archived: note.archived === 1,
-              selections:
+        note.type === 'note' ?
+          {
+            type: note.type,
+            id: note.id,
+            title: note.title,
+            txt: note.txt,
+            updatedAt: note.updated_at,
+            archived: note.archived === 1,
+            scroll_pos: openNote.scroll_pos,
+            selections:
+              (
                 'selections' in openNote && openNote.selections // TODO: check if we need to clamp selections
-                  ? openNote.selections
-                  : [defaultSelection],
-            }
-          : {
-              type: note.type,
-              id: note.id,
-              title: note.title,
-              todos: note.todos,
-              updatedAt: note.updated_at,
-              archived: note.archived === 1,
-            }
+              ) ?
+                openNote.selections
+              : [defaultSelection],
+          }
+        : {
+            type: note.type,
+            id: note.id,
+            title: note.title,
+            todos: note.todos,
+            updatedAt: note.updated_at,
+            archived: note.archived === 1,
+            scroll_pos: openNote.scroll_pos,
+          }
     })
   }
 }
@@ -939,7 +939,7 @@ export const registerNotesSubscriptions = () => {
   subscribe((state) => state.notes.sort, storeNotesSortOrder)
   subscribe(
     (state) => state.notes.openNote,
-    (curr, prev) => curr && prev && storeOpenNoteDebounced()
+    (curr, prev) => curr && prev && storeOpenNoteDebounced(),
   )
   subscribe(
     (state) => state.conflicts.conflicts.length !== 0,
@@ -947,26 +947,20 @@ export const registerNotesSubscriptions = () => {
       if (hasConflicts) {
         noteClosed()
       }
-    }
+    },
   )
   subscribe((state) => state.notes.openNote?.id ?? null, storeOpenNoteId)
 
   const syncNotesDebounced = debounce(syncNotes, 1000)
-  hasDirtyNotesObservable.subscribe((hasDirtyNotes) => {
-    if (hasDirtyNotes) {
-      syncNotesDebounced()
-    }
-  })
-  hasDirtyLabelsObservable.subscribe((hasDirtyLabels) => {
-    if (hasDirtyLabels) {
-      syncNotesDebounced()
-    }
-  })
-  hasDirtyFilesMetaObservable.subscribe((hasDirtyFiles) => {
-    if (hasDirtyFiles) {
-      syncNotesDebounced()
-    }
-  })
+  for (const hasDirtyRecords of [
+    hasDirtyNotesObservable,
+    hasDirtyLabelsObservable,
+    hasDirtyFilesMetaObservable,
+  ]) {
+    hasDirtyRecords.subscribe((hasDirty) => {
+      if (hasDirty) syncNotesDebounced()
+    })
+  }
 
   socket.on('notesPushed', () => {
     syncNotes()

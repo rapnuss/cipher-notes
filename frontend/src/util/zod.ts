@@ -3,7 +3,7 @@ import {safeJsonParse} from './misc'
 
 export const zodParseString = <Schema extends z.ZodType>(
   schema: Schema,
-  str: unknown
+  str: unknown,
 ): z.infer<Schema> | undefined => {
   if (typeof str !== 'string') {
     return undefined

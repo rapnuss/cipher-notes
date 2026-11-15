@@ -7,6 +7,21 @@ export type ActiveLabel = UUID | 'unlabeled' | 'all' | 'archived'
 export const activeLabelIsUuid = (activeLabel: ActiveLabel): activeLabel is UUID =>
   activeLabel !== 'unlabeled' && activeLabel !== 'all' && activeLabel !== 'archived'
 
+export type NoteScrollPosition =
+  {type: 'scroll'; top: number} | {type: 'editor'; anchor: number; offset: number}
+
+export type TextScrollPosition = {type: 'text'; row_index: number; offset?: number}
+export type FileScrollPosition =
+  | TextScrollPosition
+  | {
+      type: 'pdf'
+      zoomFactor: number
+      pageIndex: number
+      pageRatio: number
+      horizontalOffset: number
+    }
+  | {type: 'image'; scale: number; centerX: number; centerY: number}
+
 export type NoteCommon = {
   id: string
   title: string
@@ -17,6 +32,7 @@ export type NoteCommon = {
   deleted_at: number
   labels?: string[]
   archived: 0 | 1
+  scroll_pos: NoteScrollPosition | null
 }
 export type TextNote = NoteCommon & {type: 'note'; txt: string}
 export type TodoNote = NoteCommon & {type: 'todo'; todos: Todos}
@@ -39,15 +55,10 @@ export type FileMeta = {
   archived: 0 | 1
   has_thumb: 0 | 1
   size: number
+  scroll_pos: FileScrollPosition | null
 }
-export type FileBlob = {
-  id: string
-  blob: Blob
-}
-export type FileThumb = {
-  id: string
-  blob: Blob
-}
+export type FileBlob = {id: string; blob: Blob}
+export type FileThumb = {id: string; blob: Blob}
 
 export const filePullDellKeys = Object.freeze([
   'id',
@@ -59,9 +70,10 @@ export const filePullDellKeys = Object.freeze([
 ]) satisfies Readonly<(keyof FileMeta)[]>
 export type FilePullDellKeys = (typeof filePullDellKeys)[number]
 export type FilePullDel = Pick<FileMeta, FilePullDellKeys>
-export type FilePullDef = Omit<FileMeta, 'deleted_at' | 'blob_state' | 'has_thumb' | 'state'> & {
-  deleted_at: 0
-}
+export type FilePullDef = Omit<
+  FileMeta,
+  'deleted_at' | 'blob_state' | 'has_thumb' | 'state' | 'scroll_pos'
+> & {deleted_at: 0}
 export type FilePull = XOR<FilePullDel, FilePullDef>
 export type FilePullWithState = FilePull & {state: FileMeta['state']}
 
@@ -76,7 +88,7 @@ const filePullDefExtraKeysEnum: {[K in FilePullDefExtraKeys]: K} = {
 }
 type FilePullDefExtraKeys = Exclude<keyof FilePullDef, FilePullDellKeys>
 export const filePullDefExtraKeys: Readonly<FilePullDefExtraKeys[]> = Object.freeze(
-  Object.values(filePullDefExtraKeysEnum)
+  Object.values(filePullDefExtraKeysEnum),
 )
 
 export const noteSortProps = ['created_at', 'updated_at'] satisfies (keyof Note)[]
@@ -99,14 +111,8 @@ export type Todo = z.infer<typeof todoSchema>
 export const todosSchema = z.array(todoSchema)
 export type Todos = z.infer<typeof todosSchema>
 
-export type CMSelection = {
-  anchor: number
-  head: number
-}
-export const defaultSelection: Readonly<CMSelection> = Object.freeze({
-  anchor: 0,
-  head: 0,
-})
+export type CMSelection = {anchor: number; head: number}
+export const defaultSelection: Readonly<CMSelection> = Object.freeze({anchor: 0, head: 0})
 export type TextOpenNote = {
   type: 'note'
   id: string
@@ -115,6 +121,7 @@ export type TextOpenNote = {
   updatedAt: number
   archived: boolean
   selections: CMSelection[]
+  scroll_pos: NoteScrollPosition | null
 }
 export type TodoOpenNote = {
   type: 'todo'
@@ -123,12 +130,12 @@ export type TodoOpenNote = {
   todos: Todos
   updatedAt: number
   archived: boolean
+  scroll_pos: NoteScrollPosition | null
 }
 export type OpenNote = XOR<TextOpenNote, TodoOpenNote>
 
 export type NoteHistoryItem =
-  | {type: 'note'; txt: string; selections: CMSelection[]}
-  | {type: 'todo'; todos: Todos}
+  {type: 'note'; txt: string; selections: CMSelection[]} | {type: 'todo'; todos: Todos}
 
 export const hueOptions = [null, 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330] as const
 export type Hue = (typeof hueOptions)[number]
@@ -175,10 +182,7 @@ export const hueSchema = z.union([
   z.literal(330),
 ])
 
-export const labelPutTxtSchema = z.object({
-  name: z.string(),
-  hue: hueSchema,
-})
+export const labelPutTxtSchema = z.object({name: z.string(), hue: hueSchema})
 export type LabelPutTxt = z.infer<typeof labelPutTxtSchema>
 
 export const filePutTxtSchema = z.object({
@@ -194,10 +198,7 @@ export type FilePutTxt = z.infer<typeof filePutTxtSchema>
 export const features = ['password_protected_notes', 'reminders'] as const
 export type Feature = (typeof features)[number]
 
-export const jwtPayloadSchema = z.object({
-  sub: z.string(),
-  features: z.array(z.enum(features)),
-})
+export const jwtPayloadSchema = z.object({sub: z.string(), features: z.array(z.enum(features))})
 
 export type MyJwtPayload = z.infer<typeof jwtPayloadSchema>
 

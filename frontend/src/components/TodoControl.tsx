@@ -1,12 +1,10 @@
 import {Divider, Flex, Stack, UnstyledButton} from '@mantine/core'
-import {Todo, Todos} from '../business/models'
-import {useEffect, useMemo, useRef, useState} from 'react'
+import {NoteScrollPosition, Todo, Todos} from '../business/models'
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react'
 import {draggable, dropTargetForElements} from '@atlaskit/pragmatic-drag-and-drop/element/adapter'
-import {
-  attachClosestEdge,
-  Edge,
-  extractClosestEdge,
-} from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge'
+import {attachClosestEdge} from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge/attach-closest-edge'
+import {extractClosestEdge} from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge/extract-closest-edge'
+import type {Edge} from '@atlaskit/pragmatic-drag-and-drop-hitbox/types'
 import {IconGridDots} from './icons/IconGridDots'
 import {IconTrash} from './icons/IconTrash'
 import {IconPlus} from './icons/IconPlus'
@@ -16,6 +14,8 @@ import {IconSquareMinus} from './icons/IconSquareMinus'
 import {moveTodo} from '../state/notes'
 import {deriveTodosData} from '../business/misc'
 import {last} from '../util/misc'
+import {observeScrollPosition} from '../util/observeScrollPosition'
+import {useCurrentCallback} from '../util/useCurrentCallback'
 
 export type TodoControlProps = {
   todos: Todos
@@ -29,6 +29,8 @@ export type TodoControlProps = {
   onMoveTodo?: typeof moveTodo
   onMoveTodoByOne?: (id: string, direction: 'up' | 'down') => void
   autoFocus?: boolean
+  initialScrollPosition?: NoteScrollPosition | null
+  onScrollPositionChange?: (position: NoteScrollPosition) => void
 }
 export const TodoControl = ({
   todos,
@@ -42,10 +44,38 @@ export const TodoControl = ({
   onMoveTodo,
   onMoveTodoByOne,
   autoFocus,
+  initialScrollPosition,
+  onScrollPositionChange,
 }: TodoControlProps) => {
   const {idToTodo, visualOrderUndone, visualOrderDone} = deriveTodosData(todos)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const initialScrollPositionRef = useRef(initialScrollPosition)
+  const storesScrollPosition = onScrollPositionChange !== undefined
+  const currentOnScrollPositionChange = useCurrentCallback((position: NoteScrollPosition) =>
+    onScrollPositionChange?.(position),
+  )
+  useLayoutEffect(() => {
+    const element = scrollRef.current
+    if (!element || !storesScrollPosition) return
+    return observeScrollPosition(
+      element,
+      {
+        top:
+          initialScrollPositionRef.current?.type === 'scroll' ?
+            initialScrollPositionRef.current.top
+          : 0,
+        left: 0,
+      },
+      ({top}) => currentOnScrollPositionChange({type: 'scroll', top}),
+    )
+  }, [currentOnScrollPositionChange, storesScrollPosition])
   return (
-    <Stack flex={1} style={{overflowY: 'auto', paddingTop: '1px'}} gap={0}>
+    <Stack
+      ref={scrollRef}
+      flex={1}
+      style={{minHeight: 0, overflowX: 'hidden', overflowY: 'auto', paddingTop: '1px'}}
+      gap={0}
+    >
       <style scoped>{`
         textarea:disabled {
           color: var(--mantine-color-text);
@@ -77,7 +107,7 @@ export const TodoControl = ({
               onInsertTodo(last(todos)?.id)
               queueMicrotask(() => {
                 const tas = document.querySelectorAll(
-                  'textarea:not(:disabled)'
+                  'textarea:not(:disabled)',
                 ) as NodeListOf<HTMLTextAreaElement>
                 if (tas.length > 0) {
                   tas[tas.length - 1]?.select()
@@ -137,10 +167,7 @@ const TodoItem = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const handleRef = useRef<HTMLDivElement>(null)
-  const [dragState, setDragState] = useState<{
-    edge: Edge | null
-    indented: boolean
-  } | null>(null)
+  const [dragState, setDragState] = useState<{edge: Edge | null; indented: boolean} | null>(null)
   const data = useMemo(() => ({id: todo.id, visualIndex}), [todo.id, visualIndex])
 
   useEffect(() => {
@@ -169,23 +196,16 @@ const TodoItem = ({
           insertInSameSlot:
             source.data.id === todo.id ||
             visualIndex === undefined ||
-            (edge === 'top'
-              ? sourceVisualIndex === visualIndex - 1
-              : sourceVisualIndex === visualIndex + 1),
+            (edge === 'top' ?
+              sourceVisualIndex === visualIndex - 1
+            : sourceVisualIndex === visualIndex + 1),
         }
       },
       onDrag({self}) {
         const indented = !!self.data.indented
         const insertInSameSlot = !!self.data.insertInSameSlot
         const edge = extractClosestEdge(self.data)
-        setDragState(
-          insertInSameSlot && indented === !!todo.parent
-            ? null
-            : {
-                edge,
-                indented,
-              }
-        )
+        setDragState(insertInSameSlot && indented === !!todo.parent ? null : {edge, indented})
       },
       onDragLeave() {
         setDragState(null)
@@ -220,7 +240,7 @@ const TodoItem = ({
       gap={0}
       className='todo-list-item'
       pos='relative'
-      style={{opacity: ghost ? 0.5 : 1}}
+      style={{flexShrink: 0, opacity: ghost ? 0.5 : 1}}
     >
       <div
         ref={handleRef}
@@ -229,10 +249,9 @@ const TodoItem = ({
       >
         <IconGridDots style={{display: 'block', opacity: todo.done ? 0.2 : 0.5}} />
       </div>
-      {ghost ? (
+      {ghost ?
         <IconSquareMinus aria-label='checkbox mixed' />
-      ) : (
-        <IconsCheckbox
+      : <IconsCheckbox
           tabIndex={onTodoChecked ? undefined : -1}
           checked={todo.done}
           readOnly={!onTodoChecked}
@@ -240,12 +259,12 @@ const TodoItem = ({
           style={{marginRight: '.25rem'}}
           aria-labelledby={`todo-${todo.id}-textarea`}
         />
-      )}
+      }
       <AutoResizingTextarea
         id={`todo-${todo.id}-textarea`}
         tabIndex={onTodoChanged ? undefined : -1}
         placeholder='To do...'
-        style={{flex: 1}}
+        style={{flex: 1, minWidth: 0}}
         rows={1}
         textareaStyles={{
           border: 'none',

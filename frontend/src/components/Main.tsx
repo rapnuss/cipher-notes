@@ -80,11 +80,11 @@ const Header = () => {
   useHotkeys(
     [['esc', () => (bulkLabelOpen ? closeBulkLabelDropdown() : clearSelection())]],
     [],
-    true
+    true,
   )
   return (
     <Flex gap='xs' mih='4rem' px='md' className='header' justify='space-between' align='center'>
-      {selectionActive ? (
+      {selectionActive ?
         <>
           <Text fz='sm' lh='1.2'>
             {selectedCount} {selectedCount === 1 ? 'note' : 'notes'}
@@ -123,8 +123,7 @@ const Header = () => {
             </ActionIconWithText>
           </Flex>
         </>
-      ) : (
-        <>
+      : <>
           <SearchInput />
           <Flex gap='xs' flex='0 1 auto'>
             <NotesSortSelect />
@@ -133,7 +132,7 @@ const Header = () => {
             </ActionIcon>
           </Flex>
         </>
-      )}
+      }
     </Flex>
   )
 }

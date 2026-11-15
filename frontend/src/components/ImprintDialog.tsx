@@ -5,11 +5,7 @@ import {useCloseOnBack} from '../helpers/useCloseOnBack'
 
 export const ImprintDialog = () => {
   const open = useSelector((state) => state.user.imprintOpen)
-  useCloseOnBack({
-    id: 'imprint-dialog',
-    open,
-    onClose: toggleImprint,
-  })
+  useCloseOnBack({id: 'imprint-dialog', open, onClose: toggleImprint})
   return (
     <Modal opened={open} onClose={toggleImprint} title='Imprint'>
       <Text>

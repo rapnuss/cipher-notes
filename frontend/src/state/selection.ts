@@ -3,6 +3,7 @@ import {db} from '../db'
 import {openConfirmModalWithBackHandler} from '../helpers/openConfirmModal'
 import XSet from '../util/XSet'
 import {getState, RootState, setState} from './store'
+import {notifications} from '@mantine/notifications'
 
 export type SelectionState = {
   selected: {[id: string]: 'note' | 'file'}
@@ -125,8 +126,10 @@ export const unarchiveSelected = () => {
 }
 
 export const deleteSelected = () => {
-  const selected = Object.keys(getState().selection.selected)
+  const selection = getState().selection.selected
+  const selected = Object.keys(selection)
   if (selected.length === 0) return
+  const fileIds = selected.filter((id) => selection[id] === 'file')
 
   openConfirmModalWithBackHandler({
     id: 'delete-selected',
@@ -136,14 +139,30 @@ export const deleteSelected = () => {
     onConfirm,
   })
 
-  function onConfirm() {
-    db.transaction('rw', db.notes, db.files_meta, async (tx) => {
-      tx.notes.where('id').anyOf(selected).modify(deleteNote)
-      tx.files_meta.where('id').anyOf(selected).modify(deleteNote)
+  async function onConfirm() {
+    try {
+      await db.transaction(
+        'rw',
+        db.notes,
+        db.files_meta,
+        db.files_blob,
+        db.files_thumb,
+        async (tx) => {
+          await tx.notes.where('id').anyOf(selected).modify(deleteNote)
+          await tx.files_meta.where('id').anyOf(selected).modify(deleteNote)
+          if (fileIds.length > 0) {
+            await tx.files_blob.bulkDelete(fileIds)
+            await tx.files_thumb.bulkDelete(fileIds)
+          }
+        },
+      )
       setState((state) => {
         state.selection.selected = {}
       })
-    })
+    } catch (error) {
+      console.error(error)
+      notifications.show({message: 'Failed to delete selected items', color: 'red'})
+    }
   }
   function deleteNote(rec: Note | FileMeta, ref: any) {
     if (rec.deleted_at) return
@@ -151,8 +170,9 @@ export const deleteSelected = () => {
       delete ref.value
       return
     }
-    rec.deleted_at = Date.now()
-    rec.updated_at = Date.now()
+    const now = Date.now()
+    rec.deleted_at = now
+    rec.updated_at = now
     if (rec.state === 'synced') {
       rec.state = 'dirty'
       rec.version = rec.version + 1

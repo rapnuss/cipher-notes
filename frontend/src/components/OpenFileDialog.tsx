@@ -1,4 +1,4 @@
-import {Drawer, Flex, Menu, Popover} from '@mantine/core'
+import {Button, Drawer, Flex, Menu, NumberInput, Popover, Text} from '@mantine/core'
 import {useSelector} from '../state/store'
 import {
   copyFileToClipboard,
@@ -9,11 +9,12 @@ import {
   openFileTitleChanged,
   setLabelDropdownOpen,
   setMoreMenuOpen,
+  fileScrollPositionChanged,
 } from '../state/files'
 import {useLiveQuery} from 'dexie-react-hooks'
 import {db} from '../db'
 import {ImageViewer} from './ImageViewer'
-import {Hue} from '../business/models'
+import {FileScrollPosition, Hue} from '../business/models'
 import {useThemeName} from '../helpers/useMyColorScheme'
 import {getFilename, labelBgColor, labelBorderColor} from '../business/misc'
 import {TextViewer} from './TextViewer'
@@ -29,25 +30,132 @@ import {IconDownload} from './icons/IconDownload'
 import {downloadBlob, formatDateTime} from '../util/misc'
 import {notifications} from '@mantine/notifications'
 import {useCloseOnBack} from '../helpers/useCloseOnBack'
-import {useEffect} from 'react'
+import {lazy, Suspense, useCallback, useEffect, useState, type SyntheticEvent} from 'react'
 import {useHotkeys} from '@mantine/hooks'
 import {FileIconWithExtension} from './FileIconWithExtension'
 import {isAndroid, isIOS} from '../helpers/bowser'
 import {IconCopy} from './icons/IconCopy'
 import {IconClockPlus} from './icons/IconClockPlus'
 import {IconClockEdit} from './icons/IconClockEdit'
+import type {PdfPageNavigation} from './PdfViewer'
+
+const PdfViewer = lazy(() => import('./PdfViewer').then((module) => ({default: module.PdfViewer})))
 
 const fileNotFound = Symbol('file not found')
+
+const PdfPageControl = ({navigation}: {navigation: PdfPageNavigation}) => {
+  const [opened, setOpened] = useState(false)
+  const [page, setPage] = useState<string | number>(navigation.currentPage)
+  const pageNumber = Number(page)
+  const isValidPage =
+    Number.isInteger(pageNumber) && pageNumber >= 1 && pageNumber <= navigation.totalPages
+
+  const toggle = () => {
+    if (!opened) setPage(navigation.currentPage)
+    setOpened(!opened)
+  }
+
+  const submit = (event: SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!isValidPage) return
+    navigation.goToPage(pageNumber)
+    setOpened(false)
+  }
+
+  return (
+    <Popover
+      width={240}
+      position='top'
+      withArrow
+      shadow='md'
+      trapFocus={!isIOS()}
+      closeOnEscape={false}
+      closeOnClickOutside
+      opened={opened}
+      onDismiss={() => setOpened(false)}
+    >
+      <Popover.Target>
+        <ActionIconWithText
+          title={`Page ${navigation.currentPage} of ${navigation.totalPages}. Go to page`}
+          text='go to'
+          onClick={toggle}
+          style={{width: 'auto', paddingInline: '.25rem'}}
+        >
+          <div
+            style={{
+              fontVariantNumeric: 'tabular-nums',
+              whiteSpace: 'nowrap',
+              fontSize: '0.75rem',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {String(navigation.currentPage).padStart(String(navigation.totalPages).length, '0')}/
+            {navigation.totalPages}
+          </div>
+        </ActionIconWithText>
+      </Popover.Target>
+      <Popover.Dropdown>
+        <form
+          onSubmit={submit}
+          onKeyDown={(event) => {
+            if (event.key !== 'Escape') return
+            event.stopPropagation()
+            setOpened(false)
+          }}
+        >
+          <Text size='sm' fw={600} mb='xs'>
+            Go to page
+          </Text>
+          <Flex gap='xs' align='flex-end'>
+            <NumberInput
+              value={page}
+              onChange={setPage}
+              min={1}
+              max={navigation.totalPages}
+              allowDecimal={false}
+              allowNegative={false}
+              clampBehavior='strict'
+              hideControls
+              selectAllOnFocus
+              type='tel'
+              autoFocus
+              aria-label={`Page number, from 1 to ${navigation.totalPages}`}
+              style={{flex: '1 1 0'}}
+            />
+            <Button type='submit' disabled={!isValidPage}>
+              Go
+            </Button>
+          </Flex>
+        </form>
+      </Popover.Dropdown>
+    </Popover>
+  )
+}
 
 export const OpenFileDialog = () => {
   const theme = useThemeName()
   const openFile = useSelector((state) => state.files.openFile)
   const {moreMenuOpen, labelDropdownOpen} = useSelector((state) => state.files.fileDialog)
   const labelsCache = useSelector((state) => state.labels.labelsCache)
+  const [pdfPageNavigation, setPdfPageNavigation] = useState<PdfPageNavigation | null>(null)
   const open = openFile !== null
   const file = useLiveQuery(
-    async () => (openFile ? (await db.files_meta.get(openFile.id)) ?? fileNotFound : undefined),
-    [openFile?.id]
+    async () => (openFile ? ((await db.files_meta.get(openFile.id)) ?? fileNotFound) : undefined),
+    [openFile?.id],
+  )
+  const fileBlob = useLiveQuery(
+    async () => (openFile ? (await db.files_blob.get(openFile.id))?.blob : undefined),
+    [openFile?.id],
+  )
+  const displayedFileId = file && file !== fileNotFound ? file.id : undefined
+  const storeScrollPosition = useCallback(
+    (position: FileScrollPosition) => {
+      if (displayedFileId) fileScrollPositionChanged(displayedFileId, position)
+    },
+    [displayedFileId],
   )
   useCloseOnBack({id: 'open-file-dialog', open, onClose: fileClosed})
   useEffect(() => {
@@ -79,11 +187,11 @@ export const OpenFileDialog = () => {
       ],
     ],
     [],
-    true
+    true,
   )
   if (!file || file === fileNotFound) return null
   const openNoteLabel = file.labels[0]
-  const hue: Hue = openNoteLabel ? labelsCache[openNoteLabel]?.hue ?? null : null
+  const hue: Hue = openNoteLabel ? (labelsCache[openNoteLabel]?.hue ?? null) : null
   const borderColor = labelBorderColor(hue, theme)
   const src = `/files/${file.id}`
   return (
@@ -131,36 +239,64 @@ export const OpenFileDialog = () => {
           onChange={(e) => openFileTitleChanged(e.target.value)}
         />
         {file.ext && (
-          <div
-            style={{
-              flex: '0 0 auto',
-              fontSize: '1.5rem',
-              opacity: 0.5,
-              fontWeight: 'bold',
-            }}
-          >
+          <div style={{flex: '0 0 auto', fontSize: '1.5rem', opacity: 0.5, fontWeight: 'bold'}}>
             {file.ext}
           </div>
         )}
       </Flex>
-      {file.blob_state === 'remote' ? (
+      {file.blob_state === 'remote' ?
         <div
           style={{flex: '1 1 0', display: 'flex', justifyContent: 'center', alignItems: 'center'}}
         >
           File not downloaded
         </div>
-      ) : file.mime.startsWith('image/') ? (
-        <ImageViewer src={src} alt={file.title} />
-      ) : file.mime === 'application/pdf' ? (
-        <iframe
-          style={{flex: '1 1 0', border: 'none'}}
+      : file.mime.startsWith('image/') ?
+        <ImageViewer
           key={file.id}
           src={src}
-          title={file.title}
+          alt={file.title}
+          initialScrollPosition={file.scroll_pos}
+          onScrollPositionChange={storeScrollPosition}
         />
-      ) : file.mime.startsWith('video/') ? (
+      : file.mime === 'application/pdf' ?
+        <Suspense
+          fallback={
+            <div
+              style={{
+                flex: '1 1 0',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              Loading PDF viewer…
+            </div>
+          }
+        >
+          {fileBlob ?
+            <PdfViewer
+              key={file.id}
+              file={fileBlob}
+              title={file.title}
+              scrollPosition={file.scroll_pos}
+              onScrollPositionChange={storeScrollPosition}
+              onPageNavigationChange={setPdfPageNavigation}
+            />
+          : <div
+              style={{
+                flex: '1 1 0',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              Loading PDF…
+            </div>
+          }
+        </Suspense>
+      : file.mime.startsWith('video/') ?
         <video style={{flex: '1 1 0', minHeight: 0}} src={src} controls />
-      ) : file.mime.startsWith('audio/') ? (
+      : file.mime.startsWith('audio/') ?
         <div
           style={{
             flex: '1 1 0',
@@ -171,15 +307,19 @@ export const OpenFileDialog = () => {
         >
           <audio style={{flex: '0 0 auto'}} src={src} controls />
         </div>
-      ) : file.mime.startsWith('text/') || file.mime === 'application/json' ? (
-        <TextViewer src={src} />
-      ) : (
-        <div
+      : file.mime.startsWith('text/') || file.mime === 'application/json' ?
+        <TextViewer
+          key={file.id}
+          src={src}
+          initialScrollPosition={file.scroll_pos?.type === 'text' ? file.scroll_pos : null}
+          onScrollPositionChange={storeScrollPosition}
+        />
+      : <div
           style={{flex: '1 1 0', display: 'flex', justifyContent: 'center', alignItems: 'center'}}
         >
           <FileIconWithExtension ext={file.ext} />
         </div>
-      )}
+      }
       <Flex gap='xs'>
         <Menu
           closeOnEscape={false}
@@ -241,6 +381,10 @@ export const OpenFileDialog = () => {
             </Menu.Item>
           </Menu.Dropdown>
         </Menu>
+        <div style={{flex: '1 1 0'}} />
+        {file.mime === 'application/pdf' && pdfPageNavigation && (
+          <PdfPageControl navigation={pdfPageNavigation} />
+        )}
         <div style={{flex: '1 1 0'}} />
         <Popover
           width='300px'

@@ -1,9 +1,7 @@
 import {HTMLProps, useEffect, useRef} from 'react'
 import QrScanner from 'qr-scanner'
 
-export type QRScannerProps = HTMLProps<HTMLVideoElement> & {
-  onScan: (text: string) => void
-}
+export type QRScannerProps = HTMLProps<HTMLVideoElement> & {onScan: (text: string) => void}
 export const QRScanner = ({onScan, ...props}: QRScannerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   useEffect(() => {

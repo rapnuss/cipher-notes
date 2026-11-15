@@ -15,16 +15,12 @@ import {
 export const ChangeEmailDialog = () => {
   const oldEmail = useSelector((state) => state.user.user.email)
   const {open, email, loading, status, oldEmailCode, newEmailCode} = useSelector(
-    (state) => state.user.changeEmailDialog
+    (state) => state.user.changeEmailDialog,
   )
-  useCloseOnBack({
-    id: 'change-email-dialog',
-    open,
-    onClose: closeChangeEmailDialog,
-  })
+  useCloseOnBack({id: 'change-email-dialog', open, onClose: closeChangeEmailDialog})
   return (
     <Modal opened={open} onClose={closeChangeEmailDialog} title='Change Email'>
-      {status === 'email' ? (
+      {status === 'email' ?
         <Stack gap='md'>
           <TextInput label='Old Email' value={oldEmail} disabled readOnly />
           <TextInput
@@ -43,8 +39,7 @@ export const ChangeEmailDialog = () => {
             </Button>
           </Flex>
         </Stack>
-      ) : (
-        <Stack gap='md'>
+      : <Stack gap='md'>
           <TextInput
             label={`Code sent to ${oldEmail}`}
             value={oldEmailCode}
@@ -65,7 +60,7 @@ export const ChangeEmailDialog = () => {
             </Button>
           </Flex>
         </Stack>
-      )}
+      }
     </Modal>
   )
 }
