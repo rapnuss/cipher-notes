@@ -51,8 +51,8 @@ export const TodoControl = ({
   const scrollRef = useRef<HTMLDivElement>(null)
   const initialScrollPositionRef = useRef(initialScrollPosition)
   const storesScrollPosition = onScrollPositionChange !== undefined
-  const currentOnScrollPositionChange = useCurrentCallback(
-    (position: NoteScrollPosition) => onScrollPositionChange?.(position),
+  const currentOnScrollPositionChange = useCurrentCallback((position: NoteScrollPosition) =>
+    onScrollPositionChange?.(position),
   )
   useLayoutEffect(() => {
     const element = scrollRef.current
@@ -70,7 +70,12 @@ export const TodoControl = ({
     )
   }, [currentOnScrollPositionChange, storesScrollPosition])
   return (
-    <Stack ref={scrollRef} flex={1} style={{overflowY: 'auto', paddingTop: '1px'}} gap={0}>
+    <Stack
+      ref={scrollRef}
+      flex={1}
+      style={{minHeight: 0, overflowX: 'hidden', overflowY: 'auto', paddingTop: '1px'}}
+      gap={0}
+    >
       <style scoped>{`
         textarea:disabled {
           color: var(--mantine-color-text);
@@ -235,7 +240,7 @@ const TodoItem = ({
       gap={0}
       className='todo-list-item'
       pos='relative'
-      style={{opacity: ghost ? 0.5 : 1}}
+      style={{flexShrink: 0, opacity: ghost ? 0.5 : 1}}
     >
       <div
         ref={handleRef}
@@ -259,7 +264,7 @@ const TodoItem = ({
         id={`todo-${todo.id}-textarea`}
         tabIndex={onTodoChanged ? undefined : -1}
         placeholder='To do...'
-        style={{flex: 1}}
+        style={{flex: 1, minWidth: 0}}
         rows={1}
         textareaStyles={{
           border: 'none',

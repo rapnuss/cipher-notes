@@ -134,12 +134,14 @@ export const OpenNoteDialog = () => {
           height: 'var(--viewport-height, 100dvh)',
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
           backgroundColor: labelBgColor(hue, theme),
           border: borderColor ? `2px solid ${borderColor}` : undefined,
         },
         body: {
-          flex: '0 0 100%',
-          height: '100%',
+          flex: '1 1 0',
+          minHeight: 0,
+          overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
           gap: '1rem',
@@ -150,6 +152,7 @@ export const OpenNoteDialog = () => {
       <input
         id='open-note-title'
         style={{
+          flexShrink: 0,
           border: 'none',
           fontSize: '1.5rem',
           fontWeight: 'bold',
@@ -222,7 +225,7 @@ export const OpenNoteDialog = () => {
           onScrollPositionChange={(position) => noteScrollPositionChanged(openNote.id, position)}
         />
       : null}
-      <Flex gap='xs'>
+      <Flex gap='xs' style={{flexShrink: 0}}>
         <Menu
           shadow='md'
           width={230}
