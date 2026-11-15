@@ -4,7 +4,7 @@ import {hostingMode} from '../env'
 import {signJwt} from '../services/jwt'
 import {generateSalt, hashToken} from '../util/hash'
 
-// on big O, no 0, no big I, no small l
+// no big O, no 0, no big I, no small l
 const CODE_CHARS = '123456789abcdefghijkmnopqrstuvwxyz'
 
 export const generateLoginCode = () => {

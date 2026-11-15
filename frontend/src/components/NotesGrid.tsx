@@ -148,7 +148,15 @@ const NotePreview = ({note}: {note: Note | FileMeta}) => {
           : noteOpened(note.id)
         }
       >
-        <div style={{fontSize: '1.5rem', fontWeight: 'bold'}}>
+        <div
+          style={{
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {note.type === 'file' ? getFilename(note) : note.title}
         </div>
         {note.type === 'note' ?
